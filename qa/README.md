@@ -8,7 +8,7 @@
 |---|---|---|
 | ① 스켈레톤 | 입력값 파일 → 가짜 판정 대상 → 채점 → 콘솔 출력·종료 코드 | 완료 |
 | ② 결과 저장·HTML 보고서 | 실행 번호별 JSON·HTML 보고서 저장 | 완료 |
-| ③ 실제 API 연결 | 가짜 판정 대상 대신 FastAPI 호출 (B의 API 필요) | 다음 |
+| ③ 실제 API 연결 | FastAPI 호출 코드 완료. B의 API가 나오면 주소·형식만 맞춰 연결 | 연결 대기 |
 | ④ 파이프라인 시험 | Kafka에 중복·역순·지연 주입, Bronze·Silver·Gold 비교 (C의 파이프라인 필요) | 예정 |
 | ⑤ 부하·복구 시험 | 5건/초 × 5분 발행, Spark 중단·재가동, p95·회복 시간 측정 | 예정 |
 | ⑥ 자동 실행·CI | docker-compose 서비스 추가, CI에서 종료 코드로 판정 | 예정 |
@@ -22,7 +22,7 @@
 ```
 
 - 정답은 판정 대상을 거치지 않고 채점 단계로 바로 갑니다. 시스템이 틀려도 정답은 오염되지 않습니다.
-- 판정 대상은 바꿔 끼울 수 있습니다. 지금은 가짜(`FakeVerdictService`)이고, FastAPI가 준비되면 그 부분만 바꿉니다.
+- 판정 대상은 바꿔 끼울 수 있습니다. `--api-url`을 주면 실제 API(`ApiVerdictService`), 주지 않으면 가짜(`FakeVerdictService`)로 채점합니다.
 
 ## 빠른 시작
 
@@ -61,13 +61,28 @@ dotnet test
 옵션은 `--` 뒤에 붙입니다. 생략하면 기본값을 씁니다.
 
 ```bash
-dotnet run --project src/QaRunner -- --cases cases/rules.json --reports reports
+dotnet run --project src/QaRunner -- --cases cases/rules.json --reports reports --api-url http://localhost:8000
 ```
 
 | 옵션 | 뜻 | 기본값 |
 |---|---|---|
 | `--cases` | 읽을 입력값 파일 | `cases/rules.json` |
 | `--reports` | 보고서를 저장할 폴더 | `reports` |
+| `--api-url` | 판정 API 주소. `http://` 또는 `https://`로 시작 | 없음 (가짜 판정 대상 사용) |
+
+## API 연결 약속
+
+`--api-url`을 주면 케이스마다 아래처럼 요청합니다. B와 확정하기 전의 임시 약속이며, 바뀌면 `Verdicts/ApiVerdictService.cs`만 고칩니다.
+
+| 구분 | 내용 |
+|---|---|
+| 요청 | `POST {API 주소}/checks`, 본문 `{ "message": "문자 내용" }` |
+| 응답 | `200 OK`, 본문 `{ "verdict": "고위험" }` (다른 필드는 읽지 않음) |
+| 시간 제한 | 10초 |
+
+B와 맞출 것: 경로(`/checks`), 요청 키(`message`), 응답 키(`verdict`), 판정 값을 한글로 주는지 영문 코드로 주는지.
+
+API가 꺼져 있거나, 오류 응답(4xx·5xx)이 오거나, 10초 안에 답이 없거나, 응답에 `verdict`가 없으면 그 케이스는 **시스템 실패**로 기록하고 다음 케이스로 넘어갑니다.
 
 ## 시험 케이스 작성법
 
@@ -96,7 +111,7 @@ dotnet run --project src/QaRunner -- --cases cases/rules.json --reports reports
 
 ## 보고서
 
-실행할 때마다 보고서 폴더(기본 `reports/`)에 실행 번호로 파일 두 개가 생깁니다. 실행 번호는 시작 시각입니다(예: `2026-10-26-143015`). 이 폴더는 git에 올라가지 않습니다.
+실행할 때마다 보고서 폴더(기본 `reports/`)에 실행 번호로 파일 두 개가 생깁니다. 실행 번호는 시작 시각입니다(예: `2026-10-26-143015`). 같은 초에 다시 실행하면 `-2`, `-3`이 붙어 앞의 보고서를 덮어쓰지 않습니다. 이 폴더는 git에 올라가지 않습니다.
 
 | 파일 | 용도 |
 |---|---|
@@ -106,6 +121,7 @@ dotnet run --project src/QaRunner -- --cases cases/rules.json --reports reports
 보고서 읽는 법:
 
 - 실패한 케이스가 표의 위쪽에 먼저 나옵니다.
+- 판정을 아예 못 받은 케이스는 실제 판정이 "시스템 실패"로 나오고, 그 아래에 이유(연결 실패, 시간 초과 등)가 붙습니다.
 - 가짜 판정 대상으로 실행한 보고서에는 "실제 판정 규칙의 성능이 아닙니다"라는 안내가 붙습니다.
 
 프로그램이 끝날 때 돌려주는 종료 코드는 CI가 성공·실패를 판단하는 데 씁니다.
@@ -113,7 +129,8 @@ dotnet run --project src/QaRunner -- --cases cases/rules.json --reports reports
 | 종료 코드 | 뜻 |
 |---|---|
 | `0` | 모든 케이스 통과 |
-| `1` | 실패한 케이스가 하나 이상 있음 |
+| `1` | 실패한 케이스가 하나 이상 있음 (시스템 실패 포함) |
+| `2` | 채점을 시작하지 못함 (입력값 파일이 없거나 형식이 틀림, API 주소가 잘못됨) |
 
 ## 폴더 구조
 
@@ -122,29 +139,35 @@ qa/
 ├─ cases/rules.json                 입력값 + 정답
 ├─ src/QaRunner/
 │   ├─ Program.cs                    실행 순서 연결 (읽기 → 판정 → 채점 → 출력 → 저장)
-│   ├─ CommandLineOptions.cs         --cases, --reports 옵션 읽기
+│   ├─ CommandLineOptions.cs         --cases, --reports, --api-url 옵션 읽기
 │   ├─ TestCaseLoader.cs             입력값 파일 읽기
 │   ├─ VerdictChecker.cs             채점기: 정답 vs 실제 판정
 │   ├─ Models/
 │   │   ├─ TestCase.cs               시험 케이스 한 건 (케이스 번호, 문자, 정답)
-│   │   ├─ TestResult.cs             채점 결과 한 건 (문자, 정답, 실제 판정, 통과 여부)
+│   │   ├─ TestResult.cs             채점 결과 한 건 (문자, 정답, 실제 판정, 통과 여부, 시스템 실패 이유)
 │   │   └─ TestRun.cs                한 번 실행한 기록 (실행 번호, 시각, 결과 목록, 통과율)
 │   ├─ Verdicts/
 │   │   ├─ IVerdictService.cs        판정 대상이 갖춰야 할 모양
-│   │   └─ FakeVerdictService.cs     임시 가짜 판정 대상
+│   │   ├─ FakeVerdictService.cs     임시 가짜 판정 대상
+│   │   └─ ApiVerdictService.cs      FastAPI를 호출하는 실제 판정 대상
 │   └─ Reports/
 │       ├─ JsonReportWriter.cs       JSON 보고서 저장
-│       └─ HtmlReportWriter.cs       HTML 보고서 저장
+│       ├─ HtmlReportWriter.cs       HTML 보고서 저장
+│       └─ RunIdGenerator.cs         겹치지 않는 실행 번호 만들기
 └─ tests/QaRunner.Tests/             QA 러너 자체의 테스트
 ```
 
 ## 확장 방법
 
-### 판정 대상을 실제 API로 바꾸기 (③단계)
+### B의 API 형식이 확정되면
 
-1. `src/QaRunner/Verdicts/`에 `IVerdictService`를 구현한 클래스를 추가합니다. 예: `ApiVerdictService`가 FastAPI에 문자를 보내고 판정을 받아 돌려줌
-2. `Program.cs`의 "2. 판정 대상 정하기" 줄에서 `new FakeVerdictService()`를 새 클래스로 바꿉니다.
-3. 채점기, 보고서 등 나머지 코드는 고치지 않습니다.
+1. `Verdicts/ApiVerdictService.cs`에서 경로(`CheckEndpointPath`), 요청·응답 키를 확정된 형식에 맞춥니다.
+2. 판정 값이 영문 코드로 오면 같은 파일에서 한글 판정으로 바꿔 돌려줍니다.
+3. `--api-url`에 실제 주소를 넣어 실행합니다. 채점기, 보고서 등 나머지 코드는 고치지 않습니다.
+
+### 새로운 판정 대상 추가하기
+
+`src/QaRunner/Verdicts/`에 `IVerdictService`를 구현한 클래스를 추가하고, `Program.cs`의 "2. 판정 대상 정하기"에서 고르게 합니다.
 
 ### 보고서에 항목 추가하기
 

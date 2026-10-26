@@ -12,15 +12,20 @@ public class CommandLineOptionsTests
 
         Assert.Equal(CommandLineOptions.DefaultTestCaseFilePath, options.TestCaseFilePath);
         Assert.Equal(CommandLineOptions.DefaultReportDirectory, options.ReportDirectory);
+
+        // API 주소가 없으면 가짜 판정 대상을 쓴다는 뜻
+        Assert.Null(options.ApiBaseUrl);
     }
 
     [Fact]
     public void Reads_values_that_follow_option_names()
     {
-        var options = CommandLineOptions.Parse(["--reports", "out", "--cases", "cases/more.json"]);
+        var options = CommandLineOptions.Parse(
+            ["--reports", "out", "--cases", "cases/more.json", "--api-url", "http://localhost:8000"]);
 
         Assert.Equal("cases/more.json", options.TestCaseFilePath);
         Assert.Equal("out", options.ReportDirectory);
+        Assert.Equal("http://localhost:8000", options.ApiBaseUrl);
     }
 
     [Fact]

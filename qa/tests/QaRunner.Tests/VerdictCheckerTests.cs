@@ -17,6 +17,38 @@ public class VerdictCheckerTests
         public Task<string> GetVerdictAsync(string message) => Task.FromResult(verdict);
     }
 
+    /// <summary>
+    /// API가 꺼져 있을 때처럼 항상 연결 오류를 내는 시험용 판정 대상.
+    /// </summary>
+    private sealed class AlwaysFailingVerdictService : IVerdictService
+    {
+        public Task<string> GetVerdictAsync(string message) =>
+            throw new HttpRequestException("연결할 수 없습니다");
+    }
+
+    [Fact]
+    public async Task Records_system_failure_and_keeps_checking_other_cases()
+    {
+        var verdictChecker = new VerdictChecker(new AlwaysFailingVerdictService());
+        TestCase[] testCases =
+        [
+            new("R-1", "첫 번째 문자", ExpectedVerdict: "고위험"),
+            new("R-2", "두 번째 문자", ExpectedVerdict: "주의"),
+        ];
+
+        var testResults = await verdictChecker.CheckAllAsync(testCases);
+
+        // 첫 케이스에서 오류가 나도 멈추지 않고 두 케이스 모두 기록해야 한다
+        Assert.Equal(2, testResults.Count);
+        Assert.All(testResults, testResult =>
+        {
+            Assert.False(testResult.IsPassed);
+            Assert.True(testResult.IsSystemFailure);
+            Assert.Equal(TestResult.SystemFailureVerdict, testResult.ActualVerdict);
+            Assert.Equal("연결할 수 없습니다", testResult.ErrorMessage);
+        });
+    }
+
     [Fact]
     public async Task Passes_when_actual_verdict_matches_expected()
     {

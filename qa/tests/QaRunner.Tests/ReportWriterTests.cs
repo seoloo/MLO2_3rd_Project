@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QaRunner.Models;
 using QaRunner.Reports;
 
 namespace QaRunner.Tests;
@@ -72,6 +73,22 @@ public class ReportWriterTests : IDisposable
 
         Assert.DoesNotContain("<script>", html);
         Assert.Contains("&lt;script&gt;", html);
+    }
+
+    [Fact]
+    public void Html_report_shows_reason_for_system_failure()
+    {
+        var testRun = SampleTestRuns.OnePassedOneFailed("ApiVerdictService");
+        var failedByConnection = testRun.Results[0] with
+        {
+            ActualVerdict = TestResult.SystemFailureVerdict,
+            ErrorMessage = "연결할 수 없습니다",
+        };
+
+        var html = HtmlReportWriter.BuildHtml(testRun with { Results = [failedByConnection] });
+
+        Assert.Contains(TestResult.SystemFailureVerdict, html);
+        Assert.Contains("연결할 수 없습니다", html);
     }
 
     [Fact]
