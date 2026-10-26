@@ -41,6 +41,12 @@ public sealed class LoadChecker(
     public const string ApiCaseId = "LOAD-API";
     public const string StreamCaseId = "LOAD-STREAM";
 
+    // 확인 항목 이름. 대시보드가 이 이름으로 실행 기록에서 측정값을 찾아 추이를 그린다
+    public const string ApiLatencyCheckName = "API 응답 시간 p95";
+    public const string ApiErrorRateCheckName = "API 오류율";
+    public const string GoldLatencyCheckName = "Gold 반영 시간 p95";
+    public const string GoldReflectedCountCheckName = "Gold 반영 건수 (적체 없음)";
+
     // API 부하 결과: 성공한 요청의 응답 시간들, 실패 건수, 첫 실패 이유
     private sealed record ApiLoadResult(IReadOnlyList<TimeSpan> Latencies, int FailedCount, string? FirstError);
 
@@ -116,11 +122,11 @@ public sealed class LoadChecker(
 
         var apiResults = new List<TestResult>
         {
-            new(ApiCaseId, "API 응답 시간 p95", input,
+            new(ApiCaseId, ApiLatencyCheckName, input,
                 Expected: $"{ApiLatencyTarget.TotalSeconds:0}초 이하",
                 Actual: LatencyStatistics.FormatSeconds(latencyP95),
                 MeetsTarget: latencyP95 <= ApiLatencyTarget),
-            new(ApiCaseId, "API 오류율", input,
+            new(ApiCaseId, ApiErrorRateCheckName, input,
                 Expected: "0%",
                 Actual: $"{errorRate:0.0}%",
                 ErrorMessage: null,
@@ -131,7 +137,7 @@ public sealed class LoadChecker(
         if (apiLoadResult.Latencies.Count == 0 && apiLoadResult.FirstError is not null)
         {
             apiResults[0] = TestResult.SystemFailure(
-                ApiCaseId, "API 응답 시간 p95", input, apiResults[0].Expected, apiLoadResult.FirstError);
+                ApiCaseId, ApiLatencyCheckName, input, apiResults[0].Expected, apiLoadResult.FirstError);
         }
 
         return apiResults;
@@ -143,13 +149,13 @@ public sealed class LoadChecker(
         var input = $"초당 {settings.EventsPerSecond:0.##}건 · {settings.DurationSeconds}초 · 이벤트 {streamSendResult.SentCount}건";
         var goldLatencyP95 = LatencyStatistics.Percentile(reflectionTracker.GetReflectionLatencies(), 95);
 
-        var latencyResult = new TestResult(StreamCaseId, "Gold 반영 시간 p95", input,
+        var latencyResult = new TestResult(StreamCaseId, GoldLatencyCheckName, input,
             Expected: $"{GoldLatencyTarget.TotalSeconds:0}초 이하",
             Actual: LatencyStatistics.FormatSeconds(goldLatencyP95),
             MeetsTarget: goldLatencyP95 <= GoldLatencyTarget);
 
         // 끝까지 Gold에 반영되지 않은 건수가 곧 적체다. 보낸 건수와 같아야 한다
-        var reflectedCountResult = new TestResult(StreamCaseId, "Gold 반영 건수 (적체 없음)", input,
+        var reflectedCountResult = new TestResult(StreamCaseId, GoldReflectedCountCheckName, input,
             Expected: reflectionTracker.SentCount.ToString(),
             Actual: reflectionTracker.ReflectedCount.ToString());
 

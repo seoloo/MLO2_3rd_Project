@@ -45,10 +45,11 @@ if (testRun.SystemFailureCount > 0)
     Console.WriteLine($"시스템 실패 {testRun.SystemFailureCount}건 · 예: {firstError}");
 }
 
-// 4. 보고서 파일 저장 (JSON은 다른 프로그램용, HTML은 사람이 보는 용도)
+// 4. 보고서 파일 저장 (JSON은 다른 프로그램용, HTML은 사람이 보는 용도, 대시보드는 지금까지의 실행 기록 추이)
 var savedReports = QaRunService.SaveReports(testRun, options.ReportDirectory);
 Console.WriteLine($"\nJSON 보고서: {Path.GetFullPath(savedReports.JsonReportPath)}");
 Console.WriteLine($"HTML 보고서: {Path.GetFullPath(savedReports.HtmlReportPath)}");
+Console.WriteLine($"대시보드:    {Path.GetFullPath(savedReports.DashboardPath)}");
 
 // 5. 종료 코드: 실패가 하나라도 있으면 1, 모두 통과하면 0 (실행 준비 오류는 위에서 2)
 //    CI는 이 값을 보고 시험 성공·실패를 판단한다.

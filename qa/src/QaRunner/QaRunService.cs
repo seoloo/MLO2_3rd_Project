@@ -23,7 +23,10 @@ public sealed record PreparedRun(
 /// <summary>
 /// 저장한 보고서 파일 경로.
 /// </summary>
-public sealed record SavedReports(string JsonReportPath, string HtmlReportPath);
+/// <param name="JsonReportPath">이번 실행의 JSON 보고서</param>
+/// <param name="HtmlReportPath">이번 실행의 HTML 보고서</param>
+/// <param name="DashboardPath">지금까지의 실행 기록을 모은 대시보드 (실행할 때마다 다시 만든다)</param>
+public sealed record SavedReports(string JsonReportPath, string HtmlReportPath, string DashboardPath);
 
 /// <summary>
 /// 콘솔 프로그램과 데스크탑 앱이 함께 쓰는 실행 절차: 준비 → 채점 → 보고서 저장.
@@ -145,11 +148,17 @@ public static class QaRunService
     }
 
     /// <summary>
-    /// 실행 기록을 JSON·HTML 보고서로 저장한다.
+    /// 실행 기록을 JSON·HTML 보고서로 저장하고, 이번 실행까지 포함해 대시보드를 다시 만든다.
+    /// (대시보드는 저장된 JSON 보고서를 읽으므로 JSON을 먼저 저장해야 한다)
     /// </summary>
-    public static SavedReports SaveReports(TestRun testRun, string reportDirectory) => new(
-        JsonReportPath: JsonReportWriter.Save(testRun, reportDirectory),
-        HtmlReportPath: HtmlReportWriter.Save(testRun, reportDirectory));
+    public static SavedReports SaveReports(TestRun testRun, string reportDirectory)
+    {
+        var jsonReportPath = JsonReportWriter.Save(testRun, reportDirectory);
+        var htmlReportPath = HtmlReportWriter.Save(testRun, reportDirectory);
+        var dashboardPath = DashboardWriter.Save(reportDirectory);
+
+        return new SavedReports(jsonReportPath, htmlReportPath, dashboardPath);
+    }
 
     /// <summary>
     /// 채점을 시작하기도 전에 난 문제인지 판단한다.
