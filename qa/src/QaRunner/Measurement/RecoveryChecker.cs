@@ -30,6 +30,10 @@ public sealed class RecoveryChecker(
 
     public const string CaseId = "RECOVERY";
 
+    // 확인 항목 이름. 대시보드가 이 이름으로 실행 기록에서 측정값을 찾아 추이를 그린다
+    public const string RecoveryTimeCheckName = "재가동 후 회복 시간";
+    public const string FinalCountCheckName = "최종 Gold 반영 건수 (집계 일치)";
+
     // 처리를 멈췄다 다시 켠 기록: 재가동 시각, 그 시점까지 보낸 건수, 제어 실패 이유
     private sealed record StopAndRestartResult(DateTimeOffset? RestartedAt, int SentCountAtRestart, string? ControlError);
 
@@ -81,8 +85,6 @@ public sealed class RecoveryChecker(
         var input = $"초당 {settings.EventsPerSecond:0.##}건 · {settings.DurationSeconds}초 발행 · " +
                     $"{settings.StopAfterSeconds}초 지점에서 {settings.StopSeconds}초 중단 · 이벤트 {streamSendResult.SentCount}건";
 
-        const string recoveryCheckName = "재가동 후 회복 시간";
-        const string finalCountCheckName = "최종 Gold 반영 건수 (집계 일치)";
         var recoveryExpected = $"{RecoveryTimeTarget.TotalSeconds:0}초 이하";
 
         // 보내기나 중단·재가동 자체가 안 됐다면 측정할 수 없으므로 시스템 실패로 남긴다
@@ -91,8 +93,8 @@ public sealed class RecoveryChecker(
         {
             return
             [
-                TestResult.SystemFailure(CaseId, recoveryCheckName, input, recoveryExpected, setupError),
-                TestResult.SystemFailure(CaseId, finalCountCheckName, input, reflectionTracker.SentCount.ToString(), setupError),
+                TestResult.SystemFailure(CaseId, RecoveryTimeCheckName, input, recoveryExpected, setupError),
+                TestResult.SystemFailure(CaseId, FinalCountCheckName, input, reflectionTracker.SentCount.ToString(), setupError),
             ];
         }
 
@@ -101,11 +103,11 @@ public sealed class RecoveryChecker(
 
         return
         [
-            new TestResult(CaseId, recoveryCheckName, input,
+            new TestResult(CaseId, RecoveryTimeCheckName, input,
                 Expected: recoveryExpected,
                 Actual: recoveryTime is null ? "제한 시간 안에 회복 못 함" : LatencyStatistics.FormatSeconds(recoveryTime),
                 MeetsTarget: recoveryTime <= RecoveryTimeTarget),
-            new TestResult(CaseId, finalCountCheckName, input,
+            new TestResult(CaseId, FinalCountCheckName, input,
                 Expected: reflectionTracker.SentCount.ToString(),
                 Actual: reflectionTracker.ReflectedCount.ToString()),
         ];

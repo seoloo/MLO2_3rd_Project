@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using QaRunner.Measurement;
 using QaRunner.Models;
+using QaRunner.Reports;
 
 namespace QaRunner.Desktop;
 
@@ -24,6 +25,21 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         ApplySuiteDefaults();
+
+        // 예전에 만든 대시보드가 있으면 실행 전에도 바로 열 수 있게 한다
+        OpenDashboardButton.IsEnabled = File.Exists(DashboardPath);
+    }
+
+    // 보고서 폴더 칸 기준의 대시보드 경로
+    private string DashboardPath
+    {
+        get
+        {
+            var reportDirectory = ReportDirectoryBox.Text.Trim();
+            return Path.GetFullPath(Path.Combine(
+                reportDirectory.Length > 0 ? reportDirectory : CommandLineOptions.DefaultReportDirectory,
+                DashboardWriter.FileName));
+        }
     }
 
     /// <summary>
@@ -54,7 +70,8 @@ public partial class MainWindow : Window
 
             ShowTestRun(testRun);
             _lastHtmlReportPath = Path.GetFullPath(savedReports.HtmlReportPath);
-            ShowStatus($"보고서를 저장했습니다.\n{_lastHtmlReportPath}", isError: false);
+            OpenDashboardButton.IsEnabled = true;
+            ShowStatus($"보고서를 저장하고 대시보드를 새로 만들었습니다.\n{_lastHtmlReportPath}", isError: false);
         }
         catch (Exception exception) when (QaRunService.IsPreparationError(exception))
         {
@@ -108,6 +125,15 @@ public partial class MainWindow : Window
     {
         if (_lastHtmlReportPath is not null)
             Process.Start(new ProcessStartInfo(_lastHtmlReportPath) { UseShellExecute = true });
+    }
+
+    // 지금까지의 실행 기록을 모은 대시보드를 기본 브라우저로 연다
+    private void OpenDashboardButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (File.Exists(DashboardPath))
+            Process.Start(new ProcessStartInfo(DashboardPath) { UseShellExecute = true });
+        else
+            ShowStatus("대시보드가 아직 없습니다. 시험을 한 번 실행하면 만들어집니다.", isError: true);
     }
 
     // 시험 종류를 바꾸면 입력 경로 기본값과 API 주소 칸 사용 여부를 바꾼다
