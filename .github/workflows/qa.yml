@@ -1,6 +1,7 @@
 # QA 러너 자동 검사
 # qa 폴더나 이 파일이 바뀐 커밋을 푸시하면 GitHub가 빌드·테스트를 돌리고,
-# 판정·파이프라인 시험을 한 번씩 실행해 보고서를 결과물(Artifacts)로 첨부한다.
+# 판정·파이프라인·부하·복구 시험을 한 번씩 실행해 보고서를 결과물(Artifacts)로 첨부한다.
+# 기본 브랜치에 푸시하면 실행 기록을 qa-history 브랜치에 쌓고, 대시보드를 GitHub Pages에 올린다.
 name: QA 러너 검사
 
 on:
@@ -13,12 +14,23 @@ on:
   # Actions 탭에서 버튼으로 직접 돌릴 수도 있게 한다
   workflow_dispatch:
 
+# 같은 브랜치의 검사가 동시에 돌면 실행 기록 브랜치에 동시에 푸시하다 부딪히므로 차례로 돌린다
+concurrency:
+  group: qa-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   qa:
     name: 빌드 · 테스트 · 시험 실행
     # 데스크탑 앱(WPF)이 Windows에서만 빌드되므로 Windows 환경을 쓴다
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    permissions:
+      # 실행 기록을 qa-history 브랜치에 푸시하기 위해 필요
+      contents: write
+    env:
+      # 기본 브랜치에 푸시했을 때만 실행 기록을 쌓고 대시보드를 공개한다 (PR·다른 브랜치는 검사만)
+      PUBLISH_DASHBOARD: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     defaults:
       run:
         working-directory: qa
@@ -28,10 +40,27 @@ jobs:
       - name: 코드 받기
         uses: actions/checkout@v4
 
+      - name: 한국 시간으로 맞추기 (보고서·대시보드 시각 표시용)
+        run: tzutil /s "Korea Standard Time"
+
       - name: .NET 10 설치
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
+      # 지난 실행 기록(qa-history 브랜치)을 qa/reports에 넣어 두면, 이번 실행이 만드는 대시보드에 지난 기록까지 함께 나온다
+      - name: 지난 실행 기록 가져오기
+        working-directory: .
+        run: |
+          $historyFolder = Join-Path $env:RUNNER_TEMP "qa-history"
+          git fetch --depth 1 origin qa-history 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "아직 실행 기록 브랜치(qa-history)가 없습니다. 이번 실행부터 쌓습니다."
+            exit 0
+          }
+          git worktree add --detach $historyFolder FETCH_HEAD
+          New-Item -ItemType Directory -Force qa/reports | Out-Null
+          if (Test-Path "$historyFolder/reports") { Copy-Item "$historyFolder/reports/*" qa/reports/ -Force }
 
       - name: 빌드
         run: dotnet build --configuration Release
@@ -63,6 +92,23 @@ jobs:
           dotnet run --project src/QaRunner --configuration Release --no-build -- --suite recovery --duration 20 --stop-seconds 5
           if ($LASTEXITCODE -eq 2) { exit 1 } else { exit 0 }
 
+      # 이번 실행 보고서까지 포함한 reports 폴더를 qa-history 브랜치에 저장한다 (브랜치가 없으면 새로 만든다)
+      - name: 실행 기록 저장 (기본 브랜치만)
+        if: env.PUBLISH_DASHBOARD == 'true'
+        working-directory: .
+        run: |
+          $historyFolder = Join-Path $env:RUNNER_TEMP "qa-history"
+          if (Test-Path $historyFolder) {
+            git -C $historyFolder switch -c qa-history
+          } else {
+            git worktree add --orphan -b qa-history $historyFolder
+          }
+          New-Item -ItemType Directory -Force "$historyFolder/reports" | Out-Null
+          Copy-Item qa/reports/* "$historyFolder/reports/" -Force
+          git -C $historyFolder add reports
+          git -C $historyFolder -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "QA 실행 기록 추가 ($($env:GITHUB_SHA.Substring(0, 7)))"
+          git -C $historyFolder push origin HEAD:refs/heads/qa-history
+
       - name: 보고서 첨부
         if: always()
         uses: actions/upload-artifact@v4
@@ -70,3 +116,35 @@ jobs:
           name: qa-reports
           path: qa/reports/
           if-no-files-found: ignore
+
+  # 대시보드를 GitHub Pages에 올린다. 저장소 Settings → Pages → Source를 "GitHub Actions"로 한 번 설정해야 한다
+  deploy-dashboard:
+    name: 대시보드 공개 (GitHub Pages)
+    needs: qa
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: 보고서 받기
+        uses: actions/download-artifact@v4
+        with:
+          name: qa-reports
+          path: site
+
+      - name: 대시보드를 첫 화면으로
+        run: cp site/dashboard.html site/index.html
+
+      - name: Pages에 올릴 파일 묶기
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Pages에 공개
+        id: deployment
+        uses: actions/deploy-pages@v4
