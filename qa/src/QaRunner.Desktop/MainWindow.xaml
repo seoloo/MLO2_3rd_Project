@@ -119,13 +119,19 @@
             </Grid.ColumnDefinitions>
 
             <!-- 왼쪽: 실행 설정 -->
-            <Border Grid.Column="0" Background="{StaticResource AccentBackgroundBrush}" CornerRadius="12" Padding="18,4,18,18">
-                <StackPanel>
+            <Border Grid.Column="0" Background="{StaticResource AccentBackgroundBrush}" CornerRadius="12" Padding="4,4,4,14">
+                <!-- 설정 칸이 창 높이보다 길어지면 스크롤된다 -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="14,0,14,4">
                     <TextBlock Text="시험 종류" Style="{StaticResource SectionLabel}"/>
                     <RadioButton x:Name="VerdictSuiteRadio" GroupName="Suite" IsChecked="True" Checked="SuiteRadio_Checked"
                                  Content="판정 시험  (문자 → 판정)"/>
                     <RadioButton x:Name="PipelineSuiteRadio" GroupName="Suite" Checked="SuiteRadio_Checked"
                                  Content="파이프라인 시험  (이벤트 → 집계)"/>
+                    <RadioButton x:Name="LoadSuiteRadio" GroupName="Suite" Checked="SuiteRadio_Checked"
+                                 Content="부하 시험  (계속 보내기 → p95)"/>
+                    <RadioButton x:Name="RecoverySuiteRadio" GroupName="Suite" Checked="SuiteRadio_Checked"
+                                 Content="복구 시험  (중단·재가동 → 회복 시간)"/>
 
                     <TextBlock x:Name="CasesPathLabel" Text="입력값 파일" Style="{StaticResource SectionLabel}"/>
                     <TextBox x:Name="CasesPathBox"/>
@@ -133,6 +139,33 @@
                     <TextBlock Text="판정 API 주소" Style="{StaticResource SectionLabel}"/>
                     <TextBox x:Name="ApiUrlBox"/>
                     <TextBlock x:Name="ApiUrlHint" Text="비워 두면 가짜 판정 대상으로 실행합니다." Style="{StaticResource HintText}"/>
+
+                    <!-- 부하·복구 시험에서만 보이는 측정 설정 -->
+                    <StackPanel x:Name="MeasurementPanel" Visibility="Collapsed">
+                        <TextBlock Text="측정 설정" Style="{StaticResource SectionLabel}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="시간(초)" Style="{StaticResource HintText}" Margin="0,0,0,3"/>
+                                <TextBox x:Name="DurationBox"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="초당 건수" Style="{StaticResource HintText}" Margin="0,0,0,3"/>
+                                <TextBox x:Name="RateBox"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="중단(초)" Style="{StaticResource HintText}" Margin="0,0,0,3"/>
+                                <TextBox x:Name="StopSecondsBox"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="MeasurementHint" Style="{StaticResource HintText}"/>
+                    </StackPanel>
 
                     <TextBlock Text="보고서 폴더" Style="{StaticResource SectionLabel}"/>
                     <TextBox x:Name="ReportDirectoryBox" Text="reports"/>
@@ -144,6 +177,7 @@
 
                     <TextBlock x:Name="StatusText" Style="{StaticResource HintText}" Margin="0,12,0,0"/>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
 
             <!-- 오른쪽: 결과 -->
@@ -242,7 +276,13 @@
                     </DataGrid.CellStyle>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="케이스" Binding="{Binding CaseId}" Width="110" FontWeight="Bold"/>
-                        <DataGridTextColumn Header="확인 항목" Binding="{Binding CheckName}" Width="140"/>
+                        <DataGridTextColumn Header="확인 항목" Binding="{Binding CheckName}" Width="160">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         <DataGridTextColumn Header="입력" Binding="{Binding Input}" Width="*">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">

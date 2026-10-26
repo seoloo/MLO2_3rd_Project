@@ -52,6 +52,17 @@ jobs:
           dotnet run --project src/QaRunner --configuration Release --no-build -- --suite pipeline
           if ($LASTEXITCODE -eq 2) { exit 1 } else { exit 0 }
 
+      # 부하·복구 시험은 실행안 기준(300초, 120초)이 길어서 CI에서는 짧게 돌려 동작만 확인한다
+      - name: 부하 시험 실행 (10초 축소판)
+        run: |
+          dotnet run --project src/QaRunner --configuration Release --no-build -- --suite load --duration 10
+          if ($LASTEXITCODE -eq 2) { exit 1 } else { exit 0 }
+
+      - name: 복구 시험 실행 (20초 축소판, 5초 중단)
+        run: |
+          dotnet run --project src/QaRunner --configuration Release --no-build -- --suite recovery --duration 20 --stop-seconds 5
+          if ($LASTEXITCODE -eq 2) { exit 1 } else { exit 0 }
+
       - name: 보고서 첨부
         if: always()
         uses: actions/upload-artifact@v4

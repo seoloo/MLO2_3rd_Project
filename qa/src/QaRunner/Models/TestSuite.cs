@@ -10,6 +10,12 @@ public enum TestSuite
 
     /// <summary>파이프라인 시험: 이벤트를 넣고 Bronze·Silver·Gold 집계를 정답과 비교</summary>
     Pipeline,
+
+    /// <summary>부하 시험: 정해진 속도로 계속 보내면서 API 응답 시간·Gold 반영 시간(p95)을 잼</summary>
+    Load,
+
+    /// <summary>복구 시험: 보내는 도중 처리를 멈췄다 재가동하고, 다시 따라잡기까지 걸린 시간을 잼</summary>
+    Recovery,
 }
 
 public static class TestSuiteExtensions
@@ -19,6 +25,25 @@ public static class TestSuiteExtensions
     {
         TestSuite.Verdict => "판정 시험",
         TestSuite.Pipeline => "파이프라인 시험",
+        TestSuite.Load => "부하 시험",
+        TestSuite.Recovery => "복구 시험",
         _ => testSuite.ToString(),
     };
+
+    /// <summary>
+    /// --suite 옵션 값을 시험 종류로 바꾼다. 값이 없으면 판정 시험.
+    /// 알 수 없는 값이면 ArgumentException을 던진다.
+    /// </summary>
+    public static TestSuite ParseOptionValue(string? suiteValue) => suiteValue?.ToLowerInvariant() switch
+    {
+        null or "verdict" => TestSuite.Verdict,
+        "pipeline" => TestSuite.Pipeline,
+        "load" => TestSuite.Load,
+        "recovery" => TestSuite.Recovery,
+        _ => throw new ArgumentException($"--suite 값은 verdict, pipeline, load, recovery 중 하나여야 합니다: {suiteValue}"),
+    };
+
+    /// <summary>부하·복구처럼 시간을 재는 시험인지</summary>
+    public static bool IsMeasurementSuite(this TestSuite testSuite) =>
+        testSuite is TestSuite.Load or TestSuite.Recovery;
 }

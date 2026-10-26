@@ -37,8 +37,11 @@ public sealed record TestRun(
     /// <summary>실행에 걸린 시간</summary>
     public TimeSpan Duration => FinishedAt - StartedAt;
 
-    /// <summary>가짜 시험 대상으로 돌린 실행인지. 가짜 대상 클래스 이름은 모두 Fake로 시작한다</summary>
-    public bool UsedFakeTarget => TargetName.StartsWith("Fake", StringComparison.Ordinal);
+    /// <summary>
+    /// 가짜 시험 대상이 하나라도 섞인 실행인지. 가짜 대상 클래스 이름은 모두 Fake로 시작한다.
+    /// (부하 시험처럼 대상이 둘이면 "ApiVerdictService + FakeStreamingPipeline"처럼 이름이 이어진다)
+    /// </summary>
+    public bool UsedFakeTarget => TargetName.Contains("Fake", StringComparison.Ordinal);
 
     /// <summary>
     /// 실행 시작 시각으로 실행 번호를 만든다.

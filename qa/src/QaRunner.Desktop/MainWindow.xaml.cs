@@ -1,8 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using QaRunner.Measurement;
 using QaRunner.Models;
 
 namespace QaRunner.Desktop;
@@ -30,19 +33,21 @@ public partial class MainWindow : Window
     {
         VerdictSuiteRadio.IsChecked = testSuite == TestSuite.Verdict;
         PipelineSuiteRadio.IsChecked = testSuite == TestSuite.Pipeline;
+        LoadSuiteRadio.IsChecked = testSuite == TestSuite.Load;
+        RecoverySuiteRadio.IsChecked = testSuite == TestSuite.Recovery;
     }
 
     /// <summary>
     /// 지금 화면에 고른 설정으로 시험을 돌리고 결과를 보여 준다.
-    /// 준비 단계 오류(파일 없음, 잘못된 주소 등)는 창을 닫지 않고 상태 칸에 알린다.
+    /// 준비 단계 오류(파일 없음, 잘못된 숫자·주소 등)는 창을 닫지 않고 상태 칸에 알린다.
     /// </summary>
     public async Task RunSelectedSuiteAsync()
     {
-        var options = ReadOptionsFromScreen();
-        SetRunning(true);
-
         try
         {
+            var options = ReadOptionsFromScreen();
+            SetRunning(true, options);
+
             var preparedRun = QaRunService.Prepare(options);
             var testRun = await QaRunService.RunAsync(preparedRun, options.ReportDirectory);
             var savedReports = QaRunService.SaveReports(testRun, options.ReportDirectory);
@@ -108,46 +113,103 @@ public partial class MainWindow : Window
     // 시험 종류를 바꾸면 입력 경로 기본값과 API 주소 칸 사용 여부를 바꾼다
     private void SuiteRadio_Checked(object sender, RoutedEventArgs e) => ApplySuiteDefaults();
 
-    private TestSuite SelectedSuite => PipelineSuiteRadio.IsChecked == true ? TestSuite.Pipeline : TestSuite.Verdict;
+    private TestSuite SelectedSuite =>
+        PipelineSuiteRadio.IsChecked == true ? TestSuite.Pipeline
+        : LoadSuiteRadio.IsChecked == true ? TestSuite.Load
+        : RecoverySuiteRadio.IsChecked == true ? TestSuite.Recovery
+        : TestSuite.Verdict;
 
-    // 시험 종류에 맞게 입력 칸 이름·기본값을 바꾼다.
+    // 화면에서 바로 시연할 때 쓰는 측정 시간 기본값. 실행안 기준(부하 300초, 복구 120초·30초 중단)은 기다리기 길어서
+    // 짧게 잡았다. 칸에서 숫자를 바꾸면 실행안 기준으로도 돌릴 수 있다.
+    private static readonly MeasurementSettings DesktopLoadDefaults = new(DurationSeconds: 30, EventsPerSecond: 5, StopSeconds: 0);
+    private static readonly MeasurementSettings DesktopRecoveryDefaults = new(DurationSeconds: 60, EventsPerSecond: 5, StopSeconds: 15);
+
+    // 시험 종류에 맞게 입력 칸 이름·기본값과 보이는 칸을 바꾼다.
     // 창을 만드는 도중(InitializeComponent 안)에도 불리므로 아직 없는 칸이 있으면 건너뛴다
     private void ApplySuiteDefaults()
     {
-        if (CasesPathBox is null || ApiUrlBox is null || CasesPathLabel is null || ApiUrlHint is null)
+        if (CasesPathBox is null || ApiUrlBox is null || CasesPathLabel is null || ApiUrlHint is null
+            || MeasurementPanel is null || DurationBox is null || RateBox is null || StopSecondsBox is null || MeasurementHint is null)
             return;
 
-        var isPipelineSuite = SelectedSuite == TestSuite.Pipeline;
-        CasesPathLabel.Text = isPipelineSuite ? "시나리오 폴더" : "입력값 파일";
-        CasesPathBox.Text = isPipelineSuite ? CommandLineOptions.DefaultPipelineCasesPath : CommandLineOptions.DefaultVerdictCasesPath;
+        var suite = SelectedSuite;
 
-        // API 주소는 판정 시험에서만 쓴다
-        ApiUrlBox.IsEnabled = !isPipelineSuite;
-        ApiUrlHint.Text = isPipelineSuite
-            ? "파이프라인 시험은 지금 가짜 파이프라인으로 실행합니다."
-            : "비워 두면 가짜 판정 대상으로 실행합니다.";
+        // 입력: 판정·부하는 입력값 파일, 파이프라인은 시나리오 폴더, 복구는 쓰지 않음
+        CasesPathLabel.Text = suite == TestSuite.Pipeline ? "시나리오 폴더" : "입력값 파일";
+        CasesPathBox.Text = CommandLineOptions.DefaultCasesPathFor(suite);
+        CasesPathBox.IsEnabled = suite != TestSuite.Recovery;
+
+        // API 주소: 판정 시험과 부하 시험(API 부하)에서만 쓴다
+        var usesApi = suite is TestSuite.Verdict or TestSuite.Load;
+        ApiUrlBox.IsEnabled = usesApi;
+        ApiUrlHint.Text = usesApi
+            ? "비워 두면 가짜 판정 대상으로 실행합니다."
+            : "이 시험은 지금 가짜 파이프라인으로 실행합니다.";
+
+        // 측정 설정: 부하·복구 시험에서만 보인다
+        MeasurementPanel.Visibility = suite.IsMeasurementSuite() ? Visibility.Visible : Visibility.Collapsed;
+        if (suite.IsMeasurementSuite())
+        {
+            var defaults = suite == TestSuite.Recovery ? DesktopRecoveryDefaults : DesktopLoadDefaults;
+            DurationBox.Text = defaults.DurationSeconds.ToString();
+            RateBox.Text = defaults.EventsPerSecond.ToString("0.##");
+            StopSecondsBox.Text = suite == TestSuite.Recovery ? defaults.StopSeconds.ToString() : "";
+            StopSecondsBox.IsEnabled = suite == TestSuite.Recovery;
+            MeasurementHint.Text = suite == TestSuite.Recovery
+                ? "시연용으로 짧게 잡았습니다. 실행안 기준은 120초 동안 보내며 30초 중단입니다."
+                : "시연용으로 짧게 잡았습니다. 실행안 기준은 300초(초당 5건, 1,500건)입니다.";
+        }
     }
 
-    // 화면의 입력 칸 값을 실행 옵션으로 모은다. 콘솔의 명령줄 옵션과 같은 모양을 쓴다
+    // 화면의 입력 칸 값을 실행 옵션으로 모은다. 콘솔의 명령줄 옵션과 같은 모양을 쓴다.
+    // 숫자 칸이 비었거나 숫자가 아니면 ArgumentException을 던진다 (실행 준비 오류로 표시됨)
     private CommandLineOptions ReadOptionsFromScreen()
     {
+        var suite = SelectedSuite;
         var apiUrl = ApiUrlBox.Text.Trim();
         var reportDirectory = ReportDirectoryBox.Text.Trim();
+        var usesApi = suite is TestSuite.Verdict or TestSuite.Load;
+
+        MeasurementSettings? measurement = null;
+        if (suite.IsMeasurementSuite())
+        {
+            measurement = new MeasurementSettings(
+                DurationSeconds: ReadInt(DurationBox, "시간(초)"),
+                EventsPerSecond: ReadDouble(RateBox, "초당 건수"),
+                StopSeconds: suite == TestSuite.Recovery ? ReadInt(StopSecondsBox, "중단(초)") : 0);
+            measurement.Validate(suite);
+        }
 
         return new CommandLineOptions(
-            Suite: SelectedSuite,
-            CasesPath: CasesPathBox.Text.Trim(),
+            Suite: suite,
+            CasesPath: suite == TestSuite.Recovery ? CommandLineOptions.NoCasesPath : CasesPathBox.Text.Trim(),
             ReportDirectory: reportDirectory.Length > 0 ? reportDirectory : CommandLineOptions.DefaultReportDirectory,
-            ApiBaseUrl: SelectedSuite == TestSuite.Verdict && apiUrl.Length > 0 ? apiUrl : null);
+            ApiBaseUrl: usesApi && apiUrl.Length > 0 ? apiUrl : null,
+            Measurement: measurement);
     }
 
-    // 실행 중에는 버튼을 막아 두 번 눌리지 않게 한다
-    private void SetRunning(bool isRunning)
+    private static int ReadInt(TextBox textBox, string fieldName) =>
+        int.TryParse(textBox.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            ? number
+            : throw new ArgumentException($"{fieldName} 칸에는 정수를 넣어 주세요: {textBox.Text}");
+
+    private static double ReadDouble(TextBox textBox, string fieldName) =>
+        double.TryParse(textBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
+            ? number
+            : throw new ArgumentException($"{fieldName} 칸에는 숫자를 넣어 주세요: {textBox.Text}");
+
+    // 실행 중에는 버튼을 막아 두 번 눌리지 않게 한다. 부하·복구 시험은 얼마나 걸리는지도 알려 준다
+    private void SetRunning(bool isRunning, CommandLineOptions? options = null)
     {
         RunButton.IsEnabled = !isRunning;
         RunButton.Content = isRunning ? "실행 중..." : "실행";
-        if (isRunning)
-            ShowStatus("시험을 실행하고 있습니다.", isError: false);
+        if (!isRunning)
+            return;
+
+        var runningMessage = options?.Measurement is { } measurement
+            ? $"시험을 실행하고 있습니다. 약 {measurement.DurationSeconds}초 걸립니다."
+            : "시험을 실행하고 있습니다.";
+        ShowStatus(runningMessage, isError: false);
     }
 
     // 실행 기록을 요약 숫자와 결과 표로 보여 준다

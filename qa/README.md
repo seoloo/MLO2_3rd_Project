@@ -2,12 +2,14 @@
 
 입력값과 정답을 파일에 적어 두면, 프로그램이 입력값을 시험 대상에 넣고 돌아온 결과를 정답과 비교해 채점하는 C# 콘솔 프로그램입니다. 실행할 때마다 결과를 보고서 파일로 남깁니다.
 
-시험은 두 종류입니다.
+시험은 네 종류입니다.
 
 | 시험 | 넣는 것 | 비교하는 것 |
 |---|---|---|
 | 판정 시험 (`verdict`) | 문자 | 판정 (고위험·주의·신호 미발견·판단 보류) |
 | 파이프라인 시험 (`pipeline`) | 이벤트 + 중복·역순·지연 조건 | Bronze 보관 건수, Silver 고유 건수, 격리 건수, Gold 60초 구간 집계 |
+| 부하 시험 (`load`) | 판정 API 동시 요청 + 이벤트를 초당 N건씩 계속 | API 응답 시간 p95, API 오류율, Gold 반영 시간 p95, 적체 |
+| 복구 시험 (`recovery`) | 이벤트를 계속 보내면서 처리를 멈췄다 재가동 | 재가동 후 회복 시간, 최종 집계 일치 |
 
 ## 진행 상황
 
@@ -17,7 +19,7 @@
 | ② 결과 저장·HTML 보고서 | 실행 번호별 JSON·HTML 보고서 저장 | 완료 |
 | ③ 실제 API 연결 | FastAPI 호출 코드 완료. B의 API가 나오면 주소·형식만 맞춰 연결 | 연결 대기 |
 | ④ 파이프라인 시험 | 시나리오·정답 계산기·채점기 완료, 가짜 파이프라인으로 동작 확인. Kafka·MongoDB 연결 코드는 C의 파이프라인 계약 확정 후 | 진행 중 |
-| ⑤ 부하·복구 시험 | 5건/초 × 5분 발행, Spark 중단·재가동, p95·회복 시간 측정 | 예정 |
+| ⑤ 부하·복구 시험 | 측정 코드 완료, 처리 시간을 흉내 내는 가짜 파이프라인으로 동작 확인. 실제 Spark 중단·재가동은 인프라가 생긴 뒤 | 진행 중 |
 | ⑥ 자동 실행·CI | GitHub Actions에서 푸시마다 빌드·테스트·시험 실행 완료. docker-compose 서비스는 인프라가 생긴 뒤 | 일부 완료 |
 | ⑦ 실행 기록 대시보드 | 저장된 보고서를 모아 추이 표시 | 선택 |
 | 시연용 데스크탑 앱 | 버튼으로 시험을 돌리고 결과를 화면에서 바로 보는 Windows 앱 | 완료 |
@@ -38,8 +40,16 @@
                └──▶ 정답 계산기 ──(정답 건수)───────────────────┘
 ```
 
+### 부하·복구 시험
+
+```
+일정한 속도로 보내기 ──(이벤트)──▶ 파이프라인 ──▶ Gold
+        │                                          │ 0.5초마다 건수 확인
+        └──(보낸 시각)──▶ 반영 추적기 ◀──(늘어난 건수)─┘ → 반영 시간 p95, 회복 시간
+```
+
 - 정답은 시험 대상을 거치지 않습니다. 판정 시험은 사람이 적어 둔 정답을, 파이프라인 시험은 정답 계산기가 "보낸 기록"만 보고 계산한 정답을 씁니다. 시스템이 틀려도 정답은 오염되지 않습니다.
-- 시험 대상은 바꿔 끼울 수 있습니다. 지금은 가짜(`FakeVerdictService`, `FakePipeline`)로 돌고, 실제 API·파이프라인이 준비되면 그 부분만 바꿉니다.
+- 시험 대상은 바꿔 끼울 수 있습니다. 지금은 가짜(`FakeVerdictService`, `FakePipeline`, `FakeStreamingPipeline`)로 돌고, 실제 API·파이프라인이 준비되면 그 부분만 바꿉니다.
 
 ## 빠른 시작
 
@@ -76,6 +86,16 @@ dotnet run --project src/QaRunner -- --suite pipeline
 - 판정 시험: 가짜 판정 대상이 "인증번호"만 보고 판정해서 4건 중 2건 실패
 - 파이프라인 시험: 가짜 파이프라인이 격리를 하지 않아서 5분 초과 도착·같은 ID 상충 관련 4건 실패
 
+부하·복구 시험은 실행안 기준으로 기본 5분(부하), 2분(복구)이 걸립니다. 짧게 확인하려면 시간을 줄입니다.
+
+```bash
+dotnet run --project src/QaRunner -- --suite load --duration 10
+```
+
+```bash
+dotnet run --project src/QaRunner -- --suite recovery --duration 20 --stop-seconds 5
+```
+
 ### 3. 테스트
 
 QA 러너 자체가 올바르게 동작하는지 확인합니다.
@@ -94,18 +114,19 @@ dotnet run --project src/QaRunner.Desktop
 
 | 화면 | 하는 일 |
 |---|---|
-| 왼쪽 | 시험 종류(판정·파이프라인), 입력 경로, 판정 API 주소, 보고서 폴더를 고르고 **실행** |
+| 왼쪽 | 시험 종류(판정·파이프라인·부하·복구), 입력 경로, 판정 API 주소, 측정 설정(부하·복구), 보고서 폴더를 고르고 **실행** |
 | 오른쪽 위 | 실행 번호·시험 대상, 가짜 대상 안내, 전체·통과·실패·통과율 |
 | 오른쪽 표 | 확인 항목별 결과. 실패한 항목이 위에, 붉은 줄로 표시 |
 | HTML 보고서 열기 | 방금 저장한 보고서를 브라우저로 열기 |
 
 - 입력 경로와 보고서 폴더는 `qa/` 폴더 기준입니다. 실행 파일을 어디서 열어도 `qa/` 폴더를 찾아 기준으로 삼습니다.
+- 부하·복구 시험은 화면에서 바로 보여 주기 좋게 기본 시간을 짧게 잡았습니다(부하 30초, 복구 60초·15초 중단). 칸의 숫자를 바꾸면 실행안 기준으로도 돌릴 수 있습니다.
 - Windows 전용입니다(WPF). 맥·리눅스에서는 콘솔 프로그램을 쓰면 됩니다.
 
 README·발표 자료에 넣을 화면이 필요하면 캡처 모드로 실행합니다. 창을 화면 밖에 띄워 시험을 한 번 돌린 뒤, 화면을 PNG로 저장하고 바로 꺼집니다.
 
 ```bash
-dotnet run --project src/QaRunner.Desktop -- --capture screen.png --suite pipeline
+dotnet run --project src/QaRunner.Desktop -- --capture screen.png --suite load
 ```
 
 ## 자동 검사 (GitHub Actions)
@@ -116,7 +137,7 @@ dotnet run --project src/QaRunner.Desktop -- --capture screen.png --suite pipeli
 |---|---|---|
 | 1 | .NET 10 설치 후 빌드 (Windows 환경, 데스크탑 앱 포함) | 빌드 오류 |
 | 2 | `dotnet test` | 테스트가 하나라도 실패 |
-| 3 | 판정 시험·파이프라인 시험 실행 | 채점을 시작하지 못함 (종료 코드 2) |
+| 3 | 판정·파이프라인 시험, 부하 시험(10초 축소판), 복구 시험(20초 축소판) 실행 | 채점을 시작하지 못함 (종료 코드 2) |
 | 4 | 보고서를 결과물로 첨부 | — |
 
 - 결과는 GitHub 저장소의 **Actions** 탭, 또는 커밋 옆의 ✔(통과)·✘(실패)에서 볼 수 있습니다.
@@ -135,10 +156,30 @@ dotnet run --project src/QaRunner -- --suite verdict --cases cases/rules.json --
 
 | 옵션 | 뜻 | 기본값 |
 |---|---|---|
-| `--suite` | 시험 종류. `verdict` 또는 `pipeline` | `verdict` |
-| `--cases` | 판정 시험은 입력값 파일, 파이프라인 시험은 시나리오 폴더 | `cases/rules.json` / `cases/pipeline` |
+| `--suite` | 시험 종류. `verdict`, `pipeline`, `load`, `recovery` | `verdict` |
+| `--cases` | 판정·부하 시험은 입력값 파일, 파이프라인 시험은 시나리오 폴더 (복구 시험은 안 씀) | `cases/rules.json` / `cases/pipeline` |
 | `--reports` | 보고서를 저장할 폴더 | `reports` |
-| `--api-url` | 판정 API 주소. `http://` 또는 `https://`로 시작 (판정 시험에서만 씀) | 없음 (가짜 판정 대상 사용) |
+| `--api-url` | 판정 API 주소. `http://` 또는 `https://`로 시작 (판정·부하 시험에서 씀) | 없음 (가짜 판정 대상 사용) |
+| `--duration` | 부하·복구 시험에서 이벤트를 보내는 시간(초) | 부하 300 / 복구 120 |
+| `--rate` | 부하·복구 시험에서 1초에 보내는 이벤트 수 | 5 |
+| `--stop-seconds` | 복구 시험에서 처리를 멈춰 두는 시간(초). 전체 시간의 1/4 지점에서 멈춤 | 30 |
+
+## 부하·복구 시험
+
+실행안의 초기 목표를 그대로 잽니다. 목표는 실측 전 기준이라, 미달하면 조건·원인과 함께 그대로 남깁니다.
+
+| 시험 | 확인 항목 | 목표 | 재는 방법 |
+|---|---|---|---|
+| 부하 | API 응답 시간 p95 | 3초 이하 | 가상 사용자 5명이 판정 API를 동시에 계속 부름 (응답 후 0.2초 쉬고 다음 요청) |
+| 부하 | API 오류율 | 0% | 위 요청 중 연결 실패·오류 응답·시간 초과 비율 |
+| 부하 | Gold 반영 시간 p95 | 10초 이하 | 이벤트를 보낸 시각부터 Gold 건수에 잡힌 시각까지 |
+| 부하 | Gold 반영 건수 (적체 없음) | 보낸 건수와 같음 | 보내기가 끝나고 최대 60초 기다린 뒤 Gold에 반영된 건수 |
+| 복구 | 재가동 후 회복 시간 | 60초 이하 | 재가동한 시각부터, 그 시점까지 보낸 이벤트가 모두 Gold에 반영된 시각까지 |
+| 복구 | 최종 Gold 반영 건수 (집계 일치) | 보낸 건수와 같음 | 보내기가 끝나고 최대 60초 기다린 뒤 Gold에 반영된 건수 |
+
+- **p95**는 "100건 중 95번째로 느린 건의 시간"입니다. 95%가 이 시간 안에 끝났다는 뜻이라 평균보다 체감 속도를 잘 보여 줍니다.
+- **Gold 반영 시간은 근삿값입니다.** 0.5초마다 Gold 건수를 읽고, 늘어난 만큼 먼저 보낸 이벤트부터 반영된 것으로 봅니다. 이벤트 하나하나를 찾지 않아도 되어 실제 MongoDB에서도 같은 방식으로 잴 수 있습니다. 다른 데이터가 Gold에 섞이면 안 되므로 시험 환경에서 돌려야 합니다.
+- **지금은 가짜 파이프라인(`FakeStreamingPipeline`)으로 돕니다.** 받은 이벤트를 1초 뒤에 반영하고, 1초에 최대 20건까지만 처리하며, 멈추라고 하면 받기만 하고 처리하지 않습니다. 그래서 측정 코드가 맞게 도는지는 확인할 수 있지만, 수치 자체는 실제 성능이 아닙니다.
 
 ## API 연결 약속 (판정 시험)
 
@@ -248,7 +289,7 @@ Gold는 시나리오별로 나뉘지 않고 구간별로 합쳐지므로, 실행
 |---|---|
 | `0` | 모든 항목 통과 |
 | `1` | 실패한 항목이 하나 이상 있음 (시스템 실패 포함) |
-| `2` | 채점을 시작하지 못함 (옵션이 틀림, 입력값 파일·시나리오 폴더가 없거나 형식이 틀림, API 주소가 잘못됨) |
+| `2` | 채점을 시작하지 못함 (옵션·측정 숫자가 틀림, 입력값 파일·시나리오 폴더가 없거나 형식이 틀림, API 주소가 잘못됨) |
 
 ## 폴더 구조
 
@@ -260,14 +301,21 @@ qa/
 ├─ src/QaRunner/                     콘솔 프로그램 (QA 러너 본체)
 │   ├─ Program.cs                    콘솔 실행 순서 (옵션 → 준비 → 채점 → 출력 → 저장)
 │   ├─ QaRunService.cs               콘솔·데스크탑 앱이 함께 쓰는 실행 절차 (준비 → 채점 → 보고서 저장)
-│   ├─ CommandLineOptions.cs         --suite, --cases, --reports, --api-url 옵션 읽기
+│   ├─ CommandLineOptions.cs         --suite, --cases, --reports, --api-url, --duration, --rate, --stop-seconds 옵션 읽기
 │   ├─ TestCaseLoader.cs             판정 시험 입력값 파일 읽기
 │   ├─ VerdictChecker.cs             판정 시험 채점기
 │   ├─ Models/
 │   │   ├─ TestCase.cs               판정 시험 케이스 한 건 (케이스 번호, 문자, 정답)
-│   │   ├─ TestResult.cs             확인 항목 하나의 채점 결과 (두 시험 공통)
+│   │   ├─ TestResult.cs             확인 항목 하나의 채점 결과 (모든 시험 공통, 측정 항목은 목표 만족 여부 포함)
 │   │   ├─ TestRun.cs                한 번 실행한 기록 (실행 번호, 시험 종류, 결과 목록, 통과율)
-│   │   └─ TestSuite.cs              시험 종류 (판정 / 파이프라인)
+│   │   └─ TestSuite.cs              시험 종류 (판정 / 파이프라인 / 부하 / 복구)
+│   ├─ Measurement/
+│   │   ├─ MeasurementSettings.cs    측정 조건 (시간, 초당 건수, 중단 시간, 동시 사용자 수)
+│   │   ├─ EventStreamSender.cs      초당 N건씩 이벤트를 계속 보내기
+│   │   ├─ GoldReflectionTracker.cs  보낸 이벤트가 Gold에 반영된 시각 기록 (반영 시간·회복 시간의 출처)
+│   │   ├─ LatencyStatistics.cs      p95 계산
+│   │   ├─ LoadChecker.cs            부하 시험 채점기 (API 부하 + 스트림 부하)
+│   │   └─ RecoveryChecker.cs        복구 시험 채점기 (중단·재가동 → 회복 시간)
 │   ├─ Verdicts/
 │   │   ├─ IVerdictService.cs        판정 대상이 갖춰야 할 모양
 │   │   ├─ FakeVerdictService.cs     임시 가짜 판정 대상
@@ -280,7 +328,9 @@ qa/
 │   │   ├─ ExpectedResultCalculator.cs 정답 계산기
 │   │   ├─ IEventSender.cs           이벤트를 넣는 쪽이 갖춰야 할 모양
 │   │   ├─ IPipelineReader.cs        결과를 읽는 쪽이 갖춰야 할 모양
-│   │   ├─ FakePipeline.cs           임시 가짜 파이프라인 (격리 기능 없음)
+│   │   ├─ IProcessingControl.cs     처리를 멈추고 다시 켜는 쪽이 갖춰야 할 모양 (복구 시험)
+│   │   ├─ FakePipeline.cs           임시 가짜 파이프라인 (즉시 반영, 격리 기능 없음)
+│   │   ├─ FakeStreamingPipeline.cs  부하·복구 시험용 가짜 파이프라인 (1초 지연, 초당 20건, 중단·재가동)
 │   │   └─ PipelineChecker.cs        파이프라인 시험 채점기
 │   └─ Reports/
 │       ├─ JsonReportWriter.cs       JSON 보고서 저장
@@ -308,11 +358,12 @@ qa/
 2. `IEventSender`를 구현해 Kafka에 발행하는 클래스를 만듭니다. 보내지 못하면 `EventSendException`을 던집니다.
 3. `IPipelineReader`를 구현해 MongoDB의 `bronze_events`, `silver_events`, 격리 컬렉션, `gold_metrics`를 읽는 클래스를 만듭니다.
 4. 격리 규칙이 임시안과 다르게 정해지면 `Pipeline/ExpectedResultCalculator.cs`를 고칩니다.
-5. `QaRunService.cs`의 `Prepare`에서 `FakePipeline` 대신 새 클래스를 고르게 하고, Gold 대기 시간을 `PipelineChecker.DefaultCatchUpTimeout`(60초)으로 둡니다. 콘솔과 데스크탑 앱에 함께 적용됩니다.
+5. `QaRunService.cs`의 `Prepare`에서 `FakePipeline`·`FakeStreamingPipeline` 대신 새 클래스를 고르게 하고, 파이프라인 시험의 Gold 대기 시간을 `PipelineChecker.DefaultCatchUpTimeout`(60초)으로 둡니다. 콘솔과 데스크탑 앱에 함께 적용됩니다.
+6. 복구 시험용으로 `IProcessingControl`을 구현해 `docker stop`/`docker start`로 Spark 컨테이너를 멈추고 켜는 클래스를 만듭니다. 실패하면 `ProcessingControlException`을 던집니다.
 
 ### 새로운 시험 대상 추가하기
 
-판정 시험은 `IVerdictService`, 파이프라인 시험은 `IEventSender`·`IPipelineReader`를 구현한 클래스를 추가하고, `QaRunService.cs`의 `Prepare`에서 고르게 합니다. 가짜 대상의 클래스 이름은 `Fake`로 시작해야 보고서와 데스크탑 앱에 가짜 안내가 붙습니다.
+판정 시험은 `IVerdictService`, 파이프라인·부하 시험은 `IEventSender`·`IPipelineReader`, 복구 시험은 여기에 `IProcessingControl`까지 구현한 클래스를 추가하고, `QaRunService.cs`의 `Prepare`에서 고르게 합니다. 가짜 대상의 클래스 이름은 `Fake`로 시작해야 보고서와 데스크탑 앱에 가짜 안내가 붙습니다.
 
 ### 보고서에 항목 추가하기
 

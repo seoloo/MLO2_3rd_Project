@@ -10,13 +10,18 @@ namespace QaRunner.Models;
 /// <param name="Expected">정답 (입력값 파일에 적힌 값, 또는 정답 계산기가 계산한 값)</param>
 /// <param name="Actual">시험 대상이 실제로 낸 값. 값을 못 받았으면 "시스템 실패"</param>
 /// <param name="ErrorMessage">값을 못 받은 이유 (API 연결 실패, 시간 초과 등). 정상이면 null</param>
+/// <param name="MeetsTarget">
+/// "10초 이하"처럼 같은지로 비교할 수 없는 측정 항목에서 목표를 만족했는지.
+/// null이면 정답과 실제 값이 글자 그대로 같은지로 판단한다.
+/// </param>
 public sealed record TestResult(
     string CaseId,
     string CheckName,
     string Input,
     string Expected,
     string Actual,
-    string? ErrorMessage = null)
+    string? ErrorMessage = null,
+    bool? MeetsTarget = null)
 {
     /// <summary>
     /// 시험 대상이 값을 돌려주지 못했을 때 실제 값 자리에 넣는 말.
@@ -27,8 +32,10 @@ public sealed record TestResult(
     /// <summary>실행 전체를 대상으로 하는 확인 항목의 케이스 번호</summary>
     public const string WholeRunCaseId = "전체";
 
-    /// <summary>정답과 실제 값이 같으면 통과다. 시스템 실패는 항상 실패다.</summary>
-    public bool IsPassed => ErrorMessage is null && Expected == Actual;
+    /// <summary>
+    /// 정답과 실제 값이 같으면(측정 항목은 목표를 만족하면) 통과다. 시스템 실패는 항상 실패다.
+    /// </summary>
+    public bool IsPassed => ErrorMessage is null && (MeetsTarget ?? Expected == Actual);
 
     /// <summary>시험 대상이 값을 돌려주지 못한 경우인지</summary>
     public bool IsSystemFailure => ErrorMessage is not null;

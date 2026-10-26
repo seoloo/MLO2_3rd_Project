@@ -52,7 +52,7 @@ React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka
 
 | 영역 | 상태 |
 |---|---|
-| 자동 QA 러너 | 판정 시험·보고서·API 호출 코드 완료. 파이프라인 시험은 가짜 파이프라인으로 동작하고, Kafka·MongoDB 연결 대기. 시연용 데스크탑 앱(Windows)으로 화면에서 바로 돌려 볼 수 있음. 푸시할 때마다 GitHub Actions가 빌드·테스트를 자동 실행. 자세한 내용은 [qa/README.md](qa/README.md) |
+| 자동 QA 러너 | 판정 시험·보고서·API 호출 코드 완료. 파이프라인 시험과 부하·복구 시험(p95, 회복 시간)은 가짜 파이프라인으로 동작하고, Kafka·MongoDB 연결 대기. 시연용 데스크탑 앱(Windows)으로 화면에서 바로 돌려 볼 수 있음. 푸시할 때마다 GitHub Actions가 빌드·테스트를 자동 실행. 자세한 내용은 [qa/README.md](qa/README.md) |
 | 앱 · API · 파이프라인 | 예정 |
 
 ## 시작하기

@@ -47,10 +47,12 @@ public sealed class VerdictChecker(IVerdictService verdictService)
         }
     }
 
-    // 판정 대상 쪽 문제로 볼 예외인지 판단한다.
-    // 연결 실패·오류 응답, 시간 초과, 응답 형식 오류만 시스템 실패로 기록하고,
-    // 그 밖의 예외는 QA 러너 자체의 버그일 수 있으므로 그대로 드러나게 둔다.
-    private static bool IsVerdictServiceFailure(Exception exception) => exception
+    /// <summary>
+    /// 판정 대상 쪽 문제로 볼 예외인지 판단한다. (부하 시험에서도 같은 기준으로 오류를 센다)
+    /// 연결 실패·오류 응답, 시간 초과, 응답 형식 오류만 시스템 실패로 기록하고,
+    /// 그 밖의 예외는 QA 러너 자체의 버그일 수 있으므로 그대로 드러나게 둔다.
+    /// </summary>
+    public static bool IsVerdictServiceFailure(Exception exception) => exception
         is HttpRequestException
         or TaskCanceledException
         or JsonException
