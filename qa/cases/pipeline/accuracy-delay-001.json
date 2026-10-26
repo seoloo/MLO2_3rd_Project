@@ -1,0 +1,9 @@
+{
+  "caseId": "DELAY-001",
+  "description": "30초 늦게 도착한 이벤트도 원래 구간에 집계된다",
+  "events": [
+    { "eventId": "delay-001-e1", "scanId": "delay-001-s1", "offsetSeconds": 0, "verdict": "주의" },
+    { "eventId": "delay-001-e2", "scanId": "delay-001-s2", "offsetSeconds": 1, "verdict": "판단 보류" }
+  ],
+  "injection": { "delaySeconds": 30 }
+}

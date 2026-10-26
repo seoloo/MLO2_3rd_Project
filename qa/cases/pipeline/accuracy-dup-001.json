@@ -1,0 +1,8 @@
+{
+  "caseId": "DUP-001",
+  "description": "같은 이벤트를 3번 보내도 Silver·Gold에는 1건만 남는다",
+  "events": [
+    { "eventId": "dup-001-e1", "scanId": "dup-001-s1", "offsetSeconds": 0, "verdict": "고위험" }
+  ],
+  "injection": { "duplicateCount": 3 }
+}

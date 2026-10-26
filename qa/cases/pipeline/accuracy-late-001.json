@@ -1,0 +1,8 @@
+{
+  "caseId": "LATE-001",
+  "description": "5분을 넘겨 도착한 이벤트는 집계하지 않고 격리한다",
+  "events": [
+    { "eventId": "late-001-e1", "scanId": "late-001-s1", "offsetSeconds": 0, "verdict": "고위험" }
+  ],
+  "injection": { "delaySeconds": 360 }
+}

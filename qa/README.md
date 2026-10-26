@@ -1,6 +1,13 @@
 # 정보지킴 자동화 QA 러너
 
-입력값과 정답을 파일에 적어 두면, 프로그램이 입력값을 판정 대상에 넣고 돌아온 결과를 정답과 비교해 채점하는 C# 콘솔 프로그램입니다. 실행할 때마다 결과를 보고서 파일로 남깁니다.
+입력값과 정답을 파일에 적어 두면, 프로그램이 입력값을 시험 대상에 넣고 돌아온 결과를 정답과 비교해 채점하는 C# 콘솔 프로그램입니다. 실행할 때마다 결과를 보고서 파일로 남깁니다.
+
+시험은 두 종류입니다.
+
+| 시험 | 넣는 것 | 비교하는 것 |
+|---|---|---|
+| 판정 시험 (`verdict`) | 문자 | 판정 (고위험·주의·신호 미발견·판단 보류) |
+| 파이프라인 시험 (`pipeline`) | 이벤트 + 중복·역순·지연 조건 | Bronze 보관 건수, Silver 고유 건수, 격리 건수, Gold 60초 구간 집계 |
 
 ## 진행 상황
 
@@ -9,20 +16,29 @@
 | ① 스켈레톤 | 입력값 파일 → 가짜 판정 대상 → 채점 → 콘솔 출력·종료 코드 | 완료 |
 | ② 결과 저장·HTML 보고서 | 실행 번호별 JSON·HTML 보고서 저장 | 완료 |
 | ③ 실제 API 연결 | FastAPI 호출 코드 완료. B의 API가 나오면 주소·형식만 맞춰 연결 | 연결 대기 |
-| ④ 파이프라인 시험 | Kafka에 중복·역순·지연 주입, Bronze·Silver·Gold 비교 (C의 파이프라인 필요) | 예정 |
+| ④ 파이프라인 시험 | 시나리오·정답 계산기·채점기 완료, 가짜 파이프라인으로 동작 확인. Kafka·MongoDB 연결 코드는 C의 파이프라인 계약 확정 후 | 진행 중 |
 | ⑤ 부하·복구 시험 | 5건/초 × 5분 발행, Spark 중단·재가동, p95·회복 시간 측정 | 예정 |
 | ⑥ 자동 실행·CI | docker-compose 서비스 추가, CI에서 종료 코드로 판정 | 예정 |
 | ⑦ 실행 기록 대시보드 | 저장된 보고서를 모아 추이 표시 | 선택 |
 
 ## 흐름
 
+### 판정 시험
+
 ```
 입력값 파일 ──(문자)──▶ 판정 대상 ──(실제 판정)──▶ 채점 ──▶ 결과 (콘솔 · 보고서 · 종료 코드)
      └──────────────(정답)─────────────────────────┘
 ```
 
-- 정답은 판정 대상을 거치지 않고 채점 단계로 바로 갑니다. 시스템이 틀려도 정답은 오염되지 않습니다.
-- 판정 대상은 바꿔 끼울 수 있습니다. `--api-url`을 주면 실제 API(`ApiVerdictService`), 주지 않으면 가짜(`FakeVerdictService`)로 채점합니다.
+### 파이프라인 시험
+
+```
+시나리오 ──▶ 전송 계획 ──(이벤트)──▶ 파이프라인 ──(실제 건수)──▶ 채점 ──▶ 결과
+               └──▶ 정답 계산기 ──(정답 건수)───────────────────┘
+```
+
+- 정답은 시험 대상을 거치지 않습니다. 판정 시험은 사람이 적어 둔 정답을, 파이프라인 시험은 정답 계산기가 "보낸 기록"만 보고 계산한 정답을 씁니다. 시스템이 틀려도 정답은 오염되지 않습니다.
+- 시험 대상은 바꿔 끼울 수 있습니다. 지금은 가짜(`FakeVerdictService`, `FakePipeline`)로 돌고, 실제 API·파이프라인이 준비되면 그 부분만 바꿉니다.
 
 ## 빠른 시작
 
@@ -42,11 +58,22 @@ dotnet --version
 
 명령은 모두 `qa/` 폴더에서 실행합니다.
 
+판정 시험:
+
 ```bash
 dotnet run --project src/QaRunner
 ```
 
-지금은 가짜 판정 대상이 "인증번호"라는 단어만 보고 판정하므로 4건 중 2건이 실패합니다. 채점기가 틀린 판정을 잡아내는지 확인하려고 일부러 그렇게 둔 것입니다.
+파이프라인 시험:
+
+```bash
+dotnet run --project src/QaRunner -- --suite pipeline
+```
+
+지금은 둘 다 일부러 엉성하게 만든 가짜 대상으로 돌기 때문에 실패가 나옵니다. 채점기가 틀린 결과를 잡아내는지 확인하려는 것입니다.
+
+- 판정 시험: 가짜 판정 대상이 "인증번호"만 보고 판정해서 4건 중 2건 실패
+- 파이프라인 시험: 가짜 파이프라인이 격리를 하지 않아서 5분 초과 도착·같은 ID 상충 관련 4건 실패
 
 ### 3. 테스트
 
@@ -61,16 +88,17 @@ dotnet test
 옵션은 `--` 뒤에 붙입니다. 생략하면 기본값을 씁니다.
 
 ```bash
-dotnet run --project src/QaRunner -- --cases cases/rules.json --reports reports --api-url http://localhost:8000
+dotnet run --project src/QaRunner -- --suite verdict --cases cases/rules.json --reports reports --api-url http://localhost:8000
 ```
 
 | 옵션 | 뜻 | 기본값 |
 |---|---|---|
-| `--cases` | 읽을 입력값 파일 | `cases/rules.json` |
+| `--suite` | 시험 종류. `verdict` 또는 `pipeline` | `verdict` |
+| `--cases` | 판정 시험은 입력값 파일, 파이프라인 시험은 시나리오 폴더 | `cases/rules.json` / `cases/pipeline` |
 | `--reports` | 보고서를 저장할 폴더 | `reports` |
-| `--api-url` | 판정 API 주소. `http://` 또는 `https://`로 시작 | 없음 (가짜 판정 대상 사용) |
+| `--api-url` | 판정 API 주소. `http://` 또는 `https://`로 시작 (판정 시험에서만 씀) | 없음 (가짜 판정 대상 사용) |
 
-## API 연결 약속
+## API 연결 약속 (판정 시험)
 
 `--api-url`을 주면 케이스마다 아래처럼 요청합니다. B와 확정하기 전의 임시 약속이며, 바뀌면 `Verdicts/ApiVerdictService.cs`만 고칩니다.
 
@@ -105,9 +133,57 @@ API가 꺼져 있거나, 오류 응답(4xx·5xx)이 오거나, 10초 안에 답�
 
 정답 라벨은 A와 B가 함께 정하고 PR로 검토받아 넣습니다.
 
-### 파이프라인 시나리오
+### 파이프라인 시나리오 (`cases/pipeline/*.json`)
 
-④단계에서 추가합니다. 이벤트와 함께 중복·역순·지연·재시작 조건을 적는 형식이 됩니다.
+파일 하나가 시나리오 하나입니다. 폴더에 파일을 추가하면 다음 실행부터 함께 채점합니다. **정답은 적지 않습니다.** 정답 계산기가 보낸 이벤트를 보고 직접 계산합니다.
+
+```json
+{
+  "caseId": "DUP-001",
+  "description": "같은 이벤트를 3번 보내도 Silver·Gold에는 1건만 남는다",
+  "events": [
+    { "eventId": "dup-001-e1", "scanId": "dup-001-s1", "offsetSeconds": 0, "verdict": "고위험" }
+  ],
+  "injection": { "duplicateCount": 3 }
+}
+```
+
+| 키 | 뜻 |
+|---|---|
+| `caseId` | 시나리오 번호 |
+| `description` | 무엇을 확인하는 시나리오인지. 보고서의 입력 칸에 나옴 |
+| `events[].eventId` | 이벤트 고유 번호. 같은 번호를 다른 내용으로 두 번 적으면 "같은 ID 상충" 시나리오 |
+| `events[].scanId` | 검사 번호 (Kafka 메시지 키) |
+| `events[].offsetSeconds` | 시나리오 시작 기준 몇 초 뒤에 일어난 이벤트인지 |
+| `events[].verdict` | 판정 (생략하면 `신호 미발견`) |
+| `injection.duplicateCount` | 같은 이벤트를 몇 번 보낼지 (생략하면 1) |
+| `injection.sendInReverseOrder` | `true`면 나중 이벤트부터 거꾸로 보냄 |
+| `injection.delaySeconds` | 몇 초 늦게 도착시킬지. 300초를 넘으면 격리 대상 |
+
+지연은 실제로 기다리지 않고 이벤트 시각을 과거로 당겨서 만들기 때문에, 6분 지연 시나리오도 바로 끝납니다.
+
+지금 들어 있는 시나리오:
+
+| 시나리오 | 확인하는 것 |
+|---|---|
+| `DUP-001` | 3번 중복 전송 → Bronze 3, Silver 1 |
+| `ORDER-001` | 역순 도착 → 모두 집계 |
+| `DELAY-001` | 30초 지연 → 원래 구간에 집계 |
+| `LATE-001` | 6분 지연 → 격리, Gold에 집계 안 됨 |
+| `CONFLICT-001` | 같은 event_id가 다른 내용으로 도착 → 뒤에 온 것 격리 |
+
+### 정답 계산 규칙
+
+정답 계산기(`Pipeline/ExpectedResultCalculator.cs`)는 실행안 기준으로 계산합니다. 일부는 C와 확정하기 전의 임시안입니다.
+
+| 대상 | 규칙 |
+|---|---|
+| Bronze | 받은 이벤트를 모두 보관. 중복 전송도 각각 남음 |
+| Silver | 같은 event_id는 한 번만 남김 |
+| 격리 | 이벤트 시각보다 5분 넘게 늦게 도착했거나, 같은 event_id인데 내용이 다르면 격리 (임시안: 먼저 온 내용을 기준으로 뒤에 온 것을 격리) |
+| Gold | Silver에 남은 이벤트를 이벤트 시각 기준 60초 구간별로 셈 |
+
+Gold는 시나리오별로 나뉘지 않고 구간별로 합쳐지므로, 실행 전체를 대상으로 한 번에 비교합니다(보고서의 케이스 `전체`). 실제 파이프라인으로 돌릴 때는 다른 데이터가 섞이지 않는 시험 환경에서 실행해야 합니다.
 
 ## 보고서
 
@@ -115,41 +191,54 @@ API가 꺼져 있거나, 오류 응답(4xx·5xx)이 오거나, 10초 안에 답�
 
 | 파일 | 용도 |
 |---|---|
-| `<실행 번호>.html` | 브라우저로 여는 보고서. 전체·통과·실패·통과율과 케이스별 결과 |
+| `<실행 번호>.html` | 브라우저로 여는 보고서. 전체·통과·실패·통과율과 확인 항목별 결과 |
 | `<실행 번호>.json` | 같은 내용을 다른 프로그램(대시보드, CI)이 읽는 용도 |
 
-보고서 읽는 법:
+보고서 표는 `케이스 · 확인 항목 · 입력 · 정답 · 실제 · 결과`로 되어 있습니다.
 
-- 실패한 케이스가 표의 위쪽에 먼저 나옵니다.
-- 판정을 아예 못 받은 케이스는 실제 판정이 "시스템 실패"로 나오고, 그 아래에 이유(연결 실패, 시간 초과 등)가 붙습니다.
-- 가짜 판정 대상으로 실행한 보고서에는 "실제 판정 규칙의 성능이 아닙니다"라는 안내가 붙습니다.
+- 실패한 항목이 표의 위쪽에 먼저 나옵니다.
+- 값을 아예 못 받은 항목은 실제 값이 "시스템 실패"로 나오고, 그 아래에 이유(연결 실패, 시간 초과 등)가 붙습니다.
+- 가짜 시험 대상으로 실행한 보고서에는 "실제 시스템의 성능이 아닙니다"라는 안내가 붙습니다.
 
 프로그램이 끝날 때 돌려주는 종료 코드는 CI가 성공·실패를 판단하는 데 씁니다.
 
 | 종료 코드 | 뜻 |
 |---|---|
-| `0` | 모든 케이스 통과 |
-| `1` | 실패한 케이스가 하나 이상 있음 (시스템 실패 포함) |
-| `2` | 채점을 시작하지 못함 (입력값 파일이 없거나 형식이 틀림, API 주소가 잘못됨) |
+| `0` | 모든 항목 통과 |
+| `1` | 실패한 항목이 하나 이상 있음 (시스템 실패 포함) |
+| `2` | 채점을 시작하지 못함 (옵션이 틀림, 입력값 파일·시나리오 폴더가 없거나 형식이 틀림, API 주소가 잘못됨) |
 
 ## 폴더 구조
 
 ```
 qa/
-├─ cases/rules.json                 입력값 + 정답
+├─ cases/
+│   ├─ rules.json                    판정 시험 입력값 + 정답
+│   └─ pipeline/*.json               파이프라인 시험 시나리오
 ├─ src/QaRunner/
-│   ├─ Program.cs                    실행 순서 연결 (읽기 → 판정 → 채점 → 출력 → 저장)
-│   ├─ CommandLineOptions.cs         --cases, --reports, --api-url 옵션 읽기
-│   ├─ TestCaseLoader.cs             입력값 파일 읽기
-│   ├─ VerdictChecker.cs             채점기: 정답 vs 실제 판정
+│   ├─ Program.cs                    실행 순서 연결 (옵션 → 준비 → 채점 → 출력 → 저장)
+│   ├─ CommandLineOptions.cs         --suite, --cases, --reports, --api-url 옵션 읽기
+│   ├─ TestCaseLoader.cs             판정 시험 입력값 파일 읽기
+│   ├─ VerdictChecker.cs             판정 시험 채점기
 │   ├─ Models/
-│   │   ├─ TestCase.cs               시험 케이스 한 건 (케이스 번호, 문자, 정답)
-│   │   ├─ TestResult.cs             채점 결과 한 건 (문자, 정답, 실제 판정, 통과 여부, 시스템 실패 이유)
-│   │   └─ TestRun.cs                한 번 실행한 기록 (실행 번호, 시각, 결과 목록, 통과율)
+│   │   ├─ TestCase.cs               판정 시험 케이스 한 건 (케이스 번호, 문자, 정답)
+│   │   ├─ TestResult.cs             확인 항목 하나의 채점 결과 (두 시험 공통)
+│   │   ├─ TestRun.cs                한 번 실행한 기록 (실행 번호, 시험 종류, 결과 목록, 통과율)
+│   │   └─ TestSuite.cs              시험 종류 (판정 / 파이프라인)
 │   ├─ Verdicts/
 │   │   ├─ IVerdictService.cs        판정 대상이 갖춰야 할 모양
 │   │   ├─ FakeVerdictService.cs     임시 가짜 판정 대상
 │   │   └─ ApiVerdictService.cs      FastAPI를 호출하는 실제 판정 대상
+│   ├─ Pipeline/
+│   │   ├─ PipelineEvent.cs          파이프라인에 넣는 이벤트 한 건 (임시 계약)
+│   │   ├─ PipelineScenario.cs       시나리오 형식 (이벤트 + 중복·역순·지연 조건)
+│   │   ├─ PipelineScenarioLoader.cs 시나리오 폴더 읽기
+│   │   ├─ SendPlanner.cs            언제·몇 번·어떤 순서로 보낼지 전송 계획
+│   │   ├─ ExpectedResultCalculator.cs 정답 계산기
+│   │   ├─ IEventSender.cs           이벤트를 넣는 쪽이 갖춰야 할 모양
+│   │   ├─ IPipelineReader.cs        결과를 읽는 쪽이 갖춰야 할 모양
+│   │   ├─ FakePipeline.cs           임시 가짜 파이프라인 (격리 기능 없음)
+│   │   └─ PipelineChecker.cs        파이프라인 시험 채점기
 │   └─ Reports/
 │       ├─ JsonReportWriter.cs       JSON 보고서 저장
 │       ├─ HtmlReportWriter.cs       HTML 보고서 저장
@@ -165,13 +254,21 @@ qa/
 2. 판정 값이 영문 코드로 오면 같은 파일에서 한글 판정으로 바꿔 돌려줍니다.
 3. `--api-url`에 실제 주소를 넣어 실행합니다. 채점기, 보고서 등 나머지 코드는 고치지 않습니다.
 
-### 새로운 판정 대상 추가하기
+### C의 파이프라인 계약이 확정되면
 
-`src/QaRunner/Verdicts/`에 `IVerdictService`를 구현한 클래스를 추가하고, `Program.cs`의 "2. 판정 대상 정하기"에서 고르게 합니다.
+1. `Pipeline/PipelineEvent.cs`의 필드를 확정된 이벤트 스키마에 맞춥니다. (event_id와 scan_id 관계, run_id를 어디에 담을지)
+2. `IEventSender`를 구현해 Kafka에 발행하는 클래스를 만듭니다. 보내지 못하면 `EventSendException`을 던집니다.
+3. `IPipelineReader`를 구현해 MongoDB의 `bronze_events`, `silver_events`, 격리 컬렉션, `gold_metrics`를 읽는 클래스를 만듭니다.
+4. 격리 규칙이 임시안과 다르게 정해지면 `Pipeline/ExpectedResultCalculator.cs`를 고칩니다.
+5. `Program.cs`의 파이프라인 시험 부분에서 `FakePipeline` 대신 새 클래스를 고르게 하고, Gold 대기 시간을 `PipelineChecker.DefaultCatchUpTimeout`(60초)으로 둡니다.
+
+### 새로운 시험 대상 추가하기
+
+판정 시험은 `IVerdictService`, 파이프라인 시험은 `IEventSender`·`IPipelineReader`를 구현한 클래스를 추가하고, `Program.cs`에서 고르게 합니다. 가짜 대상의 클래스 이름은 `Fake`로 시작해야 보고서에 가짜 안내가 붙습니다.
 
 ### 보고서에 항목 추가하기
 
-1. `Models/TestRun.cs`(실행 전체) 또는 `Models/TestResult.cs`(케이스 한 건)에 속성을 추가합니다. JSON 보고서에는 자동으로 들어갑니다.
+1. `Models/TestRun.cs`(실행 전체) 또는 `Models/TestResult.cs`(확인 항목 하나)에 속성을 추가합니다. JSON 보고서에는 자동으로 들어갑니다.
 2. HTML 보고서에 보여 주려면 `Reports/HtmlReportWriter.cs`의 `BuildHtml`을 고칩니다.
 
 ### 코드를 고칠 때 지킬 것

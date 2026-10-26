@@ -4,7 +4,7 @@ using QaRunner.Verdicts;
 namespace QaRunner.Tests;
 
 /// <summary>
-/// 채점기(VerdictChecker)가 통과·실패를 올바르게 판단하는지 확인한다.
+/// 판정 시험 채점기(VerdictChecker)가 통과·실패·시스템 실패를 올바르게 판단하는지 확인한다.
 /// </summary>
 public class VerdictCheckerTests
 {
@@ -27,6 +27,34 @@ public class VerdictCheckerTests
     }
 
     [Fact]
+    public async Task Passes_when_actual_verdict_matches_expected()
+    {
+        var verdictChecker = new VerdictChecker(new AlwaysSameVerdictService("고위험"));
+        var testCase = new TestCase("R-1", "아무 문자", ExpectedVerdict: "고위험");
+
+        var testResults = await verdictChecker.CheckAllAsync([testCase]);
+
+        var testResult = testResults.Single();
+        Assert.True(testResult.IsPassed);
+        Assert.Equal(VerdictChecker.CheckName, testResult.CheckName);
+        Assert.Equal("아무 문자", testResult.Input);
+    }
+
+    [Fact]
+    public async Task Fails_when_actual_verdict_differs_from_expected()
+    {
+        var verdictChecker = new VerdictChecker(new AlwaysSameVerdictService("주의"));
+        var testCase = new TestCase("R-1", "아무 문자", ExpectedVerdict: "고위험");
+
+        var testResults = await verdictChecker.CheckAllAsync([testCase]);
+
+        var testResult = testResults.Single();
+        Assert.False(testResult.IsPassed);
+        Assert.Equal("고위험", testResult.Expected);
+        Assert.Equal("주의", testResult.Actual);
+    }
+
+    [Fact]
     public async Task Records_system_failure_and_keeps_checking_other_cases()
     {
         var verdictChecker = new VerdictChecker(new AlwaysFailingVerdictService());
@@ -44,33 +72,8 @@ public class VerdictCheckerTests
         {
             Assert.False(testResult.IsPassed);
             Assert.True(testResult.IsSystemFailure);
-            Assert.Equal(TestResult.SystemFailureVerdict, testResult.ActualVerdict);
+            Assert.Equal(TestResult.SystemFailureValue, testResult.Actual);
             Assert.Equal("연결할 수 없습니다", testResult.ErrorMessage);
         });
-    }
-
-    [Fact]
-    public async Task Passes_when_actual_verdict_matches_expected()
-    {
-        var verdictChecker = new VerdictChecker(new AlwaysSameVerdictService("고위험"));
-        var testCase = new TestCase("R-1", "아무 문자", ExpectedVerdict: "고위험");
-
-        var testResults = await verdictChecker.CheckAllAsync([testCase]);
-
-        Assert.True(testResults.Single().IsPassed);
-    }
-
-    [Fact]
-    public async Task Fails_when_actual_verdict_differs_from_expected()
-    {
-        var verdictChecker = new VerdictChecker(new AlwaysSameVerdictService("주의"));
-        var testCase = new TestCase("R-1", "아무 문자", ExpectedVerdict: "고위험");
-
-        var testResults = await verdictChecker.CheckAllAsync([testCase]);
-
-        var testResult = testResults.Single();
-        Assert.False(testResult.IsPassed);
-        Assert.Equal("고위험", testResult.ExpectedVerdict);
-        Assert.Equal("주의", testResult.ActualVerdict);
     }
 }

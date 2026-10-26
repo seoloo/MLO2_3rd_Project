@@ -4,33 +4,41 @@ namespace QaRunner.Models;
 /// QA를 한 번 실행한 기록. 보고서 파일 한 쌍(JSON, HTML)이 이 기록 하나에 해당한다.
 /// </summary>
 /// <param name="RunId">실행 번호. 실행 시작 시각으로 만든다. 예: 2026-10-26-143015</param>
+/// <param name="SuiteName">시험 종류. 예: 판정 시험, 파이프라인 시험</param>
 /// <param name="StartedAt">실행을 시작한 시각</param>
 /// <param name="FinishedAt">실행이 끝난 시각</param>
-/// <param name="TestCaseFilePath">이번 실행에 쓴 입력값 파일 경로</param>
-/// <param name="VerdictServiceName">판정 대상 이름. 가짜로 돌린 결과인지 실제 API로 돌린 결과인지 구분하는 데 쓴다</param>
-/// <param name="Results">케이스별 채점 결과</param>
+/// <param name="CasesPath">이번 실행에 쓴 입력값 파일(판정 시험) 또는 시나리오 폴더(파이프라인 시험)</param>
+/// <param name="TargetName">시험 대상 이름. 가짜로 돌린 결과인지 실제 시스템으로 돌린 결과인지 구분하는 데 쓴다</param>
+/// <param name="Results">확인 항목별 채점 결과</param>
 public sealed record TestRun(
     string RunId,
+    string SuiteName,
     DateTimeOffset StartedAt,
     DateTimeOffset FinishedAt,
-    string TestCaseFilePath,
-    string VerdictServiceName,
+    string CasesPath,
+    string TargetName,
     IReadOnlyList<TestResult> Results)
 {
-    /// <summary>채점한 케이스 수</summary>
+    /// <summary>채점한 확인 항목 수</summary>
     public int TotalCount => Results.Count;
 
-    /// <summary>통과한 케이스 수</summary>
+    /// <summary>통과한 확인 항목 수</summary>
     public int PassedCount => Results.Count(testResult => testResult.IsPassed);
 
-    /// <summary>실패한 케이스 수</summary>
+    /// <summary>실패한 확인 항목 수 (시스템 실패 포함)</summary>
     public int FailedCount => TotalCount - PassedCount;
 
-    /// <summary>통과율(%). 케이스가 하나도 없으면 0으로 본다.</summary>
+    /// <summary>시스템 실패(값을 아예 못 받은 경우) 수</summary>
+    public int SystemFailureCount => Results.Count(testResult => testResult.IsSystemFailure);
+
+    /// <summary>통과율(%). 확인 항목이 하나도 없으면 0으로 본다.</summary>
     public double PassRate => TotalCount == 0 ? 0 : PassedCount * 100.0 / TotalCount;
 
     /// <summary>실행에 걸린 시간</summary>
     public TimeSpan Duration => FinishedAt - StartedAt;
+
+    /// <summary>가짜 시험 대상으로 돌린 실행인지. 가짜 대상 클래스 이름은 모두 Fake로 시작한다</summary>
+    public bool UsedFakeTarget => TargetName.StartsWith("Fake", StringComparison.Ordinal);
 
     /// <summary>
     /// 실행 시작 시각으로 실행 번호를 만든다.
