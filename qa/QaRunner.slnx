@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/QaRunner.Desktop/QaRunner.Desktop.csproj" />
     <Project Path="src/QaRunner/QaRunner.csproj" />
   </Folder>
   <Folder Name="/tests/">

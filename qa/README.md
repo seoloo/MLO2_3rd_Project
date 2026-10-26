@@ -20,6 +20,7 @@
 | ⑤ 부하·복구 시험 | 5건/초 × 5분 발행, Spark 중단·재가동, p95·회복 시간 측정 | 예정 |
 | ⑥ 자동 실행·CI | docker-compose 서비스 추가, CI에서 종료 코드로 판정 | 예정 |
 | ⑦ 실행 기록 대시보드 | 저장된 보고서를 모아 추이 표시 | 선택 |
+| 시연용 데스크탑 앱 | 버튼으로 시험을 돌리고 결과를 화면에서 바로 보는 Windows 앱 | 완료 |
 
 ## 흐름
 
@@ -81,6 +82,30 @@ QA 러너 자체가 올바르게 동작하는지 확인합니다.
 
 ```bash
 dotnet test
+```
+
+## 데스크탑 앱 (시연용)
+
+명령어 대신 화면에서 시험을 고르고 버튼으로 돌려 볼 수 있는 Windows 앱입니다. 콘솔 프로그램과 같은 실행 절차(`QaRunService`)를 쓰므로 결과와 보고서도 똑같습니다.
+
+```bash
+dotnet run --project src/QaRunner.Desktop
+```
+
+| 화면 | 하는 일 |
+|---|---|
+| 왼쪽 | 시험 종류(판정·파이프라인), 입력 경로, 판정 API 주소, 보고서 폴더를 고르고 **실행** |
+| 오른쪽 위 | 실행 번호·시험 대상, 가짜 대상 안내, 전체·통과·실패·통과율 |
+| 오른쪽 표 | 확인 항목별 결과. 실패한 항목이 위에, 붉은 줄로 표시 |
+| HTML 보고서 열기 | 방금 저장한 보고서를 브라우저로 열기 |
+
+- 입력 경로와 보고서 폴더는 `qa/` 폴더 기준입니다. 실행 파일을 어디서 열어도 `qa/` 폴더를 찾아 기준으로 삼습니다.
+- Windows 전용입니다(WPF). 맥·리눅스에서는 콘솔 프로그램을 쓰면 됩니다.
+
+README·발표 자료에 넣을 화면이 필요하면 캡처 모드로 실행합니다. 창을 화면 밖에 띄워 시험을 한 번 돌린 뒤, 화면을 PNG로 저장하고 바로 꺼집니다.
+
+```bash
+dotnet run --project src/QaRunner.Desktop -- --capture screen.png --suite pipeline
 ```
 
 ## 옵션
@@ -215,8 +240,9 @@ qa/
 ├─ cases/
 │   ├─ rules.json                    판정 시험 입력값 + 정답
 │   └─ pipeline/*.json               파이프라인 시험 시나리오
-├─ src/QaRunner/
-│   ├─ Program.cs                    실행 순서 연결 (옵션 → 준비 → 채점 → 출력 → 저장)
+├─ src/QaRunner/                     콘솔 프로그램 (QA 러너 본체)
+│   ├─ Program.cs                    콘솔 실행 순서 (옵션 → 준비 → 채점 → 출력 → 저장)
+│   ├─ QaRunService.cs               콘솔·데스크탑 앱이 함께 쓰는 실행 절차 (준비 → 채점 → 보고서 저장)
 │   ├─ CommandLineOptions.cs         --suite, --cases, --reports, --api-url 옵션 읽기
 │   ├─ TestCaseLoader.cs             판정 시험 입력값 파일 읽기
 │   ├─ VerdictChecker.cs             판정 시험 채점기
@@ -243,6 +269,11 @@ qa/
 │       ├─ JsonReportWriter.cs       JSON 보고서 저장
 │       ├─ HtmlReportWriter.cs       HTML 보고서 저장
 │       └─ RunIdGenerator.cs         겹치지 않는 실행 번호 만들기
+├─ src/QaRunner.Desktop/             시연용 데스크탑 앱 (WPF)
+│   ├─ App.xaml(.cs)                 시작점, 색상 정의, 화면 캡처 모드
+│   ├─ MainWindow.xaml(.cs)          메인 창 (설정 · 요약 숫자 · 결과 표)
+│   ├─ ResultRow.cs                  결과 표의 한 줄
+│   └─ QaFolderLocator.cs            qa 폴더를 찾아 기준 폴더로 삼기
 └─ tests/QaRunner.Tests/             QA 러너 자체의 테스트
 ```
 
@@ -260,16 +291,16 @@ qa/
 2. `IEventSender`를 구현해 Kafka에 발행하는 클래스를 만듭니다. 보내지 못하면 `EventSendException`을 던집니다.
 3. `IPipelineReader`를 구현해 MongoDB의 `bronze_events`, `silver_events`, 격리 컬렉션, `gold_metrics`를 읽는 클래스를 만듭니다.
 4. 격리 규칙이 임시안과 다르게 정해지면 `Pipeline/ExpectedResultCalculator.cs`를 고칩니다.
-5. `Program.cs`의 파이프라인 시험 부분에서 `FakePipeline` 대신 새 클래스를 고르게 하고, Gold 대기 시간을 `PipelineChecker.DefaultCatchUpTimeout`(60초)으로 둡니다.
+5. `QaRunService.cs`의 `Prepare`에서 `FakePipeline` 대신 새 클래스를 고르게 하고, Gold 대기 시간을 `PipelineChecker.DefaultCatchUpTimeout`(60초)으로 둡니다. 콘솔과 데스크탑 앱에 함께 적용됩니다.
 
 ### 새로운 시험 대상 추가하기
 
-판정 시험은 `IVerdictService`, 파이프라인 시험은 `IEventSender`·`IPipelineReader`를 구현한 클래스를 추가하고, `Program.cs`에서 고르게 합니다. 가짜 대상의 클래스 이름은 `Fake`로 시작해야 보고서에 가짜 안내가 붙습니다.
+판정 시험은 `IVerdictService`, 파이프라인 시험은 `IEventSender`·`IPipelineReader`를 구현한 클래스를 추가하고, `QaRunService.cs`의 `Prepare`에서 고르게 합니다. 가짜 대상의 클래스 이름은 `Fake`로 시작해야 보고서와 데스크탑 앱에 가짜 안내가 붙습니다.
 
 ### 보고서에 항목 추가하기
 
 1. `Models/TestRun.cs`(실행 전체) 또는 `Models/TestResult.cs`(확인 항목 하나)에 속성을 추가합니다. JSON 보고서에는 자동으로 들어갑니다.
-2. HTML 보고서에 보여 주려면 `Reports/HtmlReportWriter.cs`의 `BuildHtml`을 고칩니다.
+2. HTML 보고서에 보여 주려면 `Reports/HtmlReportWriter.cs`의 `BuildHtml`을, 데스크탑 앱에 보여 주려면 `MainWindow.xaml`과 `ShowTestRun`을 고칩니다.
 
 ### 코드를 고칠 때 지킬 것
 
