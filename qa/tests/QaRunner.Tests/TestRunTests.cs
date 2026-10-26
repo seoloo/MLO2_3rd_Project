@@ -15,6 +15,7 @@ public class TestRunTests
         Assert.Equal(2, testRun.TotalCount);
         Assert.Equal(1, testRun.PassedCount);
         Assert.Equal(1, testRun.FailedCount);
+        Assert.Equal(0, testRun.SystemFailureCount);
         Assert.Equal(50.0, testRun.PassRate);
         Assert.Equal(TimeSpan.FromSeconds(1.5), testRun.Duration);
     }
@@ -25,6 +26,24 @@ public class TestRunTests
         var emptyTestRun = SampleTestRuns.OnePassedOneFailed() with { Results = [] };
 
         Assert.Equal(0, emptyTestRun.PassRate);
+    }
+
+    [Fact]
+    public void System_failure_is_counted_as_failed()
+    {
+        var systemFailure = TestResult.SystemFailure("R-1", "판정", "문자", "고위험", "연결할 수 없습니다");
+        var testRun = SampleTestRuns.OnePassedOneFailed() with { Results = [systemFailure] };
+
+        Assert.Equal(1, testRun.FailedCount);
+        Assert.Equal(1, testRun.SystemFailureCount);
+        Assert.Equal(TestResult.SystemFailureValue, systemFailure.Actual);
+    }
+
+    [Fact]
+    public void Knows_whether_a_fake_target_was_used()
+    {
+        Assert.True(SampleTestRuns.OnePassedOneFailed("FakePipeline").UsedFakeTarget);
+        Assert.False(SampleTestRuns.OnePassedOneFailed("ApiVerdictService").UsedFakeTarget);
     }
 
     [Fact]

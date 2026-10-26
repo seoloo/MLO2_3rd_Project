@@ -1,3 +1,5 @@
+using QaRunner.Models;
+
 namespace QaRunner.Tests;
 
 /// <summary>
@@ -6,15 +8,25 @@ namespace QaRunner.Tests;
 public class CommandLineOptionsTests
 {
     [Fact]
-    public void Uses_default_values_when_no_options_are_given()
+    public void Uses_verdict_suite_and_default_values_when_no_options_are_given()
     {
         var options = CommandLineOptions.Parse([]);
 
-        Assert.Equal(CommandLineOptions.DefaultTestCaseFilePath, options.TestCaseFilePath);
+        Assert.Equal(TestSuite.Verdict, options.Suite);
+        Assert.Equal(CommandLineOptions.DefaultVerdictCasesPath, options.CasesPath);
         Assert.Equal(CommandLineOptions.DefaultReportDirectory, options.ReportDirectory);
 
         // API 주소가 없으면 가짜 판정 대상을 쓴다는 뜻
         Assert.Null(options.ApiBaseUrl);
+    }
+
+    [Fact]
+    public void Uses_pipeline_scenario_folder_by_default_for_pipeline_suite()
+    {
+        var options = CommandLineOptions.Parse(["--suite", "pipeline"]);
+
+        Assert.Equal(TestSuite.Pipeline, options.Suite);
+        Assert.Equal(CommandLineOptions.DefaultPipelineCasesPath, options.CasesPath);
     }
 
     [Fact]
@@ -23,7 +35,7 @@ public class CommandLineOptionsTests
         var options = CommandLineOptions.Parse(
             ["--reports", "out", "--cases", "cases/more.json", "--api-url", "http://localhost:8000"]);
 
-        Assert.Equal("cases/more.json", options.TestCaseFilePath);
+        Assert.Equal("cases/more.json", options.CasesPath);
         Assert.Equal("out", options.ReportDirectory);
         Assert.Equal("http://localhost:8000", options.ApiBaseUrl);
     }
@@ -34,6 +46,12 @@ public class CommandLineOptionsTests
         // 옵션 이름만 있고 값이 빠진 경우
         var options = CommandLineOptions.Parse(["--cases"]);
 
-        Assert.Equal(CommandLineOptions.DefaultTestCaseFilePath, options.TestCaseFilePath);
+        Assert.Equal(CommandLineOptions.DefaultVerdictCasesPath, options.CasesPath);
+    }
+
+    [Fact]
+    public void Rejects_unknown_suite_name()
+    {
+        Assert.Throws<ArgumentException>(() => CommandLineOptions.Parse(["--suite", "load"]));
     }
 }

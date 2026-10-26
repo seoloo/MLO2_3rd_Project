@@ -63,11 +63,11 @@ public class ReportWriterTests : IDisposable
     }
 
     [Fact]
-    public void Html_report_escapes_special_characters_in_messages()
+    public void Html_report_escapes_special_characters_in_input()
     {
         var testRun = SampleTestRuns.OnePassedOneFailed();
-        var messageWithTag = testRun.Results[0] with { Message = "<script>alert(1)</script>" };
-        var testRunWithTag = testRun with { Results = [messageWithTag] };
+        var inputWithTag = testRun.Results[0] with { Input = "<script>alert(1)</script>" };
+        var testRunWithTag = testRun with { Results = [inputWithTag] };
 
         var html = HtmlReportWriter.BuildHtml(testRunWithTag);
 
@@ -76,28 +76,33 @@ public class ReportWriterTests : IDisposable
     }
 
     [Fact]
+    public void Html_report_shows_suite_name_and_check_name()
+    {
+        var html = HtmlReportWriter.BuildHtml(SampleTestRuns.OnePassedOneFailed());
+
+        Assert.Contains("판정 시험", html);
+        Assert.Contains("<th>확인 항목</th>", html);
+    }
+
+    [Fact]
     public void Html_report_shows_reason_for_system_failure()
     {
         var testRun = SampleTestRuns.OnePassedOneFailed("ApiVerdictService");
-        var failedByConnection = testRun.Results[0] with
-        {
-            ActualVerdict = TestResult.SystemFailureVerdict,
-            ErrorMessage = "연결할 수 없습니다",
-        };
+        var failedByConnection = TestResult.SystemFailure("R-001", "판정", "문자", "고위험", "연결할 수 없습니다");
 
         var html = HtmlReportWriter.BuildHtml(testRun with { Results = [failedByConnection] });
 
-        Assert.Contains(TestResult.SystemFailureVerdict, html);
+        Assert.Contains(TestResult.SystemFailureValue, html);
         Assert.Contains("연결할 수 없습니다", html);
     }
 
     [Fact]
-    public void Html_report_warns_only_when_fake_verdict_service_was_used()
+    public void Html_report_warns_only_when_fake_target_was_used()
     {
-        var fakeHtml = HtmlReportWriter.BuildHtml(SampleTestRuns.OnePassedOneFailed("FakeVerdictService"));
+        var fakeHtml = HtmlReportWriter.BuildHtml(SampleTestRuns.OnePassedOneFailed("FakePipeline"));
         var realHtml = HtmlReportWriter.BuildHtml(SampleTestRuns.OnePassedOneFailed("ApiVerdictService"));
 
-        Assert.Contains("가짜 판정 대상으로 실행한 결과입니다", fakeHtml);
-        Assert.DoesNotContain("가짜 판정 대상으로 실행한 결과입니다", realHtml);
+        Assert.Contains("가짜 시험 대상으로 실행한 결과입니다", fakeHtml);
+        Assert.DoesNotContain("가짜 시험 대상으로 실행한 결과입니다", realHtml);
     }
 }

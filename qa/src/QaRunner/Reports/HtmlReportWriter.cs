@@ -33,13 +33,13 @@ public static class HtmlReportWriter
     {
         var resultRows = new StringBuilder();
 
-        // 실패한 케이스를 위에 먼저 보여 준다. 같은 결과끼리는 입력값 파일 순서를 유지한다
+        // 실패한 항목을 위에 먼저 보여 준다. 같은 결과끼리는 원래 순서를 유지한다
         foreach (var testResult in testRun.Results.OrderBy(testResult => testResult.IsPassed))
         {
             var rowClass = testResult.IsPassed ? "pass" : "fail";
             var resultLabel = testResult.IsPassed ? "통과" : "실패";
 
-            // 시스템 실패면 실제 판정 아래에 실패 이유를 작게 붙인다
+            // 시스템 실패면 실제 값 아래에 실패 이유를 작게 붙인다
             var errorDetail = testResult.IsSystemFailure
                 ? $"""<div class="error">{Encode(testResult.ErrorMessage!)}</div>"""
                 : "";
@@ -47,18 +47,18 @@ public static class HtmlReportWriter
             resultRows.AppendLine($"""
                 <tr class="{rowClass}">
                   <td class="case-id">{Encode(testResult.CaseId)}</td>
-                  <td class="message">{Encode(testResult.Message)}</td>
-                  <td>{Encode(testResult.ExpectedVerdict)}</td>
-                  <td>{Encode(testResult.ActualVerdict)}{errorDetail}</td>
+                  <td class="check-name">{Encode(testResult.CheckName)}</td>
+                  <td class="input">{Encode(testResult.Input)}</td>
+                  <td>{Encode(testResult.Expected)}</td>
+                  <td>{Encode(testResult.Actual)}{errorDetail}</td>
                   <td><span class="badge">{resultLabel}</span></td>
                 </tr>
                 """);
         }
 
-        // 가짜 판정 대상으로 돌린 결과라면 실제 성능으로 오해하지 않도록 상단에 알린다
-        var isFakeVerdictService = testRun.VerdictServiceName.StartsWith("Fake", StringComparison.Ordinal);
-        var fakeNotice = isFakeVerdictService
-            ? """<p class="notice">가짜 판정 대상으로 실행한 결과입니다. 실제 판정 규칙의 성능이 아닙니다.</p>"""
+        // 가짜 시험 대상으로 돌린 결과라면 실제 성능으로 오해하지 않도록 상단에 알린다
+        var fakeNotice = testRun.UsedFakeTarget
+            ? """<p class="notice">가짜 시험 대상으로 실행한 결과입니다. 실제 시스템의 성능이 아닙니다.</p>"""
             : "";
 
         // CSS의 중괄호와 겹치지 않도록 $$ 문자열을 쓴다. 값은 {{ }} 안에 넣는다
@@ -86,7 +86,8 @@ public static class HtmlReportWriter
               th { text-align: left; color: #5f7173; font-size: 12px; padding: 8px; border-bottom: 1px solid #d6e4e1; }
               td { padding: 8px; border-bottom: 1px solid #edf2f1; vertical-align: top; }
               td.case-id { white-space: nowrap; font-weight: 700; }
-              td.message { color: #33494b; }
+              td.check-name { white-space: nowrap; }
+              td.input { color: #33494b; }
               tr.fail { background: #fff8f8; }
               .error { color: #b4232a; font-size: 12px; margin-top: 2px; }
               .badge { font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
@@ -98,10 +99,10 @@ public static class HtmlReportWriter
             <body>
             <main>
               <div class="eyebrow">JEONGBO JIKIM / QA RUNNER</div>
-              <h1>QA 실행 결과</h1>
+              <h1>QA 실행 결과 · {{Encode(testRun.SuiteName)}}</h1>
               <p class="meta">
                 실행 번호 {{testRun.RunId}} · 시작 {{testRun.StartedAt:yyyy-MM-dd HH:mm:ss}} · 걸린 시간 {{testRun.Duration.TotalSeconds:0.00}}초<br>
-                입력값 파일 {{Encode(testRun.TestCaseFilePath)}} · 판정 대상 {{Encode(testRun.VerdictServiceName)}}
+                입력 {{Encode(testRun.CasesPath)}} · 시험 대상 {{Encode(testRun.TargetName)}}
               </p>
               {{fakeNotice}}
               <section class="summary">
@@ -111,7 +112,7 @@ public static class HtmlReportWriter
                 <div class="tile"><div class="label">통과율</div><div class="value">{{testRun.PassRate:0.0}}%</div></div>
               </section>
               <table>
-                <thead><tr><th>케이스</th><th>입력 문자</th><th>정답</th><th>실제</th><th>결과</th></tr></thead>
+                <thead><tr><th>케이스</th><th>확인 항목</th><th>입력</th><th>정답</th><th>실제</th><th>결과</th></tr></thead>
                 <tbody>
             {{resultRows}}
                 </tbody>
