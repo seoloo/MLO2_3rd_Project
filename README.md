@@ -61,6 +61,37 @@ React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka
 
 - 자동 QA 러너: [qa/README.md](qa/README.md)
 
+## QA 결과 보기 · QA 러너 쓰기 (팀원용)
+
+실행 파일을 주고받지 않습니다. 결과만 볼 사람은 웹 주소로 보고, 직접 돌릴 사람은 저장소에서 바로 켭니다.
+
+### 결과만 보기: 웹 대시보드
+
+**https://seoloo.github.io/MLO2_3rd_Project/** 를 즐겨찾기해 두고 열면 됩니다. 설치할 것이 없고 휴대폰에서도 열립니다.
+
+- 기본 브랜치에 QA 코드가 푸시될 때마다 GitHub Actions가 시험을 돌리고 대시보드를 새로 올립니다.
+- 통과율 추이, 부하·복구 측정값, 실행마다의 상세 보고서를 볼 수 있습니다.
+
+### 직접 돌리기: 저장소에서 바로 실행 (Windows)
+
+처음 한 번만 준비합니다.
+
+```bash
+winget install Microsoft.DotNet.SDK.10
+```
+
+```bash
+git clone https://github.com/seoloo/MLO2_3rd_Project.git
+```
+
+그다음부터는 **`qa/run-qa-desktop.cmd`를 더블클릭**하면 됩니다. 최신 코드를 받고(`git pull`), 빌드한 뒤, QA 러너 데스크탑 앱을 켭니다. 항상 최신 버전이 실행되므로 따로 업데이트할 필요가 없습니다.
+
+자기 API를 시험하려면 앱의 **판정 API 주소** 칸에 주소(예: `http://localhost:8000`)를 넣고 실행합니다. 자세한 사용법은 [qa/README.md](qa/README.md)에 있습니다.
+
+### 저장소 관리자가 처음 한 번 할 일
+
+웹 대시보드가 올라가려면 GitHub 저장소에서 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 바꿔야 합니다. 바꾸기 전에는 검사의 "대시보드 공개" 단계가 실패로 표시됩니다.
+
 ## 협업 규칙
 
 - **브랜치**: 작업 단위로 `feature/<작업 이름>` 브랜치를 만들고, 끝나면 PR로 `main`에 합친 뒤 지웁니다.
