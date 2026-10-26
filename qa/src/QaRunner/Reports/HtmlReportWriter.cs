@@ -39,12 +39,17 @@ public static class HtmlReportWriter
             var rowClass = testResult.IsPassed ? "pass" : "fail";
             var resultLabel = testResult.IsPassed ? "통과" : "실패";
 
+            // 시스템 실패면 실제 판정 아래에 실패 이유를 작게 붙인다
+            var errorDetail = testResult.IsSystemFailure
+                ? $"""<div class="error">{Encode(testResult.ErrorMessage!)}</div>"""
+                : "";
+
             resultRows.AppendLine($"""
                 <tr class="{rowClass}">
                   <td class="case-id">{Encode(testResult.CaseId)}</td>
                   <td class="message">{Encode(testResult.Message)}</td>
                   <td>{Encode(testResult.ExpectedVerdict)}</td>
-                  <td>{Encode(testResult.ActualVerdict)}</td>
+                  <td>{Encode(testResult.ActualVerdict)}{errorDetail}</td>
                   <td><span class="badge">{resultLabel}</span></td>
                 </tr>
                 """);
@@ -83,6 +88,7 @@ public static class HtmlReportWriter
               td.case-id { white-space: nowrap; font-weight: 700; }
               td.message { color: #33494b; }
               tr.fail { background: #fff8f8; }
+              .error { color: #b4232a; font-size: 12px; margin-top: 2px; }
               .badge { font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
               tr.pass .badge { background: #e2f3ee; color: #0f7a73; }
               tr.fail .badge { background: #fdecec; color: #b4232a; }
