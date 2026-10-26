@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QaRunner/QaRunner.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/QaRunner.Tests/QaRunner.Tests.csproj" />
+  </Folder>
+</Solution>

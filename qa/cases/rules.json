@@ -1,0 +1,6 @@
+[
+  { "caseId": "R-001", "message": "[택배] 상담원에게 인증번호를 알려주세요", "expectedVerdict": "고위험" },
+  { "caseId": "R-002", "message": "보안 앱을 설치해야 환불됩니다. 링크: https://refund.test/app", "expectedVerdict": "고위험" },
+  { "caseId": "R-003", "message": "내일 3시 회의 잊지 마세요", "expectedVerdict": "신호 미발견" },
+  { "caseId": "R-004", "message": "본인 확인이 필요합니다", "expectedVerdict": "판단 보류" }
+]

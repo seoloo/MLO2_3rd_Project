@@ -1,2 +1,11 @@
 # 실행안 문서(PDF·HTML)는 저장소에 올리지 않음
 docs/plan/
+
+# .NET 빌드 결과물
+bin/
+obj/
+*.user
+.vs/
+
+# QA 실행 보고서 (실행할 때마다 새로 생성)
+qa/reports/
