@@ -1,5 +1,7 @@
 # 정보지킴
 
+[![QA 러너 검사](https://github.com/seoloo/MLO2_3rd_Project/actions/workflows/qa.yml/badge.svg?branch=feature/qa-runner)](https://github.com/seoloo/MLO2_3rd_Project/actions/workflows/qa.yml)
+
 문자·URL에 담긴 위험 정황을 설명해 주는 앱과, 그 앱에서 나오는 이벤트를 처리하는 데이터 파이프라인을 함께 만드는 프로젝트입니다. 앱은 입력과 결과를 보여 주고, 프로젝트의 핵심 성과는 **데이터 처리가 정확하고 장애가 나도 복구된다는 것을 자동 QA로 증명**하는 데 있습니다.
 
 ## 무엇을 만드나
@@ -50,7 +52,7 @@ React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka
 
 | 영역 | 상태 |
 |---|---|
-| 자동 QA 러너 | 판정 시험·보고서·API 호출 코드 완료. 파이프라인 시험은 가짜 파이프라인으로 동작하고, Kafka·MongoDB 연결 대기. 시연용 데스크탑 앱(Windows)으로 화면에서 바로 돌려 볼 수 있음. 자세한 내용은 [qa/README.md](qa/README.md) |
+| 자동 QA 러너 | 판정 시험·보고서·API 호출 코드 완료. 파이프라인 시험은 가짜 파이프라인으로 동작하고, Kafka·MongoDB 연결 대기. 시연용 데스크탑 앱(Windows)으로 화면에서 바로 돌려 볼 수 있음. 푸시할 때마다 GitHub Actions가 빌드·테스트를 자동 실행. 자세한 내용은 [qa/README.md](qa/README.md) |
 | 앱 · API · 파이프라인 | 예정 |
 
 ## 시작하기
@@ -65,4 +67,5 @@ React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka
 - **커밋 메시지**: 한국어로, 무엇을 했는지 사람이 읽기 쉽게 씁니다. `feat:` 같은 영어 접두어는 붙이지 않습니다.
 - **코드**: 이름은 무엇인지 바로 알 수 있게 짓고, 클래스·함수에는 무엇이고 왜 있는지 주석을 답니다.
 - **README**: 코드, 실행 방법, 폴더가 바뀌면 해당 README도 같은 커밋에서 고칩니다.
+- **자동 검사**: 푸시하면 GitHub Actions가 검사합니다. 커밋 옆에 ✘가 뜨면 Actions 탭에서 원인을 보고 고칩니다.
 - **문서**: 실행안 PDF 같은 내부 문서는 `docs/plan/`에 두며 git에 올리지 않습니다.
