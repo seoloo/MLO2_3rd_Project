@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QaRunner.Measurement;
 using QaRunner.Models;
 using QaRunner.Pipeline;
 using QaRunner.Reports;
@@ -35,26 +36,33 @@ public static class QaRunService
     /// 준비하다 생긴 문제(파일 없음, 형식 오류, 잘못된 주소)는 예외로 알린다. IsPreparationError로 구분할 수 있다.
     /// </summary>
     /// <param name="options">시험 종류, 입력 경로, API 주소 등</param>
-    public static PreparedRun Prepare(CommandLineOptions options)
+    public static PreparedRun Prepare(CommandLineOptions options) => options.Suite switch
     {
-        if (options.Suite == TestSuite.Verdict)
-        {
-            // 판정 시험: 입력값 파일을 읽고, API 주소가 있으면 실제 API, 없으면 가짜 판정 대상으로 채점
-            var testCases = TestCaseLoader.LoadFromFile(options.CasesPath);
-            IVerdictService verdictService = options.ApiBaseUrl is null
-                ? new FakeVerdictService()
-                : new ApiVerdictService(ApiVerdictService.CreateHttpClient(options.ApiBaseUrl));
+        TestSuite.Verdict => PrepareVerdictSuite(options),
+        TestSuite.Pipeline => PreparePipelineSuite(options),
+        TestSuite.Load => PrepareLoadSuite(options),
+        TestSuite.Recovery => PrepareRecoverySuite(options),
+        _ => throw new ArgumentException($"알 수 없는 시험 종류입니다: {options.Suite}"),
+    };
 
-            var verdictChecker = new VerdictChecker(verdictService);
-            return new PreparedRun(
-                options.Suite,
-                options.CasesPath,
-                TargetName: verdictService.GetType().Name,
-                RunAllChecks: _ => verdictChecker.CheckAllAsync(testCases));
-        }
+    // 판정 시험: 입력값 파일을 읽고, API 주소가 있으면 실제 API, 없으면 가짜 판정 대상으로 채점
+    private static PreparedRun PrepareVerdictSuite(CommandLineOptions options)
+    {
+        var testCases = TestCaseLoader.LoadFromFile(options.CasesPath);
+        var verdictService = CreateVerdictService(options);
+        var verdictChecker = new VerdictChecker(verdictService);
 
-        // 파이프라인 시험: 시나리오 폴더를 읽고 가짜 파이프라인으로 채점
-        // (Kafka·MongoDB 연결 코드가 생기면 여기서 실제 파이프라인을 고르게 한다)
+        return new PreparedRun(
+            options.Suite,
+            options.CasesPath,
+            TargetName: verdictService.GetType().Name,
+            RunAllChecks: _ => verdictChecker.CheckAllAsync(testCases));
+    }
+
+    // 파이프라인 시험: 시나리오 폴더를 읽고 가짜 파이프라인으로 채점
+    // (Kafka·MongoDB 연결 코드가 생기면 여기서 실제 파이프라인을 고르게 한다)
+    private static PreparedRun PreparePipelineSuite(CommandLineOptions options)
+    {
         var scenarios = PipelineScenarioLoader.LoadFromDirectory(options.CasesPath);
         var fakePipeline = new FakePipeline();
 
@@ -65,6 +73,52 @@ public static class QaRunService
             options.CasesPath,
             TargetName: nameof(FakePipeline),
             RunAllChecks: runId => pipelineChecker.CheckAllAsync(scenarios, runId));
+    }
+
+    // 부하 시험: API 부하는 판정 대상(가짜 또는 실제 API)에, 스트림 부하는 처리 시간이 있는 가짜 파이프라인에 준다
+    private static PreparedRun PrepareLoadSuite(CommandLineOptions options)
+    {
+        var testCases = TestCaseLoader.LoadFromFile(options.CasesPath);
+        if (testCases.Count == 0)
+            throw new ArgumentException($"부하 시험에 쓸 문자가 입력값 파일에 없습니다: {options.CasesPath}");
+
+        var settings = GetMeasurementSettings(options);
+        var verdictService = CreateVerdictService(options);
+        var streamingPipeline = new FakeStreamingPipeline();
+        var loadChecker = new LoadChecker(verdictService, testCases, streamingPipeline, streamingPipeline, settings);
+
+        return new PreparedRun(
+            options.Suite,
+            options.CasesPath,
+            TargetName: $"{verdictService.GetType().Name} + {nameof(FakeStreamingPipeline)}",
+            RunAllChecks: runId => loadChecker.CheckAllAsync(runId));
+    }
+
+    // 복구 시험: 처리 시간이 있는 가짜 파이프라인을 멈췄다 다시 켠다 (입력 파일은 쓰지 않음)
+    private static PreparedRun PrepareRecoverySuite(CommandLineOptions options)
+    {
+        var settings = GetMeasurementSettings(options);
+        var streamingPipeline = new FakeStreamingPipeline();
+        var recoveryChecker = new RecoveryChecker(streamingPipeline, streamingPipeline, streamingPipeline, settings);
+
+        return new PreparedRun(
+            options.Suite,
+            CommandLineOptions.NoCasesPath,
+            TargetName: nameof(FakeStreamingPipeline),
+            RunAllChecks: runId => recoveryChecker.CheckAllAsync(runId));
+    }
+
+    // API 주소가 있으면 실제 API, 없으면 가짜 판정 대상
+    private static IVerdictService CreateVerdictService(CommandLineOptions options) => options.ApiBaseUrl is null
+        ? new FakeVerdictService()
+        : new ApiVerdictService(ApiVerdictService.CreateHttpClient(options.ApiBaseUrl));
+
+    // 측정 조건이 없으면 실행안 기준 기본값을 쓰고, 값이 맞는지 확인한다
+    private static MeasurementSettings GetMeasurementSettings(CommandLineOptions options)
+    {
+        var settings = options.Measurement ?? MeasurementSettings.DefaultFor(options.Suite);
+        settings.Validate(options.Suite);
+        return settings;
     }
 
     /// <summary>

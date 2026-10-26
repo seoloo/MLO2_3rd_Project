@@ -28,7 +28,7 @@ public partial class App : Application
 
         // 화면 캡처 모드: README나 발표 자료에 넣을 화면을 만든다.
         // 사용자 화면에 보이지 않게 창을 화면 밖에 띄우고, 시험을 한 번 돌린 뒤 그대로 찍어서 저장한다.
-        //   예: QaRunner.Desktop.exe --capture screen.png --suite pipeline
+        //   예: QaRunner.Desktop.exe --capture screen.png --suite load
         mainWindow.WindowStartupLocation = WindowStartupLocation.Manual;
         mainWindow.Left = -20000;
         mainWindow.Top = -20000;
@@ -36,8 +36,8 @@ public partial class App : Application
         mainWindow.ShowInTaskbar = false;
         mainWindow.Show();
 
-        if (FindOptionValue(startupEventArgs.Args, "--suite") == "pipeline")
-            mainWindow.SelectSuite(TestSuite.Pipeline);
+        // --suite로 시험 종류를 고른다 (verdict, pipeline, load, recovery). 부하·복구는 시연용 기본 시간으로 돈다
+        mainWindow.SelectSuite(TestSuiteExtensions.ParseOptionValue(FindOptionValue(startupEventArgs.Args, "--suite")));
 
         await mainWindow.RunSelectedSuiteAsync();
 

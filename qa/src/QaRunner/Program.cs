@@ -1,7 +1,9 @@
 ﻿using QaRunner;
+using QaRunner.Models;
 
 // 사용법 (qa 폴더에서):
-//   dotnet run --project src/QaRunner -- [--suite verdict|pipeline] [--cases 경로] [--reports 보고서폴더] [--api-url API주소]
+//   dotnet run --project src/QaRunner -- [--suite verdict|pipeline|load|recovery] [--cases 경로] [--reports 보고서폴더] [--api-url API주소]
+//                                         [--duration 초] [--rate 초당건수] [--stop-seconds 초]   ← 부하·복구 시험용
 // 옵션을 주지 않으면 판정 시험을 cases/rules.json으로, 가짜 판정 대상에 대해 돌리고 reports 폴더에 보고서를 저장한다.
 // 실제 절차(준비 → 채점 → 보고서 저장)는 데스크탑 앱과 함께 쓰는 QaRunService에 있다.
 
@@ -21,7 +23,10 @@ catch (Exception exception) when (QaRunService.IsPreparationError(exception))
     return 2;
 }
 
-// 2. 채점
+// 2. 채점 (부하·복구 시험은 정해진 시간 동안 돌기 때문에 미리 알려 준다)
+if (options.Measurement is not null)
+    Console.WriteLine($"{options.Suite.ToKoreanName()}을 약 {options.Measurement.DurationSeconds}초 동안 실행합니다...\n");
+
 var testRun = await QaRunService.RunAsync(preparedRun, options.ReportDirectory);
 
 // 3. 결과를 콘솔에 출력
