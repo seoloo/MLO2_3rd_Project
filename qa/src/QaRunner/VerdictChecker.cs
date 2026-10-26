@@ -23,7 +23,7 @@ public sealed class VerdictChecker(IVerdictService verdictService)
             // 판정 대상에는 문자만 보낸다. 정답은 보내지 않는다 (독립 정답).
             var actualVerdict = await verdictService.GetVerdictAsync(testCase.Message);
 
-            testResults.Add(new TestResult(testCase.CaseId, testCase.ExpectedVerdict, actualVerdict));
+            testResults.Add(new TestResult(testCase.CaseId, testCase.Message, testCase.ExpectedVerdict, actualVerdict));
         }
 
         return testResults;
