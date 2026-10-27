@@ -17,9 +17,9 @@
 |---|---|---|
 | ① 스켈레톤 | 입력값 파일 → 가짜 판정 대상 → 채점 → 콘솔 출력·종료 코드 | 완료 |
 | ② 결과 저장·HTML 보고서 | 실행 번호별 JSON·HTML 보고서 저장 | 완료 |
-| ③ 실제 API 연결 | FastAPI 호출 코드 완료. B의 API가 나오면 주소·형식만 맞춰 연결 | 연결 대기 |
-| ④ 파이프라인 시험 | 시나리오·정답 계산기·채점기 완료, 가짜 파이프라인으로 동작 확인. Kafka·MongoDB 연결 코드는 C의 파이프라인 계약 확정 후 | 진행 중 |
-| ⑤ 부하·복구 시험 | 측정 코드 완료, 처리 시간을 흉내 내는 가짜 파이프라인으로 동작 확인. 실제 Spark 중단·재가동은 인프라가 생긴 뒤 | 진행 중 |
+| ③ 실제 API 연결 | 계약 초안대로 FastAPI 호출 코드 완료 (`--api-url`). B의 API가 나오면 실제로 확인 | 연결 대기 |
+| ④ 파이프라인 시험 | 가짜 파이프라인으로 동작 확인. 계약 초안대로 Kafka 발행·MongoDB 읽기 코드 완료 (`--kafka`, `--mongo`). 인프라가 생기면 실제로 확인 | 연결 대기 |
+| ⑤ 부하·복구 시험 | 가짜 파이프라인으로 동작 확인. Spark 컨테이너 중단·재가동 코드 완료 (`--spark-container`). 인프라가 생기면 실제로 확인 | 연결 대기 |
 | ⑥ 자동 실행·CI | GitHub Actions에서 푸시마다 빌드·테스트·시험 실행 완료. docker-compose 서비스는 인프라가 생긴 뒤 | 일부 완료 |
 | ⑦ 실행 기록 대시보드 | 실행할 때마다 `reports/dashboard.html`을 다시 만들어 통과율·p95·회복 시간 추이를 표시 | 완료 |
 | 시연용 데스크탑 앱 | 버튼으로 시험을 돌리고 결과를 화면에서 바로 보는 Windows 앱 | 완료 |
@@ -207,6 +207,11 @@ dotnet run --project src/QaRunner -- --suite verdict --cases cases/rules.json --
 | `--duration` | 부하·복구 시험에서 이벤트를 보내는 시간(초) | 부하 300 / 복구 120 |
 | `--rate` | 부하·복구 시험에서 1초에 보내는 이벤트 수 | 5 |
 | `--stop-seconds` | 복구 시험에서 처리를 멈춰 두는 시간(초). 전체 시간의 1/4 지점에서 멈춤 | 30 |
+| `--kafka` | 실제 Kafka 주소. `--mongo`와 함께 주면 파이프라인·부하·복구 시험이 실제 파이프라인을 대상으로 돎 | 없음 (가짜 파이프라인) |
+| `--mongo` | 실제 MongoDB 연결 문자열 | 없음 |
+| `--kafka-topic` | 이벤트를 넣을 토픽 | `scan-events` |
+| `--mongo-db` | 메달리온 컬렉션이 있는 데이터베이스 | `jeongbo` |
+| `--spark-container` | 복구 시험에서 멈췄다 켤 Spark 컨테이너 | `spark` |
 
 ## 부하·복구 시험
 
@@ -225,19 +230,38 @@ dotnet run --project src/QaRunner -- --suite verdict --cases cases/rules.json --
 - **Gold 반영 시간은 근삿값입니다.** 0.5초마다 Gold 건수를 읽고, 늘어난 만큼 먼저 보낸 이벤트부터 반영된 것으로 봅니다. 이벤트 하나하나를 찾지 않아도 되어 실제 MongoDB에서도 같은 방식으로 잴 수 있습니다. 다른 데이터가 Gold에 섞이면 안 되므로 시험 환경에서 돌려야 합니다.
 - **지금은 가짜 파이프라인(`FakeStreamingPipeline`)으로 돕니다.** 받은 이벤트를 1초 뒤에 반영하고, 1초에 최대 20건까지만 처리하며, 멈추라고 하면 받기만 하고 처리하지 않습니다. 그래서 측정 코드가 맞게 도는지는 확인할 수 있지만, 수치 자체는 실제 성능이 아닙니다.
 
-## API 연결 약속 (판정 시험)
+## 실제 시스템에 연결하기
 
-`--api-url`을 주면 케이스마다 아래처럼 요청합니다. B와 확정하기 전의 임시 약속이며, 바뀌면 `Verdicts/ApiVerdictService.cs`만 고칩니다.
+형식은 모두 [docs/contract.md](../docs/contract.md)(연결 계약 초안)를 따릅니다. 옵션을 주지 않으면 가짜 대상으로, 주면 실제 시스템으로 시험합니다.
+
+| 시험 | 실제 대상 | 옵션 |
+|---|---|---|
+| 판정 | B의 판정 API | `--api-url http://localhost:8000` |
+| 파이프라인 | Kafka + MongoDB | `--kafka localhost:9092 --mongo mongodb://localhost:27017` |
+| 부하 | API 부하는 `--api-url`, 스트림 부하는 `--kafka`·`--mongo` | 둘을 따로 또는 함께 |
+| 복구 | Kafka + MongoDB + Spark 컨테이너 | `--kafka`·`--mongo` (+ `--spark-container`, 기본 `spark`) |
+
+### 판정 API (계약 3장)
 
 | 구분 | 내용 |
 |---|---|
 | 요청 | `POST {API 주소}/checks`, 본문 `{ "message": "문자 내용" }` |
-| 응답 | `200 OK`, 본문 `{ "verdict": "고위험" }` (다른 필드는 읽지 않음) |
+| 응답 | `200 OK`, 본문의 `verdict`만 읽음. 영문 코드(`HIGH_RISK`)와 한글(`고위험`) 둘 다 받아서 한글로 바꿔 비교 |
 | 시간 제한 | 10초 |
 
-B와 맞출 것: 경로(`/checks`), 요청 키(`message`), 응답 키(`verdict`), 판정 값을 한글로 주는지 영문 코드로 주는지.
-
 API가 꺼져 있거나, 오류 응답(4xx·5xx)이 오거나, 10초 안에 답이 없거나, 응답에 `verdict`가 없으면 그 케이스는 **시스템 실패**로 기록하고 다음 케이스로 넘어갑니다.
+
+### Kafka·MongoDB·Spark (계약 4~6장)
+
+| 단계 | QA가 하는 일 |
+|---|---|
+| 보내기 | 시나리오 이벤트를 계약 형식(`source: "qa"`, `runId`, `caseId` 포함)으로 `scan-events` 토픽에 발행. 이벤트 번호 앞에 실행 번호를 붙여 실행끼리 겹치지 않게 함 |
+| 읽기 | `bronze_events`·`silver_events`·`quarantine_events`에서 이번 실행·시나리오 건수, `gold_metrics`에서 구간별 `total`을 읽음 |
+| 멈추고 켜기 | 복구 시험에서 `docker stop spark` → `docker start spark` |
+
+- 실제 파이프라인 시험은 **다른 데이터가 섞이지 않는 시험 환경**에서 돌립니다. Gold는 구간별로 모든 이벤트를 합치기 때문입니다.
+- Kafka에 보내지 못하면 그 시나리오를 시스템 실패로 기록합니다. MongoDB를 읽지 못하면 채점 자체가 안 되므로 종료 코드 2로 끝납니다.
+- 데스크탑 앱은 지금 판정 API 주소만 넣을 수 있습니다. 실제 Kafka·MongoDB 시험은 명령어로 돌립니다.
 
 ## 시험 케이스 작성법
 
@@ -350,7 +374,7 @@ Gold는 시나리오별로 나뉘지 않고 구간별로 합쳐지므로, 실행
 |---|---|
 | `0` | 모든 항목 통과 |
 | `1` | 실패한 항목이 하나 이상 있음 (시스템 실패 포함) |
-| `2` | 채점을 시작하지 못함 (옵션·측정 숫자가 틀림, 입력값 파일·시나리오 폴더가 없거나 형식이 틀림, API 주소가 잘못됨) |
+| `2` | 채점을 시작하지 못함 (옵션·측정 숫자가 틀림, 입력값 파일·시나리오 폴더가 없거나 형식이 틀림, API 주소가 잘못됨, 실제 MongoDB를 읽지 못함) |
 
 ## 폴더 구조
 
@@ -379,6 +403,7 @@ qa/
 │   │   ├─ LoadChecker.cs            부하 시험 채점기 (API 부하 + 스트림 부하)
 │   │   └─ RecoveryChecker.cs        복구 시험 채점기 (중단·재가동 → 회복 시간)
 │   ├─ Verdicts/
+│   │   ├─ VerdictCodes.cs           판정 영문 코드 ↔ 한글 바꾸기 (계약 2장)
 │   │   ├─ IVerdictService.cs        판정 대상이 갖춰야 할 모양
 │   │   ├─ FakeVerdictService.cs     임시 가짜 판정 대상
 │   │   └─ ApiVerdictService.cs      FastAPI를 호출하는 실제 판정 대상
@@ -393,6 +418,11 @@ qa/
 │   │   ├─ IProcessingControl.cs     처리를 멈추고 다시 켜는 쪽이 갖춰야 할 모양 (복구 시험)
 │   │   ├─ FakePipeline.cs           임시 가짜 파이프라인 (즉시 반영, 격리 기능 없음)
 │   │   ├─ FakeStreamingPipeline.cs  부하·복구 시험용 가짜 파이프라인 (1초 지연, 초당 20건, 중단·재가동)
+│   │   ├─ PipelineConnectionSettings.cs 실제 파이프라인 주소·이름 (--kafka, --mongo 등)
+│   │   ├─ ContractEventFormat.cs    QA 이벤트를 계약 형식 JSON으로 바꾸기 (계약 4장)
+│   │   ├─ KafkaEventSender.cs       실제 Kafka에 이벤트 발행
+│   │   ├─ MongoPipelineReader.cs    실제 MongoDB에서 Bronze·Silver·격리·Gold 건수 읽기 (계약 5-2장)
+│   │   ├─ DockerProcessingControl.cs docker stop/start로 Spark 컨테이너 멈추고 켜기 (계약 6장)
 │   │   └─ PipelineChecker.cs        파이프라인 시험 채점기
 │   └─ Reports/
 │       ├─ JsonReportWriter.cs       JSON 보고서 저장
@@ -411,20 +441,28 @@ qa/
 
 ## 확장 방법
 
-### B의 API 형식이 확정되면
+### 계약이 바뀌면 고칠 곳
 
-1. `Verdicts/ApiVerdictService.cs`에서 경로(`CheckEndpointPath`), 요청·응답 키를 확정된 형식에 맞춥니다.
-2. 판정 값이 영문 코드로 오면 같은 파일에서 한글 판정으로 바꿔 돌려줍니다.
-3. `--api-url`에 실제 주소를 넣어 실행합니다. 채점기, 보고서 등 나머지 코드는 고치지 않습니다.
+연결 코드는 [docs/contract.md](../docs/contract.md) 초안대로 이미 만들어 두었습니다. 팀이 계약을 바꾸면 아래 파일만 고치면 됩니다.
 
-### C의 파이프라인 계약이 확정되면
+| 계약에서 바뀐 것 | 고칠 파일 |
+|---|---|
+| 판정 API 경로·요청·응답 필드 (3장) | `Verdicts/ApiVerdictService.cs` |
+| 판정 코드 (2장) | `Verdicts/VerdictCodes.cs` |
+| Kafka 이벤트 필드 (4장) | `Pipeline/ContractEventFormat.cs` |
+| 토픽·데이터베이스·Spark 컨테이너 기본 이름 | `Pipeline/PipelineConnectionSettings.cs` |
+| 메달리온 컬렉션·필드 이름 (5-2장) | `Pipeline/MongoPipelineReader.cs` |
+| 처리 규칙: 중복·격리·구간 (6장) | `Pipeline/ExpectedResultCalculator.cs` |
 
-1. `Pipeline/PipelineEvent.cs`의 필드를 확정된 이벤트 스키마에 맞춥니다. (event_id와 scan_id 관계, run_id를 어디에 담을지)
-2. `IEventSender`를 구현해 Kafka에 발행하는 클래스를 만듭니다. 보내지 못하면 `EventSendException`을 던집니다.
-3. `IPipelineReader`를 구현해 MongoDB의 `bronze_events`, `silver_events`, 격리 컬렉션, `gold_metrics`를 읽는 클래스를 만듭니다.
-4. 격리 규칙이 임시안과 다르게 정해지면 `Pipeline/ExpectedResultCalculator.cs`를 고칩니다.
-5. `QaRunService.cs`의 `Prepare`에서 `FakePipeline`·`FakeStreamingPipeline` 대신 새 클래스를 고르게 하고, 파이프라인 시험의 Gold 대기 시간을 `PipelineChecker.DefaultCatchUpTimeout`(60초)으로 둡니다. 콘솔과 데스크탑 앱에 함께 적용됩니다.
-6. 복구 시험용으로 `IProcessingControl`을 구현해 `docker stop`/`docker start`로 Spark 컨테이너를 멈추고 켜는 클래스를 만듭니다. 실패하면 `ProcessingControlException`을 던집니다.
+### 처음 실제로 연결할 때 확인할 것
+
+실제 연결 코드는 서버 없이 확인할 수 있는 부분(형식 변환, 옵션, 연결 실패 처리)만 테스트했습니다. 처음 붙일 때는 아래 순서로 확인합니다.
+
+1. B의 API를 켜고 판정 시험: `--suite verdict --api-url http://localhost:8000`
+2. 시험 환경(infra의 docker-compose)을 띄우고 파이프라인 시험: `--suite pipeline --kafka localhost:9092 --mongo mongodb://localhost:27017`
+3. 짧은 부하 시험: `--suite load --duration 30 --kafka ... --mongo ...`
+4. 짧은 복구 시험: `--suite recovery --duration 60 --stop-seconds 15 --kafka ... --mongo ...` (docker 명령을 쓸 수 있는 PC에서)
+5. 결과가 이상하면 MongoDB의 컬렉션을 직접 열어 계약 5-2장의 필드 이름·형식과 같은지 먼저 봅니다.
 
 ### 새로운 시험 대상 추가하기
 

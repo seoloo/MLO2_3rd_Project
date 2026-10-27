@@ -25,7 +25,7 @@ public class SendPlannerTests
         var plannedSends = SendPlanner.BuildPlan(scenario, "run-1", Now);
 
         Assert.Equal(3, plannedSends.Count);
-        Assert.All(plannedSends, plannedSend => Assert.Equal("e1", plannedSend.Event.EventId));
+        Assert.All(plannedSends, plannedSend => Assert.Equal("run-1-e1", plannedSend.Event.EventId));
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class SendPlannerTests
 
         var plannedSends = SendPlanner.BuildPlan(scenario, "run-1", Now);
 
-        Assert.Equal(new[] { "e3", "e2", "e1" }, plannedSends.Select(plannedSend => plannedSend.Event.EventId));
+        Assert.Equal(new[] { "run-1-e3", "run-1-e2", "run-1-e1" }, plannedSends.Select(plannedSend => plannedSend.Event.EventId));
         Assert.All(plannedSends, plannedSend => Assert.Equal(Now.AddSeconds(2), plannedSend.SendAt));
     }
 

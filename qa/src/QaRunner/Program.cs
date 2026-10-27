@@ -1,9 +1,11 @@
 ﻿using QaRunner;
 using QaRunner.Models;
+using QaRunner.Pipeline;
 
 // 사용법 (qa 폴더에서):
 //   dotnet run --project src/QaRunner -- [--suite verdict|pipeline|load|recovery] [--cases 경로] [--reports 보고서폴더] [--api-url API주소]
 //                                         [--duration 초] [--rate 초당건수] [--stop-seconds 초]   ← 부하·복구 시험용
+//                                         [--kafka 주소 --mongo 연결문자열] [--kafka-topic] [--mongo-db] [--spark-container]   ← 실제 파이프라인
 // 옵션을 주지 않으면 판정 시험을 cases/rules.json으로, 가짜 판정 대상에 대해 돌리고 reports 폴더에 보고서를 저장한다.
 // 실제 절차(준비 → 채점 → 보고서 저장)는 데스크탑 앱과 함께 쓰는 QaRunService에 있다.
 
@@ -27,7 +29,17 @@ catch (Exception exception) when (QaRunService.IsPreparationError(exception))
 if (options.Measurement is not null)
     Console.WriteLine($"{options.Suite.ToKoreanName()}을 약 {options.Measurement.DurationSeconds}초 동안 실행합니다...\n");
 
-var testRun = await QaRunService.RunAsync(preparedRun, options.ReportDirectory);
+TestRun testRun;
+try
+{
+    testRun = await QaRunService.RunAsync(preparedRun, options.ReportDirectory);
+}
+catch (PipelineReadException exception)
+{
+    // 실제 파이프라인(MongoDB) 결과를 읽지 못하면 채점 자체가 안 되므로 종료 코드 2로 끝낸다
+    Console.Error.WriteLine($"시험 대상에 연결하지 못했습니다: {exception.Message}");
+    return 2;
+}
 
 // 3. 결과를 콘솔에 출력
 Console.WriteLine($"{testRun.SuiteName} · 실행 번호 {testRun.RunId} · 시험 대상 {testRun.TargetName}\n");

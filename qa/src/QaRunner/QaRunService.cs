@@ -14,11 +14,13 @@ namespace QaRunner;
 /// <param name="CasesPath">입력값 파일 또는 시나리오 폴더 경로</param>
 /// <param name="TargetName">시험 대상 이름 (보고서에 남김)</param>
 /// <param name="RunAllChecks">실행 번호를 받아 채점하고 결과를 돌려주는 작업</param>
+/// <param name="ResourceToDispose">실행이 끝나면 정리할 연결 (Kafka 연결 등). 없으면 null</param>
 public sealed record PreparedRun(
     TestSuite Suite,
     string CasesPath,
     string TargetName,
-    Func<string, Task<List<TestResult>>> RunAllChecks);
+    Func<string, Task<List<TestResult>>> RunAllChecks,
+    IDisposable? ResourceToDispose = null);
 
 /// <summary>
 /// 저장한 보고서 파일 경로.
@@ -38,7 +40,7 @@ public static class QaRunService
     /// 옵션대로 시험을 준비한다. 입력값 파일·시나리오 폴더를 읽고 시험 대상을 고른다.
     /// 준비하다 생긴 문제(파일 없음, 형식 오류, 잘못된 주소)는 예외로 알린다. IsPreparationError로 구분할 수 있다.
     /// </summary>
-    /// <param name="options">시험 종류, 입력 경로, API 주소 등</param>
+    /// <param name="options">시험 종류, 입력 경로, API 주소, 파이프라인 연결 등</param>
     public static PreparedRun Prepare(CommandLineOptions options) => options.Suite switch
     {
         TestSuite.Verdict => PrepareVerdictSuite(options),
@@ -62,11 +64,26 @@ public static class QaRunService
             RunAllChecks: _ => verdictChecker.CheckAllAsync(testCases));
     }
 
-    // 파이프라인 시험: 시나리오 폴더를 읽고 가짜 파이프라인으로 채점
-    // (Kafka·MongoDB 연결 코드가 생기면 여기서 실제 파이프라인을 고르게 한다)
+    // 파이프라인 시험: 시나리오 폴더를 읽고, 연결 설정이 있으면 실제 파이프라인, 없으면 가짜 파이프라인으로 채점
     private static PreparedRun PreparePipelineSuite(CommandLineOptions options)
     {
         var scenarios = PipelineScenarioLoader.LoadFromDirectory(options.CasesPath);
+
+        if (options.PipelineConnection is { } connection)
+        {
+            var kafkaEventSender = new KafkaEventSender(connection.KafkaBootstrapServers, connection.KafkaTopic);
+            var mongoPipelineReader = new MongoPipelineReader(connection.MongoConnectionString, connection.MongoDatabase);
+
+            // 실제 파이프라인은 Spark가 처리할 시간이 필요하므로 Gold가 따라잡기를 최대 60초 기다린다
+            var realPipelineChecker = new PipelineChecker(kafkaEventSender, mongoPipelineReader, PipelineChecker.DefaultCatchUpTimeout);
+            return new PreparedRun(
+                options.Suite,
+                options.CasesPath,
+                TargetName: RealPipelineTargetName,
+                RunAllChecks: runId => realPipelineChecker.CheckAllAsync(scenarios, runId),
+                ResourceToDispose: kafkaEventSender);
+        }
+
         var fakePipeline = new FakePipeline();
 
         // 가짜 파이프라인은 보내는 즉시 반영되므로 Gold를 기다릴 필요가 없다
@@ -78,7 +95,7 @@ public static class QaRunService
             RunAllChecks: runId => pipelineChecker.CheckAllAsync(scenarios, runId));
     }
 
-    // 부하 시험: API 부하는 판정 대상(가짜 또는 실제 API)에, 스트림 부하는 처리 시간이 있는 가짜 파이프라인에 준다
+    // 부하 시험: API 부하는 판정 대상(가짜 또는 실제 API)에, 스트림 부하는 파이프라인(가짜 또는 실제)에 준다
     private static PreparedRun PrepareLoadSuite(CommandLineOptions options)
     {
         var testCases = TestCaseLoader.LoadFromFile(options.CasesPath);
@@ -87,28 +104,52 @@ public static class QaRunService
 
         var settings = GetMeasurementSettings(options);
         var verdictService = CreateVerdictService(options);
-        var streamingPipeline = new FakeStreamingPipeline();
-        var loadChecker = new LoadChecker(verdictService, testCases, streamingPipeline, streamingPipeline, settings);
+        var streamTarget = CreateStreamTarget(options.PipelineConnection);
+        var loadChecker = new LoadChecker(verdictService, testCases, streamTarget.Sender, streamTarget.Reader, settings);
 
         return new PreparedRun(
             options.Suite,
             options.CasesPath,
-            TargetName: $"{verdictService.GetType().Name} + {nameof(FakeStreamingPipeline)}",
-            RunAllChecks: runId => loadChecker.CheckAllAsync(runId));
+            TargetName: $"{verdictService.GetType().Name} + {streamTarget.Name}",
+            RunAllChecks: runId => loadChecker.CheckAllAsync(runId),
+            ResourceToDispose: streamTarget.Sender as IDisposable);
     }
 
-    // 복구 시험: 처리 시간이 있는 가짜 파이프라인을 멈췄다 다시 켠다 (입력 파일은 쓰지 않음)
+    // 복구 시험: 파이프라인(가짜 또는 실제)의 처리를 멈췄다 다시 켠다 (입력 파일은 쓰지 않음)
     private static PreparedRun PrepareRecoverySuite(CommandLineOptions options)
     {
         var settings = GetMeasurementSettings(options);
-        var streamingPipeline = new FakeStreamingPipeline();
-        var recoveryChecker = new RecoveryChecker(streamingPipeline, streamingPipeline, streamingPipeline, settings);
+        var streamTarget = CreateStreamTarget(options.PipelineConnection);
+        var recoveryChecker = new RecoveryChecker(streamTarget.Sender, streamTarget.Reader, streamTarget.Control, settings);
 
         return new PreparedRun(
             options.Suite,
             CommandLineOptions.NoCasesPath,
-            TargetName: nameof(FakeStreamingPipeline),
-            RunAllChecks: runId => recoveryChecker.CheckAllAsync(runId));
+            TargetName: streamTarget.Name,
+            RunAllChecks: runId => recoveryChecker.CheckAllAsync(runId),
+            ResourceToDispose: streamTarget.Sender as IDisposable);
+    }
+
+    /// <summary>실제 파이프라인을 대상으로 돌렸을 때 보고서에 남기는 시험 대상 이름</summary>
+    public const string RealPipelineTargetName = "Kafka + MongoDB";
+
+    // 부하·복구 시험의 스트림 대상: 이벤트를 넣을 곳, 결과를 읽을 곳, 처리를 멈추고 켤 곳
+    private sealed record StreamTarget(string Name, IEventSender Sender, IPipelineReader Reader, IProcessingControl Control);
+
+    // 연결 설정이 있으면 실제 Kafka·MongoDB·Spark 컨테이너, 없으면 처리 시간을 흉내 내는 가짜 파이프라인
+    private static StreamTarget CreateStreamTarget(PipelineConnectionSettings? connection)
+    {
+        if (connection is null)
+        {
+            var streamingPipeline = new FakeStreamingPipeline();
+            return new StreamTarget(nameof(FakeStreamingPipeline), streamingPipeline, streamingPipeline, streamingPipeline);
+        }
+
+        return new StreamTarget(
+            Name: RealPipelineTargetName,
+            Sender: new KafkaEventSender(connection.KafkaBootstrapServers, connection.KafkaTopic),
+            Reader: new MongoPipelineReader(connection.MongoConnectionString, connection.MongoDatabase),
+            Control: new DockerProcessingControl(connection.SparkContainerName));
     }
 
     // API 주소가 있으면 실제 API, 없으면 가짜 판정 대상
@@ -125,26 +166,34 @@ public static class QaRunService
     }
 
     /// <summary>
-    /// 준비된 시험을 돌리고 실행 기록을 만든다.
+    /// 준비된 시험을 돌리고 실행 기록을 만든다. 끝나면(실패해도) Kafka 연결 같은 자원을 정리한다.
     /// 파이프라인 시험은 보내는 이벤트마다 실행 번호를 붙이므로 실행 번호를 먼저 만든다.
+    /// 실제 파이프라인 결과를 읽지 못하면 PipelineReadException을 던진다.
     /// </summary>
     /// <param name="preparedRun">Prepare로 준비한 시험</param>
     /// <param name="reportDirectory">보고서 폴더. 이미 있는 보고서와 실행 번호가 겹치지 않게 확인하는 데 쓴다</param>
     public static async Task<TestRun> RunAsync(PreparedRun preparedRun, string reportDirectory)
     {
-        var startedAt = DateTimeOffset.Now;
-        var runId = RunIdGenerator.CreateUnique(startedAt, reportDirectory);
-        var testResults = await preparedRun.RunAllChecks(runId);
-        var finishedAt = DateTimeOffset.Now;
+        try
+        {
+            var startedAt = DateTimeOffset.Now;
+            var runId = RunIdGenerator.CreateUnique(startedAt, reportDirectory);
+            var testResults = await preparedRun.RunAllChecks(runId);
+            var finishedAt = DateTimeOffset.Now;
 
-        return new TestRun(
-            RunId: runId,
-            SuiteName: preparedRun.Suite.ToKoreanName(),
-            StartedAt: startedAt,
-            FinishedAt: finishedAt,
-            CasesPath: preparedRun.CasesPath,
-            TargetName: preparedRun.TargetName,
-            Results: testResults);
+            return new TestRun(
+                RunId: runId,
+                SuiteName: preparedRun.Suite.ToKoreanName(),
+                StartedAt: startedAt,
+                FinishedAt: finishedAt,
+                CasesPath: preparedRun.CasesPath,
+                TargetName: preparedRun.TargetName,
+                Results: testResults);
+        }
+        finally
+        {
+            preparedRun.ResourceToDispose?.Dispose();
+        }
     }
 
     /// <summary>

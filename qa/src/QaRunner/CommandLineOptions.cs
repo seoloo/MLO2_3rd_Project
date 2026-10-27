@@ -1,6 +1,7 @@
 using System.Globalization;
 using QaRunner.Measurement;
 using QaRunner.Models;
+using QaRunner.Pipeline;
 
 namespace QaRunner;
 
@@ -13,12 +14,17 @@ namespace QaRunner;
 /// <param name="ReportDirectory">보고서 파일을 저장할 폴더</param>
 /// <param name="ApiBaseUrl">판정 API 주소. 주면 실제 API로, 안 주면(null) 가짜 판정 대상으로 채점한다 (판정·부하 시험에서 씀)</param>
 /// <param name="Measurement">부하·복구 시험의 측정 조건. 다른 시험에서는 null</param>
+/// <param name="PipelineConnection">
+/// 실제 파이프라인 연결 설정 (--kafka, --mongo). 주면 파이프라인·부하·복구 시험이 실제 Kafka·MongoDB를 대상으로 돌고,
+/// 안 주면(null) 가짜 파이프라인으로 돈다.
+/// </param>
 public sealed record CommandLineOptions(
     TestSuite Suite,
     string CasesPath,
     string ReportDirectory,
     string? ApiBaseUrl,
-    MeasurementSettings? Measurement = null)
+    MeasurementSettings? Measurement = null,
+    PipelineConnectionSettings? PipelineConnection = null)
 {
     public const string DefaultVerdictCasesPath = "cases/rules.json";
     public const string DefaultPipelineCasesPath = "cases/pipeline";
@@ -40,7 +46,29 @@ public sealed record CommandLineOptions(
             CasesPath: FindOptionValue(args, "--cases") ?? DefaultCasesPathFor(suite),
             ReportDirectory: FindOptionValue(args, "--reports") ?? DefaultReportDirectory,
             ApiBaseUrl: FindOptionValue(args, "--api-url"),
-            Measurement: suite.IsMeasurementSuite() ? ParseMeasurement(args, suite) : null);
+            Measurement: suite.IsMeasurementSuite() ? ParseMeasurement(args, suite) : null,
+            PipelineConnection: ParsePipelineConnection(args));
+    }
+
+    // --kafka, --mongo와 이름 옵션들을 읽는다. 둘 다 없으면 가짜 파이프라인(null)
+    private static PipelineConnectionSettings? ParsePipelineConnection(string[] args)
+    {
+        var kafkaBootstrapServers = FindOptionValue(args, "--kafka");
+        var mongoConnectionString = FindOptionValue(args, "--mongo");
+
+        if (kafkaBootstrapServers is null && mongoConnectionString is null)
+            return null;
+
+        // 넣는 곳(Kafka)과 읽는 곳(MongoDB) 중 하나만 실제로 하면 채점할 수 없다
+        if (kafkaBootstrapServers is null || mongoConnectionString is null)
+            throw new ArgumentException("실제 파이프라인으로 시험하려면 --kafka와 --mongo를 둘 다 넣어야 합니다.");
+
+        return new PipelineConnectionSettings(
+            KafkaBootstrapServers: kafkaBootstrapServers,
+            MongoConnectionString: mongoConnectionString,
+            KafkaTopic: FindOptionValue(args, "--kafka-topic") ?? PipelineConnectionSettings.DefaultKafkaTopic,
+            MongoDatabase: FindOptionValue(args, "--mongo-db") ?? PipelineConnectionSettings.DefaultMongoDatabase,
+            SparkContainerName: FindOptionValue(args, "--spark-container") ?? PipelineConnectionSettings.DefaultSparkContainerName);
     }
 
     /// <summary>
