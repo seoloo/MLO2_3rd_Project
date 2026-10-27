@@ -40,13 +40,16 @@ React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka
 
 ## 폴더 구조
 
-| 폴더 | 내용 | 상태 |
-|---|---|---|
-| [`qa/`](qa/README.md) | 자동 QA 러너 | 진행 중 |
-| `app/` | React Native 앱 | 예정 |
-| `api/` | FastAPI · 판정 규칙 | 예정 |
-| `pipeline/` | Kafka · Spark · 메달리온 | 예정 |
-| `infra/` | docker-compose 등 실행 환경 | 예정 |
+| 폴더 | 내용 | 담당 | 상태 |
+|---|---|---|---|
+| [`docs/contract.md`](docs/contract.md) | **연결 계약**: 판정 API, Kafka 이벤트, MongoDB 컬렉션, 처리 규칙 | 전원 | 초안 (확정 필요) |
+| [`app/`](app/README.md) | React Native 앱 | A | 준비됨 (작업 전) |
+| [`api/`](api/README.md) | FastAPI · 판정 규칙 · 발행기 | B | 준비됨 (작업 전) |
+| [`pipeline/`](pipeline/README.md) | Kafka · Spark · 메달리온 | C | 준비됨 (작업 전) |
+| [`infra/`](infra/README.md) | docker-compose, EC2 배포 | B · C | 준비됨 (작업 전) |
+| [`qa/`](qa/README.md) | 자동 QA 러너 | QA | 가짜 대상으로 완료, 실제 연결 코드 준비 |
+
+각 폴더의 README에 **여기에 둘 것, 지켜야 할 계약, QA로 확인하는 법, 작업 브랜치 이름**이 적혀 있습니다. 작업을 시작하기 전에 자기 폴더의 README와 연결 계약을 먼저 읽어 주세요.
 
 ## 진행 상황
 
@@ -94,7 +97,8 @@ git clone https://github.com/seoloo/MLO2_3rd_Project.git
 
 ## 협업 규칙
 
-- **브랜치**: 작업 단위로 `feature/<작업 이름>` 브랜치를 만들고, 끝나면 PR로 `main`에 합친 뒤 지웁니다.
+- **브랜치**: `main`에서 작업 단위로 `feature/<작업 이름>` 브랜치를 만들고, 끝나면 PR로 `main`에 합친 뒤 지웁니다. PR을 열면 확인 목록(템플릿)이 자동으로 채워집니다.
+- **계약**: 다른 영역과 주고받는 형식을 바꿀 때는 [docs/contract.md](docs/contract.md)를 먼저 고치고, 영향받는 담당에게 PR 리뷰를 받습니다.
 - **커밋 메시지**: 한국어로, 무엇을 했는지 사람이 읽기 쉽게 씁니다. `feat:` 같은 영어 접두어는 붙이지 않습니다.
 - **코드**: 이름은 무엇인지 바로 알 수 있게 짓고, 클래스·함수에는 무엇이고 왜 있는지 주석을 답니다.
 - **README**: 코드, 실행 방법, 폴더가 바뀌면 해당 README도 같은 커밋에서 고칩니다.
