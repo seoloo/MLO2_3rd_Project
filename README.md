@@ -4,6 +4,10 @@
 
 문자·URL에 담긴 위험 정황을 설명해 주는 앱과, 그 앱에서 나오는 이벤트를 처리하는 데이터 파이프라인을 함께 만드는 프로젝트입니다. 앱은 입력과 결과를 보여 주고, 프로젝트의 핵심 성과는 **데이터 처리가 정확하고 장애가 나도 복구된다는 것을 자동 QA로 증명**하는 데 있습니다.
 
+> **현재 구현 상태 (2026.10.27):** QA 러너·보고서·데스크탑 앱·CI는 구현되어 있습니다. 실제 API·Kafka·MongoDB·Spark에 연결하는 QA 코드도 준비되어 있지만 통합 검증은 대기 중입니다. 앱·API·파이프라인·배포 환경은 설계 단계로, 아래 서비스 도식은 **목표 구조**입니다.
+
+**바로 보기:** [전체 구조](#전체-흐름) · [요청 순서](#검사-1건의-요청과-이벤트-전달-순서) · [데이터 처리](#data-processing) · [QA 검증](#qa-flow) · [진행 상황](#진행-상황) · [실행 방법](#시작하기)
+
 ## 무엇을 만드나
 
 | 영역 | 내용 |
@@ -16,17 +20,77 @@
 
 ## 전체 흐름
 
-```
-React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka ──▶ Spark ──▶ MongoDB 메달리온
- 문자 입력·결과       규칙 판정, 결과 즉시 반환          scan_id 기준      Bronze: 받은 이벤트 보관
-                      checks + outbox 저장                                Silver: 정제·중복 제거
-                                                                         Gold:   60초 구간 집계
+앱에서 결과를 받는 경로와 데이터를 집계하는 경로를 나눕니다. **노란색은 구현 예정인 서비스**, **초록색은 구현된 QA 코드**입니다. 점선은 QA가 처리 결과를 조회하는 연결입니다. QA의 입력 경로는 아래 [검증 도식](#qa-flow)에 따로 표시했으며, 실제 서비스와의 연동 확인은 남아 있습니다.
 
-자동 QA 러너 ── 입력을 넣고 ──▶ (API · Kafka) ── 결과를 읽어 ──▶ 정답과 비교 ──▶ 보고서
+```mermaid
+flowchart TB
+    subgraph service["① 사용자 판정 경로 · 구현 예정"]
+        direction LR
+        APP["React Native 앱<br/>문자 공유·붙여 넣기"] -->|"POST /checks"| API["FastAPI<br/>규칙 판정"]
+        API -->|"함께 저장"| DB[("MongoDB<br/>checks + outbox")]
+        API -->|"판정·근거·대응 안내"| APP
+    end
+
+    subgraph stream["② 비동기 집계 경로 · 구현 예정"]
+        direction LR
+        PUB["발행기<br/>outbox 전송"] --> KAFKA["Kafka<br/>scan-events"]
+        KAFKA --> SPARK["Spark<br/>정제·중복 제거·집계"]
+        SPARK --> MED[("MongoDB 메달리온<br/>Bronze · Silver · Gold · 격리")]
+    end
+
+    subgraph verification["③ 자동 검증 · QA 코드 구현됨"]
+        direction LR
+        QA["자동 QA 러너<br/>입력 주입·독립 정답 비교"] --> REPORT["HTML · JSON 보고서<br/>실행 기록 대시보드"]
+    end
+
+    service -->|"미전송 outbox를 발행기가 읽음"| stream
+    stream -.->|"MongoDB 건수·집계 조회"| verification
+
+    classDef planned fill:#fff7ed,stroke:#9a3412,color:#431407
+    classDef ready fill:#ecfdf5,stroke:#047857,color:#064e3b
+    class APP,API,DB,PUB,KAFKA,SPARK,MED planned
+    class QA,REPORT ready
 ```
 
 - 앱 결과는 API가 바로 돌려주고, 집계는 파이프라인이 비동기로 처리합니다.
-- 문자 원문, 전체 URL, 실제 인증정보는 파이프라인 어디에도 저장하지 않습니다.
+- 이벤트에는 문자 원문·전체 URL·실제 인증정보를 넣지 않으며, Bronze에도 저장하지 않는 설계입니다. API의 `checks`에 원문을 보관할지는 [계약의 미확정 항목](docs/contract.md#7-정해야-할-것)입니다.
+- 앱의 검사 결과는 `checks`, 운영 집계는 `gold_metrics`에서 조회하는 설계입니다. 운영 화면의 조회 API는 아직 확정하지 않았습니다.
+
+### 검사 1건의 요청과 이벤트 전달 순서
+
+연결 계약 초안 기준입니다. 앱이 결과를 받기 위해 Kafka·Spark 집계 완료까지 기다릴 필요는 없습니다.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as 앱
+    participant API as FastAPI
+    participant DB as MongoDB
+    participant Pub as 발행기
+    participant Kafka as Kafka
+    participant Spark as Spark
+
+    App->>API: POST /checks (message)
+    API->>API: 규칙 판정
+    alt 판정·저장 성공
+        API->>DB: 트랜잭션으로 checks + outbox 저장
+        DB-->>API: 저장 완료
+        API-->>App: 200 · 판정·근거·대응 안내
+        Note over App,DB: 앱은 여기서 결과 표시
+        Pub->>DB: pending outbox 읽기
+        Pub->>Kafka: 이벤트 발행 (key = scanId)
+        Kafka-->>Pub: 수신 확인 (ack)
+        Pub->>DB: outbox를 sent로 표시
+        Kafka->>Spark: 이벤트 전달
+        Spark->>DB: Bronze → Silver / 격리 → Gold 처리
+        Note over Pub,Kafka: 재전송도 같은 eventId 유지
+    else 판정을 내리지 못한 시스템 실패
+        API-->>App: 5xx · 시스템 실패 표시
+        Note over API,DB: 판정 실패 이벤트는 만들지 않음
+    end
+```
+
+`UNDECIDED`(판단 보류)는 정상 판정 코드이고, 시스템 실패는 오류 응답으로 구분합니다. `checks`와 `outbox`의 원자 저장을 위해 MongoDB 레플리카셋이 필요합니다.
 
 ## 실행안 요약 (v4.1)
 
@@ -54,19 +118,76 @@ React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka
 | 판정 수정·과거 재집계 | 첫 종결 결과를 고정하고, 재검사는 새 검사 ID로 |
 | 발표 | 이번 실행안에서 제외, 이후 별도 진행 |
 
+<a id="data-processing"></a>
+
 ### 메달리온: Kafka → Bronze → Silver → Gold (Spark query 1개)
+
+아래는 Spark 작업에서 구현할 처리 규칙입니다. **Kafka 위치는 수신 기록의 고유 키**, **eventId는 중복 제거의 기준**, **occurredAt은 집계 구간의 기준**입니다.
+
+```mermaid
+flowchart TB
+    K["Kafka 이벤트 수신"] --> B[("Bronze · bronze_events<br/>Kafka 위치별 보관")]
+    B --> L{"수신 지연<br/>5분 초과?"}
+    L -->|"예"| Q[("격리 · quarantine_events<br/>late_arrival / conflict")]
+    L -->|"아니요"| D{"이미 수용한<br/>eventId인가?"}
+    D -->|"아니요"| S[("Silver · silver_events<br/>정규화된 고유 이벤트")]
+    D -->|"예"| C{"먼저 도착한<br/>내용과 같은가?"}
+    C -->|"아니요 · conflict"| Q
+    C -->|"예 · 단순 중복"| SKIP["Silver에 추가하지 않음<br/>Bronze 수신 기록은 유지"]
+    S --> W["UTC 60초 구간 재계산<br/>occurredAt 기준"]
+    W --> G[("Gold · gold_metrics<br/>절대값 upsert")]
+
+    classDef bronze fill:#fff7ed,stroke:#9a3412,color:#431407
+    classDef silver fill:#f1f5f9,stroke:#475569,color:#0f172a
+    classDef gold fill:#fefce8,stroke:#a16207,color:#422006
+    classDef isolated fill:#fef2f2,stroke:#b91c1c,color:#450a0a
+    class B bronze
+    class S silver
+    class G gold
+    class Q isolated
+```
+
+예를 들어 **같은 정상 이벤트를 총 3회 전송**하면 서로 다른 Kafka 위치의 Bronze 기록은 **3건**, Silver는 **1건**, 해당 Gold 구간에 더해질 검사 수는 **1건**입니다. 5분 초과 도착·동일 ID 상충은 Bronze에 수신 흔적을 남기고 격리합니다.
 
 | 계층 | 컬렉션 | 하는 일 | 고유 기준 |
 |---|---|---|---|
 | Bronze | `bronze_events` | 받은 이벤트 보관. Kafka 위치·수신 시각, 재전송의 수신 흔적도 보존 | topic + partition + offset |
-| Silver | `silver_events` / `silver_checks` | Spark로 스키마·시각 정규화, event_id 중복 제거, 검사 상태 구성 | 고유 이벤트·고유 검사 |
-| Gold | `gold_metrics` | Spark로 60초 구간별 검사량·판정 분포·분모·실패율 계산 | 구간 절대값 upsert (재실행 안전) |
+| Silver | `silver_events` | Spark로 스키마·시각 정규화, eventId 중복 제거 (현재 계약: 검사 1건 = 이벤트 1건) | eventId |
+| Gold | `gold_metrics` | Spark로 60초 구간별 검사량·판정 분포 계산 (분모·실패율 정의는 미확정) | 구간 절대값 upsert (재실행 안전) |
 
 원본은 수집용 최소 이벤트입니다. Bronze에도 문자 원문·전체 URL·실제 인증정보는 저장하지 않습니다. 앱 결과는 `checks`에서, 운영 집계는 Gold와 마지막 성공 시각에서 조회합니다.
 
+<a id="qa-flow"></a>
+
 ### 자동 QA: 두 경로 입력 + 독립 정답 비교
 
-합성 입력(정상·의심·보류·서버 실패, 정답 라벨은 시험 러너에만 보관) → 앱·API·실제 계층 실행(대표 문자 공유 + API 반복, 중복·역순·30초 지연·재시작 주입) → 독립 정답과 비교(Bronze 위치 → Silver 고유 수 → Gold 집계·분모 → 증거 보고서)
+QA는 문자로 API 판정을 확인하는 경로와, 이벤트를 Kafka에 직접 넣어 데이터 처리를 확인하는 경로를 따로 제공합니다. **정답 라벨은 API에 보내지 않고**, 파이프라인 정답은 QA가 전송 계획에서 독립 계산합니다.
+
+```mermaid
+flowchart TB
+    subgraph verdict["① 판정 시험"]
+        CASES["rules.json<br/>문자 + 정답 라벨"] -->|"문자만 전송"| API["판정 대상<br/>실제 API 또는 가짜 대상"]
+        API -->|"실제 판정 / 시스템 실패"| VC["VerdictChecker<br/>판정 비교"]
+        CASES -->|"정답 라벨"| VC
+    end
+
+    subgraph pipeline["② 파이프라인 시험"]
+        SCENARIO["시나리오 JSON<br/>중복·역순·지연·상충"] --> PLAN["SendPlanner<br/>전송 계획"]
+        PLAN -->|"시험 이벤트"| TARGET["실제 Kafka → Spark<br/>→ MongoDB<br/>또는 가짜 파이프라인"]
+        PLAN --> EXPECT["독립 정답 계산기<br/>전송 계획에서 기대값 계산"]
+        TARGET -->|"Bronze / Silver / 격리 건수<br/>Gold 구간별 total"| PC["PipelineChecker<br/>기대값과 실제값 비교"]
+        EXPECT -->|"기대 건수·집계"| PC
+    end
+
+    VC --> REPORT["실행별 보고서<br/>HTML · JSON"]
+    PC --> REPORT
+    MEASURE["③ 부하 · ④ 복구 시험<br/>API·Gold p95 / 적체 / 회복 시간"] --> REPORT
+    REPORT --> DASH["실행 기록 대시보드<br/>통과율·측정값 추이"]
+```
+
+- **대상 교체:** 연결 옵션이 없으면 가짜 대상, `--api-url`을 주면 실제 API, `--kafka`·`--mongo`를 주면 실제 파이프라인을 사용합니다. 채점기·보고서는 공통입니다.
+- **현재 채점 범위:** 판정 코드·시스템 실패, Bronze·Silver·격리 건수, Gold 구간별 `total`을 비교합니다. 판정별 분포(`byVerdict`)·분모 검증과 앱 공유 E2E는 추가 구현·확인이 필요합니다.
+- **CI 해석:** 현재 가짜 대상은 일부 오류를 의도적으로 내므로, 단위 테스트는 모두 통과해야 하지만 시연 시험의 종료 코드 `1`(채점 실패)은 허용하고 `2`(준비 오류)는 실패로 처리합니다. 초록 배지가 실제 서비스의 정확성이나 성능 달성을 뜻하지는 않습니다.
 
 | 구분 | 목표 | 조건 |
 |---|---|---|
@@ -75,7 +196,7 @@ React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka
 | 부하 (초기 목표) | API p95 3초 · Gold p95 10초 | API 동시 5개, 스트림 초당 5건 × 5분 = 1,500건. 오류율·적체·batch 시간 함께 측정 |
 | 복구 (초기 목표) | 재가동 후 60초 안에 따라잡기 | 입력 유지 + Spark 30초 중단 후 재가동. 볼륨·checkpoint 유지 시 최종 집계 일치 |
 
-증거로 남길 것: run_id · case_id · scan_id · event_id / 기대·실제 집계 / 오류·지연 / 화면 캡처. 기능 반복 시험·규칙 품질 평가·부하/복구 시험은 서로 구분하고, 목표 수치는 실측 전 기준입니다. 이 시험들은 [자동 QA 러너](qa/README.md)로 구현되어 있습니다.
+증거로 남길 것: run_id · case_id · scan_id · event_id / 기대·실제 집계 / 오류·지연 / 화면 캡처. 기능 반복 시험·규칙 품질 평가·부하/복구 시험은 서로 구분하고, 표의 수치는 실측 전 목표입니다. 네 종류의 시험을 실행하는 [자동 QA 러너](qa/README.md)는 구현되어 있으며, API 100회·공유 E2E 10회·규칙 평가 120개 완료 여부와 실제 환경의 목표 달성은 별도 검증해야 합니다.
 
 ### 역할: 각자 코드·시험까지 담당
 
@@ -88,6 +209,15 @@ React Native 앱 ──▶ FastAPI + MongoDB ──▶ 발행기 ──▶ Kafka
 ### 4주 일정: 총 20작업일, 매주 완료 증거 확보
 
 개발과 자동 QA를 병행하고, 1주차 전체 연결 → 15일차 새 기능 종료로 진행합니다.
+
+```mermaid
+flowchart LR
+    W1["1주차 · 1~5일<br/>계약·환경·첫 연결<br/>앱 1건 → Gold"] --> W2["2주차 · 6~10일<br/>필수 기능·QA 연결<br/>정상·의심·보류·실패 시연"]
+    W2 --> W3["3주차 · 11~15일<br/>정확성·복구·실측<br/>15일차 새 기능 종료"]
+    W3 --> W4["4주차 · 16~20일<br/>최종 QA·시연·예비일<br/>20일차 결과물 제출"]
+```
+
+작업일 기준 계획이며, 각 단계의 완료는 아래 증거로 확인합니다.
 
 | 주차 | 목표 | 하는 일 | 완료 기준 |
 |---|---|---|---|
