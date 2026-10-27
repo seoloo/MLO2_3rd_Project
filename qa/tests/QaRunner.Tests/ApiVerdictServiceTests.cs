@@ -47,6 +47,15 @@ public class ApiVerdictServiceTests
     }
 
     [Fact]
+    public async Task Converts_contract_verdict_code_to_korean()
+    {
+        // 계약대로 영문 코드가 오면 입력값 파일의 정답(한글)과 비교할 수 있게 한글로 바꾼다
+        var verdictService = CreateService(new RecordingHttpHandler(HttpStatusCode.OK, """{ "verdict": "UNDECIDED" }"""));
+
+        Assert.Equal("판단 보류", await verdictService.GetVerdictAsync("본인 확인이 필요합니다"));
+    }
+
+    [Fact]
     public async Task Throws_when_api_returns_error_status()
     {
         var verdictService = CreateService(new RecordingHttpHandler(HttpStatusCode.InternalServerError, "{}"));

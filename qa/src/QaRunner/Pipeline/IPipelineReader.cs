@@ -9,6 +9,13 @@ namespace QaRunner.Pipeline;
 public sealed record CaseCounts(int BronzeCount, int SilverCount, int QuarantineCount);
 
 /// <summary>
+/// 파이프라인 결과를 읽지 못했을 때 쓰는 예외 (MongoDB 연결 실패 등).
+/// 결과를 못 읽으면 채점 자체가 안 되므로, 콘솔은 종료 코드 2로 끝내고 데스크탑 앱은 오류로 알린다.
+/// </summary>
+public sealed class PipelineReadException(string message, Exception? innerException = null)
+    : Exception(message, innerException);
+
+/// <summary>
 /// 파이프라인에 실제로 쌓인 결과를 읽는 쪽. 지금은 FakePipeline을 쓰고,
 /// C의 파이프라인이 준비되면 MongoDB(bronze_events, silver_events, gold_metrics)를 읽는 구현으로 바꾼다.
 /// </summary>

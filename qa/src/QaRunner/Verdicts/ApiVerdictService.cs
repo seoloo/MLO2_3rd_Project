@@ -4,9 +4,9 @@ namespace QaRunner.Verdicts;
 
 /// <summary>
 /// B가 만드는 FastAPI에 문자를 보내 판정을 받아 오는 실제 판정 대상.
-/// 요청·응답 형식은 B와 확정하기 전의 임시 약속이다. 바뀌면 이 파일만 고친다.
+/// 형식은 docs/contract.md 3장을 따른다. 계약이 바뀌면 이 파일만 고친다.
 ///   요청: POST {API 주소}/checks   본문 { "message": "문자 내용" }
-///   응답: 200 OK                  본문 { "verdict": "고위험" } (다른 필드는 무시)
+///   응답: 200 OK                  본문 { "verdict": "HIGH_RISK", ... } (verdict만 읽음, 한글 판정도 받아 줌)
 /// </summary>
 /// <param name="httpClient">API 주소(BaseAddress)가 설정된 HTTP 클라이언트</param>
 public sealed class ApiVerdictService(HttpClient httpClient) : IVerdictService
@@ -28,7 +28,8 @@ public sealed class ApiVerdictService(HttpClient httpClient) : IVerdictService
         if (string.IsNullOrWhiteSpace(verdictResponse?.Verdict))
             throw new VerdictServiceException("API 응답에 verdict 값이 없습니다.");
 
-        return verdictResponse.Verdict;
+        // API는 영문 코드(HIGH_RISK)를 주고, 입력값 파일의 정답은 한글(고위험)이라 한글로 바꿔 비교한다
+        return VerdictCodes.ToKorean(verdictResponse.Verdict);
     }
 
     /// <summary>

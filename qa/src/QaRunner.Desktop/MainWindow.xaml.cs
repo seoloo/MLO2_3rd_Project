@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using QaRunner.Measurement;
 using QaRunner.Models;
+using QaRunner.Pipeline;
 using QaRunner.Reports;
 
 namespace QaRunner.Desktop;
@@ -76,6 +77,10 @@ public partial class MainWindow : Window
         catch (Exception exception) when (QaRunService.IsPreparationError(exception))
         {
             ShowStatus($"실행 준비 중 오류: {exception.Message}", isError: true);
+        }
+        catch (PipelineReadException exception)
+        {
+            ShowStatus($"시험 대상에 연결하지 못했습니다: {exception.Message}", isError: true);
         }
         finally
         {

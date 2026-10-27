@@ -29,13 +29,15 @@ public static class SendPlanner
         // 지연 시간만큼 이벤트 시각을 과거로 당긴다. 그러면 지금 보내도 "늦게 도착한 이벤트"가 된다
         var firstEventTime = now - delay;
 
+        // 시나리오 파일의 이벤트 번호(예: dup-001-e1)는 실행할 때마다 같으므로 실행 번호를 앞에 붙인다.
+        // 그러지 않으면 실제 파이프라인에서 두 번째 실행의 이벤트가 첫 실행의 중복으로 보여 사라진다.
         var events = scenario.Events
             .OrderBy(scenarioEvent => scenarioEvent.OffsetSeconds)
             .Select(scenarioEvent => new PipelineEvent(
                 RunId: runId,
                 CaseId: scenario.CaseId,
-                EventId: scenarioEvent.EventId,
-                ScanId: scenarioEvent.ScanId,
+                EventId: $"{runId}-{scenarioEvent.EventId}",
+                ScanId: $"{runId}-{scenarioEvent.ScanId}",
                 EventTime: firstEventTime.AddSeconds(scenarioEvent.OffsetSeconds),
                 Verdict: scenarioEvent.Verdict))
             .ToList();
