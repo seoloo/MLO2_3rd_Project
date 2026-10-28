@@ -38,11 +38,11 @@ public partial class MainWindow
             "Windows용 Kafka 네이티브 라이브러리 로드·버전 조회");
 
         await Capture("start");
-        Require(((System.Windows.Media.SolidColorBrush)FindResource("AccentBrush")).Color == System.Windows.Media.Color.FromRgb(57, 169, 245)
-            && ((System.Windows.Media.SolidColorBrush)FindResource("AccentBackgroundBrush")).Color == System.Windows.Media.Color.FromRgb(38, 59, 80),
-            "Gallery 다크 테마와 파란 선택 강조 적용");
+        Require(((System.Windows.Media.SolidColorBrush)FindResource("AccentBrush")).Color == System.Windows.Media.Color.FromRgb(13, 148, 136)
+            && ((System.Windows.Media.SolidColorBrush)FindResource("AccentBackgroundBrush")).Color == System.Windows.Media.Color.FromRgb(224, 242, 239),
+            "밝은 Stone·Teal 테마와 청록 선택 강조 적용");
         Require(NavigationBar.TranslatePoint(new Point(), WorkspaceRoot).X < HomeQuestions.TranslatePoint(new Point(), WorkspaceRoot).X
-            && HomeHero.IsVisible && HomeSuiteCards.Columns == 4, "Gallery의 좁은 탐색 레일·대형 배너·가로 시험 카드 배치");
+            && HomeHero.IsVisible && HomeSuiteCards.Columns == 2, "좁은 탐색 레일·배너·2×2 시험 카드 배치");
         Require(OverviewPage.IsVisible && HomeVerdictChoice.IsChecked == true && ResultsSection.Visibility == Visibility.Collapsed,
             "시험 선택 화면에서 결과를 미리 채우지 않고 문자 시험을 기본 안내");
         HomeLoadChoice.IsChecked = true;

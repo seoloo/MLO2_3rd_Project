@@ -91,6 +91,7 @@ public partial class MainWindow : Window
             DetailCaseText.Text = "시험이 끝나면 결과를 확인할 수 있어요.";
             DetailInputText.Text = DetailExpectedText.Text = DetailActualText.Text = "—";
             TotalCountText.Text = PassedCountText.Text = FailedCountText.Text = PassRateText.Text = "—";
+            PassRateBar.Value = 0;
             OpenReportButton.IsEnabled = false;
             _lastHtmlReportPath = null;
             FakeTargetNotice.Visibility = Visibility.Collapsed;
@@ -257,7 +258,8 @@ public partial class MainWindow : Window
         {
             ResultsGrid.ItemsSource = null;
             TotalCountText.Text = PassedCountText.Text = FailedCountText.Text = PassRateText.Text = "—";
-            DetailCaseText.Text = "왼쪽에서 항목을 골라 주세요.";
+            PassRateBar.Value = 0;
+            DetailCaseText.Text = "위에서 항목을 골라 주세요.";
             ResultsSection.Visibility = Visibility.Collapsed;
             ExecutionError.Visibility = Visibility.Collapsed;
             _displayedRun = null;
@@ -340,6 +342,7 @@ public partial class MainWindow : Window
         PassedCountText.Text = testRun.PassedCount.ToString();
         FailedCountText.Text = testRun.FailedCount.ToString();
         PassRateText.Text = $"{testRun.PassRate:0.0}%";
+        PassRateBar.Value = testRun.PassRate;
 
         // 실패한 항목을 위에 먼저 보여 준다 (HTML 보고서와 같은 순서)
         ResultsGrid.ItemsSource = testRun.Results
@@ -419,7 +422,7 @@ public partial class MainWindow : Window
         "cases" => "시험에 쓸 문자와 예상 정답을 확인할 수 있어요.",
         "ai" => "AI 연결은 준비 중이에요. 예제 문자로 먼저 연습할 수 있어요.",
         "review" => "문자를 고르면 예상 정답과 판정 근거를 볼 수 있어요.",
-        "team" => "공유된 기록을 고르면 사례별 결과가 아래에 보여요.",
+        "team" => "공유된 기록을 고르면 오른쪽에 사례별 결과가 보여요.",
         "reports" => "이 PC에 저장한 기록이에요. 하나를 고르면 그때 결과를 다시 열어요.",
         "settings" => "바꾼 값은 지금 켜 둔 앱에서만 적용돼요.",
         _ => "",
@@ -431,6 +434,7 @@ public partial class MainWindow : Window
     }
 
     private void NewRun_Click(object sender, RoutedEventArgs e) => SelectPage("run");
+    private void OpenSettings_Click(object sender, RoutedEventArgs e) => SelectPage("settings");
 
     public bool NavigateFromGuide(string page)
     {
@@ -516,6 +520,7 @@ public partial class MainWindow : Window
             var latest = runs.LastOrDefault();
             OverviewContextText.Text = latest is null ? "시험을 실행하면 이곳에서 다시 볼 수 있어요."
                 : $"가장 최근 시험: {latest.SuiteName} · {latest.PassedCount}/{latest.TotalCount}개 통과";
+            ShowHistorySummary(runs, rows);
             OpenDashboardButton.IsEnabled = File.Exists(DashboardPath);
         }
         catch (Exception exception) when (QaRunService.IsPreparationError(exception))
@@ -539,6 +544,24 @@ public partial class MainWindow : Window
         try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
         catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
         { ShowStatus($"파일을 열지 못했어요. {exception.Message}", true); }
+    }
+
+    /// <summary>실행 기록 화면의 요약 숫자와 시작하기 카드의 "최근 결과" 한 줄을 채운다.</summary>
+    private void ShowHistorySummary(IReadOnlyList<TestRun> runs, HistoryRow[] rows)
+    {
+        HistoryCountText.Text = runs.Count.ToString();
+        var scored = runs.Where(run => run.TotalCount > 0).ToArray();
+        HistoryAverageText.Text = scored.Length == 0 ? "—" : $"{scored.Average(run => run.PassRate):0}%";
+        HistoryLatestText.Text = rows.Length == 0 ? "—" : $"{rows[0].SuiteName} {rows[0].CountText.Replace(" ", "")}";
+        // 시험 종류마다 가장 최근 기록을 카드 아래에 보여 준다
+        foreach (var (suite, label) in new[] { (TestSuite.Verdict, HomeVerdictLast), (TestSuite.Pipeline, HomePipelineLast),
+                     (TestSuite.Load, HomeLoadLast), (TestSuite.Recovery, HomeRecoveryLast) })
+        {
+            var last = rows.FirstOrDefault(row => row.SuiteName == suite.ToKoreanName());
+            label.Text = last is null ? "아직 실행 안 함" : $"최근 {last.CountText.Replace(" ", "")} 통과 · {last.StartedAtText}";
+            label.Foreground = (Brush)FindResource(last is null ? "MutedBrush"
+                : last.Run.FailedCount == 0 ? "PassBrush" : "NoticeBrush");
+        }
     }
 
     private sealed record HistoryRow(TestRun Run)
