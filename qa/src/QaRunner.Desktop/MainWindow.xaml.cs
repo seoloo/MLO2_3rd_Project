@@ -86,7 +86,7 @@ public partial class MainWindow : Window
             SetRunning(true, options);
             ResultsGrid.ItemsSource = null;
             ResultsSection.Visibility = Visibility.Collapsed;
-            ExecutionError.Visibility = Visibility.Collapsed;
+            ExecutionError.IsOpen = false;
             _displayedRun = null;
             DetailCaseText.Text = "시험이 끝나면 결과를 확인할 수 있어요.";
             DetailInputText.Text = DetailExpectedText.Text = DetailActualText.Text = "—";
@@ -94,7 +94,7 @@ public partial class MainWindow : Window
             PassRateBar.Value = 0;
             OpenReportButton.IsEnabled = false;
             _lastHtmlReportPath = null;
-            FakeTargetNotice.Visibility = Visibility.Collapsed;
+            FakeTargetNotice.IsOpen = false;
             RunInfoText.Text = $"{options.Suite.ToKoreanName()} · 시험 실행 중";
 
             var preparedRun = QaRunService.Prepare(options);
@@ -261,11 +261,11 @@ public partial class MainWindow : Window
             PassRateBar.Value = 0;
             DetailCaseText.Text = "위에서 항목을 골라 주세요.";
             ResultsSection.Visibility = Visibility.Collapsed;
-            ExecutionError.Visibility = Visibility.Collapsed;
+            ExecutionError.IsOpen = false;
             _displayedRun = null;
             DetailInputText.Text = DetailExpectedText.Text = DetailActualText.Text = "—";
             RunInfoText.Text = "조건을 확인했다면 시험을 시작해 주세요.";
-            FakeTargetNotice.Visibility = Visibility.Collapsed;
+            FakeTargetNotice.IsOpen = false;
             OpenReportButton.IsEnabled = false;
             _lastHtmlReportPath = null;
         }
@@ -333,8 +333,8 @@ public partial class MainWindow : Window
         var targetDescription = DescribeTarget(testRun);
         RunInfoText.Text = $"{targetDescription} · {testRun.Duration.TotalSeconds:0.00}초 · 실행 {testRun.RunId}"
             + (testRun.HasProvisionalLabels ? " · 정답 검토 전" : "");
-        FakeTargetNotice.Visibility = testRun.UsedFakeTarget ? Visibility.Visible : Visibility.Collapsed;
-        ((TextBlock)FakeTargetNotice.Child).Text = testRun.TargetName.Contains("ApiVerdictService", StringComparison.Ordinal)
+        FakeTargetNotice.IsOpen = testRun.UsedFakeTarget;
+        FakeTargetNotice.Message = testRun.TargetName.Contains("ApiVerdictService", StringComparison.Ordinal)
             ? "판정 API에는 실제로 요청했지만, 데이터 처리는 연습용 파이프라인을 사용했어요. 각 항목의 시험 대상을 구분해 읽어 주세요."
             : "연습용 대상의 결과예요. 일부러 틀리는 규칙이 들어 있어서 실제 서비스의 품질과는 다를 수 있어요.";
 
