@@ -10,7 +10,7 @@
 
 시작 화면에서 시험 종류를 고르면 필요한 준비 사항을 안내합니다. 기본 예제로 연습하거나 내 판정 API를 연결할 수 있습니다.
 
-Windows 11 설정 앱 스타일입니다. [WPF UI](https://github.com/lepoco/wpfui) 4.3.0의 밝은(Light) 컨트롤과 Fluent 아이콘(`SymbolIcon`), 설정 줄(`CardControl`), 알림(`InfoBar`)을 쓰고 색은 Stone·Teal 조합(Tailwind CSS stone·teal 계열)입니다. 창·메뉴·본문이 같은 바탕 위에 있고 묶음만 그림자 없는 흰 카드로 올립니다. 왼쪽 메뉴(아이콘 + 이름)에서 화면을 이동하고, 시작하기의 2×2 시험 카드에서 시험을 고른 뒤 **시험 대상**에서 연습용 대상/내 판정 API를 고릅니다. 배너에는 `Assets/Backgrounds/`의 압축 이미지 20개 중 한 장을 시작할 때 무작위로 표시하며, 고른 한 장만 메모리로 읽습니다. 라이선스와 배경 출처는 `THIRD-PARTY-NOTICES.txt`에 있습니다.
+Windows 11 설정 앱 스타일입니다. [WPF UI](https://github.com/lepoco/wpfui) 4.3.0의 밝은(Light) 컨트롤과 Fluent 아이콘(`SymbolIcon`), 설정 줄(`CardControl`), 알림(`InfoBar`)을 쓰고 색은 Slate·Indigo 조합(Tailwind CSS slate·indigo 계열)입니다. 창·메뉴·본문이 같은 바탕 위에 있고 묶음만 그림자 없는 흰 카드로 올립니다. 왼쪽 메뉴(아이콘 + 이름)에서 화면을 이동하고, 시작하기의 2×2 시험 카드에서 시험을 고른 뒤 **시험 대상**에서 연습용 대상/내 판정 API를 고릅니다. 배너에는 `Assets/Backgrounds/`의 압축 이미지 20개 중 한 장을 시작할 때 무작위로 표시하며, 고른 한 장만 메모리로 읽습니다. 라이선스와 배경 출처는 `THIRD-PARTY-NOTICES.txt`에 있습니다.
 
 1. **문자 판정** 카드를 고릅니다. 처음에는 연습용 대상을 사용합니다. API를 연결하려면 아래 **시험 대상** 카드에서 **내 판정 API 연결**을 고릅니다.
 2. **실행 조건 확인**을 눌러 파일과 조건을 살펴봅니다. 이 단계에서는 아직 실행하지 않습니다.
@@ -236,13 +236,13 @@ dotnet run --project src/QaRunner.Desktop
   | 머리말·묶음 | 제목 `PageTitle`(26) 한 줄. 묶음 이름은 카드 바깥 위에 `SectionTitle`(14 SemiBold), 설명 문장은 꼭 필요한 곳에만 |
   | 간격 | 4 · 8 · 12 · 16 · 24 · 32 (설정 줄 사이 4) |
   | 글자 크기 | 12 · 13 · 14 · 16 · 20 · 26 (아이콘 제외) |
-  | 배경 | 창·메뉴·본문 `#F5F5F4` 한 가지 · 카드 `#FFFFFF` + 1px `#E7E5E4` (그림자 없음) · 메뉴 선택 `#E7E5E4` · 표 선택 `#E0F2EF` |
+  | 배경 | 창·메뉴·본문 `#F4F6F9` 한 가지 · 카드 `#FFFFFF` + 1px `#E2E8F0` (그림자 없음) · 메뉴 선택 `#E2E8F0` · 표 선택 `#EEF2FF` |
   | 아이콘 | WPF UI `SymbolIcon`(Fluent System Icons). 고르면 채운 아이콘(`Filled`) |
   | 알림·설정 줄 | 안내·경고·오류는 `InfoBar`, 설정 화면의 한 줄은 `CardControl`(`SettingCard`) |
-  | 강조색 | 청록 `#0D9488` 한 가지 (기본 버튼·선택 표시·링크). 통과 `#15803D` · 실패 `#BE123C` · 주의 `#B45309` |
+  | 강조색 | 남보라 `#4F46E5` 한 가지 (기본 버튼·선택 표시·링크). 글자 `#0F172A`, 보조 글자 `#64748B`. 통과 `#15803D` · 실패 `#BE123C` · 주의 `#B45309` |
   | 버튼 | `PrimaryButton`(주요 동작 1개) · `SecondaryButton` · `TextButton`. 높이 32, 모서리 4 (Windows 11 기본) |
   | 목록(DataGrid) | 카드 안에 테두리 없이, 행 높이 40, 칸 여백 12. 높이는 내용만큼. 건수·시간은 `NumberCell`/`NumberHeader`로 오른쪽 정렬, 긴 값은 `TrimmedCell`로 말줄임 + 도움말, 빈 목록은 `EmptyListText` 안내 |
-  | 선택·상태 | 고른 항목은 옅은 청록 바탕 + 왼쪽 강조선(`SelectableListItem`). 정답 상태 같은 짧은 상태는 `StatusBadge` (확인 완료 초록, 확인 전 노랑) |
+  | 선택·상태 | 고른 항목은 옅은 남보라 바탕 + 왼쪽 강조선(`SelectableListItem`). 정답 상태 같은 짧은 상태는 `StatusBadge` (확인 완료 초록, 확인 전 노랑) |
   | 위치 안내 | 제목 표시줄에 "정보지킴 QA / 지금 화면", 아래 상태 표시줄에는 화면을 옮길 때마다 그 화면 안내를 표시 |
 
 README·발표 자료에 넣을 화면이 필요하면 캡처 모드로 실행합니다. 창을 화면 밖에 띄워 시험을 한 번 돌린 뒤, 화면을 PNG로 저장하고 바로 꺼집니다.
