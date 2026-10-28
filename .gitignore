@@ -9,3 +9,10 @@ obj/
 
 # QA 실행 보고서 (실행할 때마다 새로 생성)
 qa/reports/
+
+# 디자인 검토용 시안·캡처·생성 PDF는 저장소 밖에서 관리
+/qa/designs/
+/output/pdf/
+
+# 최적화한 Windows 배포 파일
+/qa/dist/

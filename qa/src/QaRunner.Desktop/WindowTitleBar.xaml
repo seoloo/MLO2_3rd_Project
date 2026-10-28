@@ -1,0 +1,69 @@
+<UserControl x:Class="QaRunner.Desktop.WindowTitleBar"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+ xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:local="clr-namespace:QaRunner.Desktop" x:Name="CaptionRoot"
+ Height="36" Background="{StaticResource CaptionBrush}" Foreground="{StaticResource CaptionInkBrush}" Focusable="False">
+ <UserControl.Resources>
+  <Style x:Key="CaptionButton" TargetType="{x:Type ui:Button}">
+   <Setter Property="Width" Value="46"/><Setter Property="Height" Value="36"/>
+   <Setter Property="Padding" Value="0"/><Setter Property="Background" Value="Transparent"/>
+   <Setter Property="Foreground" Value="{StaticResource CaptionInkBrush}"/><Setter Property="Cursor" Value="Arrow"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="{x:Type ui:Button}">
+    <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1">
+     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource CaptionHoverBrush}"/></Trigger>
+     <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{StaticResource CaptionHoverBrush}"/></Trigger>
+     <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="CloseCaptionButton" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource CaptionButton}">
+   <Style.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#C42B1C"/><Setter Property="Foreground" Value="White"/></Trigger>
+    <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#A52317"/><Setter Property="Foreground" Value="White"/></Trigger>
+   </Style.Triggers>
+  </Style>
+ </UserControl.Resources>
+ <!-- 제목 영역의 이동·더블클릭·시스템 메뉴와 테두리 크기 조절은 WindowChrome이 맡는다. -->
+ <Grid>
+  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+  <StackPanel Orientation="Horizontal" Margin="16,0,8,0" VerticalAlignment="Center" IsHitTestVisible="False">
+   <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="SemiBold"/>
+   <TextBlock Text="   /   QA 작업 공간" Foreground="{StaticResource CaptionMutedBrush}"/>
+  </StackPanel>
+  <ui:Button x:Name="HelpButton" Grid.Column="1" Content="?  사용 안내 · F1" Click="Help_Click"
+          shell:WindowChrome.IsHitTestVisibleInChrome="True" local:UsageHelp.Key="help" Margin="0,4,10,4" Padding="9,0" FontSize="11">
+   <ui:Button.Style><Style TargetType="{x:Type ui:Button}" BasedOn="{StaticResource SecondaryButton}"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="{StaticResource CaptionHoverBrush}"/><Setter Property="Foreground" Value="{StaticResource CaptionInkBrush}"/><Style.Triggers>
+    <DataTrigger Binding="{Binding ShowHelp, ElementName=CaptionRoot}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+   </Style.Triggers></Style></ui:Button.Style>
+  </ui:Button>
+  <StackPanel Grid.Column="2" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+   <ui:Button x:Name="MinimizeButton" Style="{StaticResource CaptionButton}" Click="Minimize_Click"
+           ToolTip="최소화" AutomationProperties.Name="최소화" AutomationProperties.AutomationId="WindowMinimize">
+    <Path Data="M 0,0 L 10,0" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1"/>
+   </ui:Button>
+   <ui:Button x:Name="MaximizeButton" Click="Maximize_Click" AutomationProperties.AutomationId="WindowMaximize">
+    <ui:Button.Style><Style TargetType="{x:Type ui:Button}" BasedOn="{StaticResource CaptionButton}">
+     <Setter Property="ToolTip" Value="최대화"/><Setter Property="AutomationProperties.Name" Value="최대화"/>
+     <Style.Triggers><DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+      <Setter Property="ToolTip" Value="이전 크기로"/><Setter Property="AutomationProperties.Name" Value="이전 크기로"/>
+     </DataTrigger></Style.Triggers>
+    </Style></ui:Button.Style>
+    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1">
+     <Path.Style><Style TargetType="Path"><Setter Property="Data" Value="M 0.5,0.5 H 10.5 V 10.5 H 0.5 Z"/>
+      <Style.Triggers><DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+       <Setter Property="Data" Value="M 3.5,0.5 H 10.5 V 7.5 H 8.5 M 0.5,3.5 H 7.5 V 10.5 H 0.5 Z"/>
+      </DataTrigger></Style.Triggers>
+     </Style></Path.Style>
+    </Path>
+   </ui:Button>
+   <ui:Button x:Name="CloseButton" Style="{StaticResource CloseCaptionButton}" Click="Close_Click"
+           ToolTip="닫기" AutomationProperties.Name="닫기" AutomationProperties.AutomationId="WindowClose">
+    <Path Data="M 0,0 L 10,10 M 10,0 L 0,10" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2"/>
+   </ui:Button>
+  </StackPanel>
+ </Grid>
+</UserControl>

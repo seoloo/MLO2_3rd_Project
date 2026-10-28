@@ -155,7 +155,7 @@ public static class DashboardWriter
         var passRateBars = chartRuns
             .Select(testRun => new ChartBar(
                 AxisLabel: $"{testRun.StartedAt:MM/dd HH:mm}",
-                Tooltip: $"{testRun.StartedAt:yyyy-MM-dd HH:mm} · 통과율 {testRun.PassRate:0.0}% ({testRun.PassedCount}/{testRun.TotalCount}) · {testRun.TargetName}",
+                Tooltip: $"{testRun.StartedAt:yyyy-MM-dd HH:mm} · 통과율 {testRun.PassRate:0.0}% ({testRun.PassedCount}/{testRun.TotalCount}) · {testRun.TargetName}{(testRun.HasProvisionalLabels ? " · 검수 전 탐색 시험" : "")}",
                 Value: testRun.PassRate,
                 ValueLabel: $"{testRun.PassRate:0.0}%"))
             .ToList();
@@ -191,6 +191,8 @@ public static class DashboardWriter
         foreach (var testRun in suiteRuns.TakeLast(MaxRunsInTable).Reverse())
         {
             var fakeTag = testRun.UsedFakeTarget ? """<span class="fake">가짜</span>""" : "";
+            if (testRun.HasProvisionalLabels)
+                fakeTag += """<span class="fake">검수 전 탐색 시험</span>""";
             var measurementSummary = metricCharts.Count == 0
                 ? "-"
                 : string.Join(" · ", metricCharts.Select(metricChart =>

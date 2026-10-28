@@ -6,7 +6,7 @@ name: QA 러너 검사
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main, qa, "feature/**"]
     paths: ["qa/**", ".github/workflows/qa.yml"]
   pull_request:
     branches: [main]

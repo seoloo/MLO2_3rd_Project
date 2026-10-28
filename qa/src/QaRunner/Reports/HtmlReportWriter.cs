@@ -61,6 +61,9 @@ public static class HtmlReportWriter
             ? """<p class="notice">가짜 시험 대상으로 실행한 결과입니다. 실제 시스템의 성능이 아닙니다.</p>"""
             : "";
 
+        if (testRun.HasProvisionalLabels)
+            fakeNotice += """<p class="notice">검수 전 예상 정답을 포함한 탐색 시험입니다. 통과율은 공식 정확도가 아닙니다.</p>""";
+
         // CSS의 중괄호와 겹치지 않도록 $$ 문자열을 쓴다. 값은 {{ }} 안에 넣는다
         return $$"""
             <!doctype html>

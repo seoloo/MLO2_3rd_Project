@@ -1,0 +1,16 @@
+<Window x:Class="QaRunner.Desktop.CollaborationWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:local="clr-namespace:QaRunner.Desktop" Title="팀 QA" Width="1120" Height="740" MinWidth="840" MinHeight="500"
+ WindowStartupLocation="CenterOwner" Background="{StaticResource AppBackgroundBrush}" FontFamily="Segoe UI, Malgun Gothic" FontSize="13" Style="{StaticResource DesktopWindow}">
+ <Grid><Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/><RowDefinition Height="28"/></Grid.RowDefinitions><local:WindowTitleBar x:Name="TitleBar"/>
+ <Grid x:Name="WorkspaceViewport" Grid.Row="1" ClipToBounds="True"><DockPanel x:Name="WorkspaceRoot">
+ <StackPanel x:Name="Navigation" DockPanel.Dock="Top" Orientation="Horizontal" Margin="12,0">
+ <RadioButton Content="시험 문자" GroupName="Page" Tag="cases" IsChecked="True" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
+ <RadioButton Content="AI 문자 만들기" GroupName="Page" Tag="ai" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
+ <RadioButton Content="정답 검토" GroupName="Page" Tag="review" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
+ <RadioButton Content="공유 기록" GroupName="Page" Tag="team" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
+ </StackPanel><local:CollaborationView x:Name="View"/></DockPanel></Grid>
+ <TextBlock Grid.Row="2" x:Name="ZoomStatusText" Text="자동 배율" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,26,0"/>
+ <ResizeGrip Grid.Row="2" Style="{StaticResource WindowResizeGrip}"/>
+ </Grid>
+</Window>

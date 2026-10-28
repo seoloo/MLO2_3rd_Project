@@ -173,6 +173,8 @@ QA 복구 시험은 Spark 컨테이너를 `docker stop` → `docker start`로 �
 
 ## 7. 정해야 할 것
 
+QA 사례 생성과 팀 결과 공유의 후속 초안은 [QA 연결 스켈레톤](../qa/docs/collaboration-skeleton.md)에 별도로 정리합니다. 이 초안의 `/qa/runs`는 QA 결과 공유용이며, 위 서비스 판정 API `/checks`나 Kafka 이벤트 계약을 변경하지 않습니다.
+
 확정되면 체크하고, 위 본문을 고친 뒤 이 줄에 결정 내용을 짧게 적습니다.
 
 - [ ] 판정 값을 영문 코드로 주고받는 것 (2장) — B, A

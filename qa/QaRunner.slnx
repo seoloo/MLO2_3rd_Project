@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/QaRunner.Contracts/QaRunner.Contracts.csproj" />
     <Project Path="src/QaRunner.Desktop/QaRunner.Desktop.csproj" />
+    <Project Path="src/QaRunner.Sharing.Api/QaRunner.Sharing.Api.csproj" />
     <Project Path="src/QaRunner/QaRunner.csproj" />
   </Folder>
   <Folder Name="/tests/">

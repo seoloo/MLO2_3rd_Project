@@ -1,5 +1,6 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Threading;
+using System.IO;
 using QaRunner.Models;
 
 namespace QaRunner.Desktop;
@@ -17,10 +18,11 @@ public partial class App : Application
         // 실행 파일이 bin 폴더에 있어도 cases 폴더를 찾을 수 있도록 qa 폴더를 기준 폴더로 삼는다
         QaFolderLocator.UseQaFolderAsCurrentDirectory();
 
-        var mainWindow = new MainWindow();
         var captureFilePath = FindOptionValue(startupEventArgs.Args, "--capture");
+        var smokeDirectory = FindOptionValue(startupEventArgs.Args, "--ui-smoke");
+        var mainWindow = new MainWindow(fitToScreen: captureFilePath is null && smokeDirectory is null);
 
-        if (captureFilePath is null)
+        if (captureFilePath is null && smokeDirectory is null)
         {
             mainWindow.Show();
             return;
@@ -36,6 +38,22 @@ public partial class App : Application
         mainWindow.ShowInTaskbar = false;
         mainWindow.Show();
 
+        if (smokeDirectory is not null)
+        {
+            try
+            {
+                await mainWindow.RunUiSmokeAsync(smokeDirectory);
+                Shutdown();
+            }
+            catch (Exception exception)
+            {
+                Directory.CreateDirectory(smokeDirectory);
+                File.WriteAllText(Path.Combine(smokeDirectory, "ui-smoke-error.txt"), exception.ToString());
+                Shutdown(1);
+            }
+            return;
+        }
+
         // --suite로 시험 종류를 고른다 (verdict, pipeline, load, recovery). 부하·복구는 시연용 기본 시간으로 돈다
         mainWindow.SelectSuite(TestSuiteExtensions.ParseOptionValue(FindOptionValue(startupEventArgs.Args, "--suite")));
 
@@ -43,7 +61,8 @@ public partial class App : Application
 
         // 결과 표가 화면에 다 그려질 때까지 한 번 기다린 뒤 찍는다
         await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
-        mainWindow.SaveScreenshot(captureFilePath);
+        mainWindow.SelectPage(FindOptionValue(startupEventArgs.Args, "--page") ?? "run");
+        mainWindow.SaveScreenshot(captureFilePath!);
         Shutdown();
     }
 
