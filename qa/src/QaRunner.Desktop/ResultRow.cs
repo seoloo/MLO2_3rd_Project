@@ -23,6 +23,9 @@ public sealed record ResultRow(
     public bool IsSystemFailure { get; init; }
     public bool HasThreshold { get; init; }
     public string ResultLabel => IsSystemFailure ? "응답 없음" : IsPassed ? "통과" : HasThreshold ? "기준 미달" : "불일치";
+
+    /// <summary>결과 표에서 한눈에 비교하도록 "예상 → 실제"로 줄인 말. 실제 값은 첫 줄만 쓴다</summary>
+    public string ComparisonText => $"{Expected} → {ActualDisplay.Split('\n')[0]}";
     public string CheckDescription => CheckName.Contains("p95") ? "95%의 요청이나 이벤트가 이 시간 안에 끝났다는 뜻이에요. 나머지 5%는 더 오래 걸릴 수 있어요."
         : CheckName.Contains("오류율") ? "전체 요청 중 오류가 난 비율이에요. 낮을수록 좋아요."
         : CheckName.Contains("Silver") ? "중복을 제외하고 남은 고유 이벤트 건수예요."

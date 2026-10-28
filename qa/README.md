@@ -239,7 +239,9 @@ dotnet run --project src/QaRunner.Desktop
   | 글자 크기 | 12 · 13 · 14 · 16 · 20 · 26 (아이콘 제외) |
   | 배경 회색 | 사이드바 `#20202D` · 앱 배경 `#292936` · 카드 `#343440` · 호버·선택 `#3D3D4A` |
   | 버튼 | `PrimaryButton`(주요 동작 1개) · `SecondaryButton` · `TextButton`. 높이 36, 모서리 6 |
-  | 목록(DataGrid) | 행 높이 40, 칸 여백 12. 건수·시간은 `NumberCell`/`NumberHeader`로 오른쪽 정렬, 긴 값은 `TrimmedCell`로 말줄임 + 도움말, 빈 목록은 `EmptyListText` 안내 |
+  | 목록(DataGrid) | 행 높이 40, 칸 여백 12. 높이는 내용만큼. 건수·시간은 `NumberCell`/`NumberHeader`로 오른쪽 정렬, 긴 값은 `TrimmedCell`로 말줄임 + 도움말, 빈 목록은 `EmptyListText` 안내 |
+  | 선택·상태 | 고른 항목은 남색 바탕 + 왼쪽 강조선(`SelectableListItem`). 정답 상태 같은 짧은 상태는 `StatusBadge` (확인 완료 초록, 확인 전 노랑) |
+  | 위치 안내 | 제목 표시줄에 "정보지킴 QA / 지금 화면", 아래 상태 표시줄에는 화면을 옮길 때마다 그 화면 안내를 표시 |
 
 README·발표 자료에 넣을 화면이 필요하면 캡처 모드로 실행합니다. 창을 화면 밖에 띄워 시험을 한 번 돌린 뒤, 화면을 PNG로 저장하고 바로 꺼집니다.
 

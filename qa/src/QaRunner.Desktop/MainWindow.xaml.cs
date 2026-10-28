@@ -384,7 +384,46 @@ public partial class MainWindow : Window
         }
         if (page is "overview" or "reports") RefreshHistory();
         RefreshHeader();
+        if (page != _currentPage)
+        {
+            _currentPage = page;
+            TitleBar.Section = PageNameFor(page);
+            // 시험 실행 중이 아니면 이전 화면의 안내가 남지 않도록 지금 화면에 맞는 안내로 바꾼다
+            if (!_isRunning) ShowStatus(PageHintFor(page), false);
+        }
     }
+
+    // 지금 보이는 화면. 같은 화면으로 다시 이동할 때는 상태 안내를 덮어쓰지 않는다
+    private string? _currentPage;
+
+    /// <summary>제목 표시줄 "정보지킴 QA / 화면 이름"에 쓸 화면 이름.</summary>
+    private static string PageNameFor(string page) => page switch
+    {
+        "overview" => "시작하기",
+        "run" => "시험하기",
+        "cases" => "시험 문자",
+        "ai" => "AI 문자 만들기",
+        "review" => "예상 정답 검토",
+        "team" => "공유 기록",
+        "reports" => "실행 기록",
+        "settings" => "설정",
+        _ => "QA 작업 공간",
+    };
+
+    /// <summary>화면을 옮겼을 때 아래 상태 표시줄에 보여 줄 한 줄 안내.</summary>
+    private string PageHintFor(string page) => page switch
+    {
+        "overview" => "시험 종류를 고르고 실행 조건을 확인해 주세요.",
+        "run" => ResultsSection.Visibility == Visibility.Visible
+            ? "결과를 골라 예상과 실제 값을 비교해 보세요." : "조건을 확인했다면 시험을 시작해 주세요.",
+        "cases" => "시험에 쓸 문자와 예상 정답을 확인할 수 있어요.",
+        "ai" => "AI 연결은 준비 중이에요. 예제 문자로 먼저 연습할 수 있어요.",
+        "review" => "문자를 고르면 예상 정답과 판정 근거를 볼 수 있어요.",
+        "team" => "공유된 기록을 고르면 사례별 결과가 아래에 보여요.",
+        "reports" => "이 PC에 저장한 기록이에요. 하나를 고르면 그때 결과를 다시 열어요.",
+        "settings" => "바꾼 값은 지금 켜 둔 앱에서만 적용돼요.",
+        _ => "",
+    };
 
     private void Navigation_Checked(object sender, RoutedEventArgs e)
     {

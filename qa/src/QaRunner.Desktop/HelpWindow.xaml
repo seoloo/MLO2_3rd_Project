@@ -1,32 +1,38 @@
 <Window x:Class="QaRunner.Desktop.HelpWindow"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:local="clr-namespace:QaRunner.Desktop" Title="정보지킴 QA · 사용 안내" Width="1040" Height="740" MinWidth="760" MinHeight="500"
- FontFamily="Segoe UI, Malgun Gothic" FontSize="16" Background="{StaticResource AppBackgroundBrush}" Foreground="{StaticResource InkBrush}" Style="{StaticResource DesktopWindow}">
+ FontFamily="Segoe UI, Malgun Gothic" FontSize="14" Background="{StaticResource AppBackgroundBrush}" Foreground="{StaticResource InkBrush}" Style="{StaticResource DesktopWindow}">
+ <Window.Resources>
+  <!-- 안내 창의 소제목·본문·단계 번호. 메인 창과 같은 글자 크기 단계(16·14)를 쓴다. -->
+  <Style x:Key="GuideHeading" TargetType="TextBlock"><Setter Property="FontSize" Value="16"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+  <Style x:Key="GuideBody" TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="LineHeight" Value="22"/><Setter Property="Margin" Value="0,8,0,0"/></Style>
+  <Style x:Key="StepNumber" TargetType="Border"><Setter Property="Width" Value="24"/><Setter Property="Height" Value="24"/><Setter Property="CornerRadius" Value="12"/><Setter Property="Background" Value="{StaticResource AccentBackgroundBrush}"/><Setter Property="Margin" Value="0,0,12,0"/></Style>
+ </Window.Resources>
  <Grid><Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/><RowDefinition Height="30"/></Grid.RowDefinitions>
-  <local:WindowTitleBar ShowHelp="False" FontSize="13"/>
-  <Grid x:Name="GuideViewport" Grid.Row="1" ClipToBounds="True"><Grid x:Name="GuideRoot" Margin="24">
+  <local:WindowTitleBar ShowHelp="False" Section="" FontSize="13"/>
+  <Grid x:Name="GuideViewport" Grid.Row="1" ClipToBounds="True"><Grid x:Name="GuideRoot" Margin="32,28,32,16">
    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-   <StackPanel Margin="0,0,0,18"><TextBlock Text="빠른 시작 안내" FontSize="27" FontWeight="SemiBold"/><TextBlock Text="기본 문자로 먼저 연습해 보세요. 서버나 AI를 연결하지 않아도 시작할 수 있어요." Style="{StaticResource HintText}" FontSize="16" Margin="0,8,0,0"/></StackPanel>
+   <StackPanel Style="{StaticResource PageHeader}"><TextBlock Text="빠른 시작 안내" Style="{StaticResource PageTitle}"/><TextBlock Text="기본 문자로 먼저 연습해 보세요. 서버나 AI를 연결하지 않아도 시작할 수 있어요." Style="{StaticResource PageSubtitle}"/></StackPanel>
    <TabControl Grid.Row="1" Padding="0" BorderBrush="{StaticResource LineBrush}">
-    <TabItem Header="  빠른 시작  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="20">
-     <Border Style="{StaticResource Panel}" Margin="0,0,0,14"><StackPanel><TextBlock Text="1   시험 종류와 대상 선택" FontWeight="SemiBold" FontSize="20"/><TextBlock Text="시작하기에서 ‘문자 판정’을 고르고 ‘기본 예제 사용’을 선택해 주세요. 다음 화면에서 실행 조건을 확인할 수 있어요." TextWrapping="Wrap" LineHeight="27" Margin="0,10,0,14"/><ui:Button x:Name="GuideStartButton" Content="문자 판정 시험 열기 →" Tag="verdict" Click="Navigate_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/></StackPanel></Border>
-     <Border Style="{StaticResource Panel}" Margin="0,0,0,14"><StackPanel><TextBlock Text="2   실행 조건 확인 및 시작" FontWeight="SemiBold" FontSize="20"/><TextBlock Text="처음에는 기본 파일을 그대로 써도 괜찮아요. ‘시험 시작하기’를 누르면 문자를 보내고 돌아온 판정을 예상 정답과 비교해요. 끝나면 항목별 결과를 보여드려요." TextWrapping="Wrap" LineHeight="27" Margin="0,10,0,0"/></StackPanel></Border>
-     <Border Style="{StaticResource Panel}" Margin="0,0,0,14"><StackPanel><TextBlock Text="3   결과 비교 및 보고서 확인" FontWeight="SemiBold" FontSize="20"/><TextBlock Text="결과에서 항목을 고르면 미리 정한 정답과 실제 값을 나란히 볼 수 있어요. 설명을 읽고 무엇이 달랐는지 확인해 주세요. 자세한 보고서는 브라우저로 열 수 있어요." TextWrapping="Wrap" LineHeight="27" Margin="0,10,0,14"/><ui:Button Content="이전 실행 기록 →" Tag="reports" Click="Navigate_Click" HorizontalAlignment="Left"/></StackPanel></Border>
-     <Border Background="{StaticResource NoticeBackgroundBrush}" Padding="16" CornerRadius="10"><TextBlock Text="연습용 대상에는 일부러 틀리는 규칙이 있어요. 어떤 차이를 찾아내는지 살펴보세요. 사람이 확인하지 않은 임시 정답과 비교한 결과는 실제 서비스 품질을 판단하는 근거로 쓰지 말아 주세요." Foreground="{StaticResource NoticeBrush}" TextWrapping="Wrap" LineHeight="27"/></Border>
+    <TabItem Header="  빠른 시작  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,24,0,0">
+     <Border Style="{StaticResource Panel}" Margin="0,0,0,16"><StackPanel><StackPanel Orientation="Horizontal"><Border Style="{StaticResource StepNumber}"><TextBlock Text="1" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="시험 종류와 대상 선택" Style="{StaticResource GuideHeading}"/></StackPanel><TextBlock Text="시작하기에서 ‘문자 판정’을 고르고 ‘기본 예제 사용’을 선택해 주세요. 다음 화면에서 실행 조건을 확인할 수 있어요." Style="{StaticResource GuideBody}" Margin="36,8,0,16"/><ui:Button x:Name="GuideStartButton" Content="문자 판정 시험 열기 →" Tag="verdict" Click="Navigate_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="36,0,0,0"/></StackPanel></Border>
+     <Border Style="{StaticResource Panel}" Margin="0,0,0,16"><StackPanel><StackPanel Orientation="Horizontal"><Border Style="{StaticResource StepNumber}"><TextBlock Text="2" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="실행 조건 확인 및 시작" Style="{StaticResource GuideHeading}"/></StackPanel><TextBlock Text="처음에는 기본 파일을 그대로 써도 괜찮아요. ‘시험 시작하기’를 누르면 문자를 보내고 돌아온 판정을 예상 정답과 비교해요. 끝나면 항목별 결과를 보여드려요." Style="{StaticResource GuideBody}" Margin="36,8,0,0"/></StackPanel></Border>
+     <Border Style="{StaticResource Panel}" Margin="0,0,0,16"><StackPanel><StackPanel Orientation="Horizontal"><Border Style="{StaticResource StepNumber}"><TextBlock Text="3" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="결과 비교 및 보고서 확인" Style="{StaticResource GuideHeading}"/></StackPanel><TextBlock Text="결과에서 항목을 고르면 미리 정한 정답과 실제 값을 나란히 볼 수 있어요. 설명을 읽고 무엇이 달랐는지 확인해 주세요. 자세한 보고서는 브라우저로 열 수 있어요." Style="{StaticResource GuideBody}" Margin="36,8,0,16"/><ui:Button Content="이전 실행 기록 →" Tag="reports" Click="Navigate_Click" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="36,0,0,0"/></StackPanel></Border>
+     <Border Background="{StaticResource NoticeBackgroundBrush}" Padding="16,12" CornerRadius="8"><TextBlock Text="연습용 대상에는 일부러 틀리는 규칙이 있어요. 어떤 차이를 찾아내는지 살펴보세요. 사람이 확인하지 않은 임시 정답과 비교한 결과는 실제 서비스 품질을 판단하는 근거로 쓰지 말아 주세요." Foreground="{StaticResource NoticeBrush}" TextWrapping="Wrap" LineHeight="22"/></Border>
     </StackPanel></ScrollViewer></TabItem>
-    <TabItem Header="  시험 종류  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="20">
-     <TextBlock Text="판정 정확성" FontSize="21" FontWeight="SemiBold"/><TextBlock Text="문자를 보내고 돌아온 판정이 미리 정한 정답과 같은지 봐요. 판정 규칙이나 API를 확인할 때 사용해 보세요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,24"/>
-     <TextBlock Text="파이프라인 정확성" FontSize="21" FontWeight="SemiBold"/><TextBlock Text="이벤트를 여러 번 보내거나 순서를 바꾸고 늦게 보내요. 저장·정제·집계 건수가 맞는지 QA가 따로 계산한 값과 비교해요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,24"/>
-     <TextBlock Text="부하 · 지연" FontSize="21" FontWeight="SemiBold"/><TextBlock Text="입력을 계속 보내며 응답 속도와 오류, 처리 지연을 확인해요. 보내는 시간은 초, 속도는 1초에 보낼 건수로 정해 주세요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,24"/>
-     <TextBlock Text="장애 복구" FontSize="21" FontWeight="SemiBold"/><TextBlock Text="입력을 보내는 중에 처리를 잠깐 멈췄다가 다시 켜요. 밀린 작업을 얼마나 빨리 따라잡는지, 마지막 집계가 맞는지 확인해요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,24"/>
-     <TextBlock Text="지금 앱에서는 연습용 파이프라인을 사용해요. 실제 Kafka·Spark·MongoDB 연결은 아직 앱에서 사용할 수 없어요." Style="{StaticResource HintText}" FontSize="16"/>
+    <TabItem Header="  시험 종류  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,24,0,0">
+     <TextBlock Text="판정 정확성" Style="{StaticResource GuideHeading}"/><TextBlock Text="문자를 보내고 돌아온 판정이 미리 정한 정답과 같은지 봐요. 판정 규칙이나 API를 확인할 때 사용해 보세요." Style="{StaticResource GuideBody}" Margin="0,8,0,24"/>
+     <TextBlock Text="파이프라인 정확성" Style="{StaticResource GuideHeading}"/><TextBlock Text="이벤트를 여러 번 보내거나 순서를 바꾸고 늦게 보내요. 저장·정제·집계 건수가 맞는지 QA가 따로 계산한 값과 비교해요." Style="{StaticResource GuideBody}" Margin="0,8,0,24"/>
+     <TextBlock Text="부하 · 지연" Style="{StaticResource GuideHeading}"/><TextBlock Text="입력을 계속 보내며 응답 속도와 오류, 처리 지연을 확인해요. 보내는 시간은 초, 속도는 1초에 보낼 건수로 정해 주세요." Style="{StaticResource GuideBody}" Margin="0,8,0,24"/>
+     <TextBlock Text="장애 복구" Style="{StaticResource GuideHeading}"/><TextBlock Text="입력을 보내는 중에 처리를 잠깐 멈췄다가 다시 켜요. 밀린 작업을 얼마나 빨리 따라잡는지, 마지막 집계가 맞는지 확인해요." Style="{StaticResource GuideBody}" Margin="0,8,0,24"/>
+     <TextBlock Text="지금 앱에서는 연습용 파이프라인을 사용해요. 실제 Kafka·Spark·MongoDB 연결은 아직 앱에서 사용할 수 없어요." Style="{StaticResource HintText}" FontSize="13"/>
     </StackPanel></ScrollViewer></TabItem>
-    <TabItem Header="  기능 안내  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="20">
-     <TextBlock Text="AI 문자 생성" FontWeight="SemiBold" FontSize="20"/><TextBlock Text="AI 문자 만들기의 예제 가져오기는 미리 만든 문자 4건을 불러와요. Runpod 연결은 준비 중이에요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,22"/>
-     <TextBlock Text="팀원과 결과 공유" FontWeight="SemiBold" FontSize="20"/><TextBlock Text="지금은 이 앱 안이나 같은 PC의 공유 서버에서만 볼 수 있어요. 공유 기록의 설정을 펼쳐 방법을 골라 주세요. 다른 PC·EC2 연결과 자동 갱신은 준비 중이에요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,22"/>
-     <TextBlock Text="보고서 저장 위치" FontWeight="SemiBold" FontSize="20"/><TextBlock Text="기본 위치는 프로젝트의 qa/reports예요. 폴더를 바꿨다면 그 위치에 HTML·JSON 파일이 저장돼요. 바꾼 설정은 지금 켜 둔 앱에서만 사용해요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,22"/>
-     <TextBlock Text="결과 상태 구분" FontWeight="SemiBold" FontSize="20"/><TextBlock Text="공유하지 못해도 이 PC에 저장한 결과와 보고서는 남아요. 판정 불일치는 정답과 실제 값이 다른 경우예요. 연결하지 못해 결과를 받지 못한 경우와도 구분해 주세요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,22"/>
-     <TextBlock Text="버튼과 입력 항목 도움말" FontWeight="SemiBold" FontSize="20"/><TextBlock Text="마우스를 잠시 올리거나 Tab으로 선택해 보세요. 말풍선으로 설명해 드려요. 누를 수 없는 버튼에서도 안내를 볼 수 있어요." TextWrapping="Wrap" LineHeight="27" Margin="0,9,0,0"/>
+    <TabItem Header="  기능 안내  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,24,0,0">
+     <TextBlock Text="AI 문자 생성" Style="{StaticResource GuideHeading}"/><TextBlock Text="AI 문자 만들기의 예제 가져오기는 미리 만든 문자 4건을 불러와요. Runpod 연결은 준비 중이에요." Style="{StaticResource GuideBody}" Margin="0,8,0,24"/>
+     <TextBlock Text="팀원과 결과 공유" Style="{StaticResource GuideHeading}"/><TextBlock Text="지금은 이 앱 안이나 같은 PC의 공유 서버에서만 볼 수 있어요. 공유 기록의 설정을 펼쳐 방법을 골라 주세요. 다른 PC·EC2 연결과 자동 갱신은 준비 중이에요." Style="{StaticResource GuideBody}" Margin="0,8,0,24"/>
+     <TextBlock Text="보고서 저장 위치" Style="{StaticResource GuideHeading}"/><TextBlock Text="기본 위치는 프로젝트의 qa/reports예요. 폴더를 바꿨다면 그 위치에 HTML·JSON 파일이 저장돼요. 바꾼 설정은 지금 켜 둔 앱에서만 사용해요." Style="{StaticResource GuideBody}" Margin="0,8,0,24"/>
+     <TextBlock Text="결과 상태 구분" Style="{StaticResource GuideHeading}"/><TextBlock Text="공유하지 못해도 이 PC에 저장한 결과와 보고서는 남아요. 판정 불일치는 정답과 실제 값이 다른 경우예요. 연결하지 못해 결과를 받지 못한 경우와도 구분해 주세요." Style="{StaticResource GuideBody}" Margin="0,8,0,24"/>
+     <TextBlock Text="버튼과 입력 항목 도움말" Style="{StaticResource GuideHeading}"/><TextBlock Text="마우스를 잠시 올리거나 Tab으로 선택해 보세요. 말풍선으로 설명해 드려요. 누를 수 없는 버튼에서도 안내를 볼 수 있어요." Style="{StaticResource GuideBody}" Margin="0,8,0,0"/>
     </StackPanel></ScrollViewer></TabItem>
    </TabControl>
   </Grid></Grid>

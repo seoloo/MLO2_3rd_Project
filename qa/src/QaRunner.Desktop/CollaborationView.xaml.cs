@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using QaRunner.Collaboration;
 using QaRunner.Contracts;
 using QaRunner.Verdicts;
@@ -48,6 +49,8 @@ public partial class CollaborationView : UserControl
         GenerateButton.Visibility = page is "cases" or "ai" ? Visibility.Visible : Visibility.Collapsed;
         ExecuteButton.Visibility = page is "cases" or "team" ? Visibility.Visible : Visibility.Collapsed;
         RefreshButton.Visibility = page == "team" ? Visibility.Visible : Visibility.Collapsed;
+        // 공유 방식·업로드 결과 안내는 공유 기록 화면에서만 보여 준다. 사례 화면 안내는 DatasetText가 맡는다
+        SharingStatus.Visibility = page == "team" ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>기본 사례 파일 기준을 표시한다. 기존 JSON 정답을 검수한 AI 라벨로 바꾸지는 않는다.</summary>
@@ -71,7 +74,7 @@ public partial class CollaborationView : UserControl
         }
         catch (Exception exception) when (IsExpectedError(exception))
         {
-            SharingStatus.Text = $"문자를 불러오지 못했어요. {exception.Message}";
+            DatasetText.Text = $"문자를 불러오지 못했어요. {exception.Message}";
         }
     }
 
@@ -103,7 +106,13 @@ public partial class CollaborationView : UserControl
         if (ReviewCasesList.SelectedItem is not CaseRow row) return;
         ReviewMessage.Text = row.Message;
         ReviewVerdict.Text = row.ExpectedVerdict;
-        ReviewRationale.Text = $"{row.Rationale}\n{row.ReviewText}";
+        ReviewRationale.Text = row.Rationale;
+        // 사람이 확인한 정답이면 초록, 아직 확인 전이면 노랑 배지로 구분한다
+        var isConfirmed = row.ReviewText is "사람 확인 완료" or "사례 파일 기준";
+        ReviewStateText.Text = row.ReviewText;
+        ReviewStateText.Foreground = (Brush)FindResource(isConfirmed ? "PassBrush" : "NoticeBrush");
+        ReviewStateBadge.Background = (Brush)FindResource(isConfirmed ? "PassBackgroundBrush" : "NoticeBackgroundBrush");
+        ReviewStateBadge.Visibility = Visibility.Visible;
     }
 
     // TODO: 모델과 생성 정책 확정 후 ICaseGenerator를 RunpodCaseGenerator로 교체한다.
@@ -122,9 +131,9 @@ public partial class CollaborationView : UserControl
             ShowCases(_caseSet.Cases.Select(testCase => new CaseRow(testCase.CaseId, testCase.Message,
                 VerdictCodes.ToKorean(testCase.ExpectedVerdict), testCase.Rationale,
                 testCase.ReviewState == LabelReviewState.HumanReviewed ? "사람 확인 완료" : "사람 확인 전")).ToArray());
-            DatasetText.Text = $"예제 문자 {_caseSet.Cases.Count}건이에요. 정답을 아직 사람이 확인하지 않았으니 근거도 함께 읽어 주세요.";
+            // 안내는 한 줄로: 무엇을 가져왔는지와 정답 확인이 필요하다는 점을 함께 알린다
+            DatasetText.Text = $"미리 만든 예제 문자 {_caseSet.Cases.Count}건을 가져왔어요. AI가 새로 만든 문자는 아니고, 정답을 아직 사람이 확인하지 않았으니 근거도 함께 읽어 주세요.";
             DatasetChanged?.Invoke();
-            SharingStatus.Text = "미리 만든 예제 문자 4건을 가져왔어요. AI가 새로 만든 문자는 아니에요. 정답의 근거도 확인해 주세요.";
             Navigate("cases");
         }
         finally { SetBusy(false); }
@@ -157,7 +166,7 @@ public partial class CollaborationView : UserControl
         }
         catch (Exception exception) when (IsExpectedError(exception))
         {
-            SharingStatus.Text = $"예제 시험을 마치지 못했어요. {exception.Message}";
+            SharingStatus.Text = DatasetText.Text = $"예제 시험을 마치지 못했어요. {exception.Message}";
         }
         finally { SetBusy(false); }
     }
