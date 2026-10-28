@@ -32,7 +32,11 @@
   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
   <StackPanel Orientation="Horizontal" Margin="16,0,8,0" VerticalAlignment="Center" IsHitTestVisible="False">
    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="SemiBold"/>
-   <TextBlock Text="   /   QA 작업 공간" Foreground="{StaticResource CaptionMutedBrush}"/>
+   <TextBlock Foreground="{StaticResource CaptionMutedBrush}">
+    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="{Binding Section, ElementName=CaptionRoot, StringFormat='   /   {0}'}"/><Style.Triggers>
+     <DataTrigger Binding="{Binding Section, ElementName=CaptionRoot}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+    </Style.Triggers></Style></TextBlock.Style>
+   </TextBlock>
   </StackPanel>
   <ui:Button x:Name="HelpButton" Grid.Column="1" Content="?  사용 안내 · F1" Click="Help_Click"
           shell:WindowChrome.IsHitTestVisibleInChrome="True" local:UsageHelp.Key="help" Margin="0,4,10,4" Padding="9,0" FontSize="11">

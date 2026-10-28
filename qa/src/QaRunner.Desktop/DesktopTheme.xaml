@@ -78,7 +78,36 @@
     <!-- 버튼은 기본(Primary)·보조(Secondary)·텍스트(Text) 세 단계로, 높이 36과 모서리 6을 함께 쓴다. -->
     <Style x:Key="SecondaryButton" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource {x:Type ui:Button}}"><Setter Property="MinHeight" Value="36"/><Setter Property="Padding" Value="16,6"/><Setter Property="CornerRadius" Value="6"/><Setter Property="FontSize" Value="13"/><Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="Foreground" Value="{StaticResource InkBrush}"/></Style>
     <Style x:Key="WorkspaceButton" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource SecondaryButton}"/>
-    <Style x:Key="PrimaryButton" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource SecondaryButton}"><Setter Property="Appearance" Value="Primary"/><Setter Property="Background" Value="{StaticResource ActionBackgroundBrush}"/><Setter Property="Foreground" Value="White"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
+    <!-- WPF UI의 Primary 버튼은 Windows 강조색을 쓰므로, 앱의 파란색 한 가지로 덮어써 흰 글씨와 대비를 맞춘다. -->
+    <Style x:Key="PrimaryButton" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource SecondaryButton}">
+        <Style.Resources>
+            <SolidColorBrush x:Key="AccentButtonBackground" Color="#087ABE"/>
+            <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#1A8BD0"/>
+            <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#066AA6"/>
+            <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="#066AA6"/>
+            <SolidColorBrush x:Key="AccentButtonForeground" Color="White"/>
+            <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="White"/>
+            <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#E6FFFFFF"/>
+        </Style.Resources>
+        <Setter Property="Appearance" Value="Primary"/><Setter Property="Background" Value="{StaticResource ActionBackgroundBrush}"/><Setter Property="Foreground" Value="White"/><Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <!-- 목록에서 고른 줄: Windows 기본 파란 칠 대신 표·메뉴와 같은 남색 바탕과 왼쪽 강조선. -->
+    <Style x:Key="SelectableListItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}"/><Setter Property="Cursor" Value="Hand"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+            <Grid Margin="0,0,0,8">
+                <Border x:Name="ItemSurface" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8"><ContentPresenter/></Border>
+                <Border x:Name="ItemRail" Width="3" Margin="0,12" CornerRadius="2" HorizontalAlignment="Left" Background="{StaticResource AccentBrush}" Visibility="Collapsed"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ItemSurface" Property="Background" Value="{StaticResource HoverBrush}"/></Trigger>
+                <Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemSurface" Property="Background" Value="{StaticResource AccentBackgroundBrush}"/><Setter TargetName="ItemSurface" Property="BorderBrush" Value="{StaticResource AccentBackgroundBrush}"/><Setter TargetName="ItemRail" Property="Visibility" Value="Visible"/></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ItemSurface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <!-- 정답 상태처럼 짧은 상태를 보여 주는 작은 배지. -->
+    <Style x:Key="StatusBadge" TargetType="Border"><Setter Property="CornerRadius" Value="6"/><Setter Property="Padding" Value="8,2"/><Setter Property="HorizontalAlignment" Value="Left"/><Setter Property="Background" Value="{StaticResource NoticeBackgroundBrush}"/></Style>
     <Style x:Key="TextButton" TargetType="{x:Type ui:Button}" BasedOn="{StaticResource SecondaryButton}"><Setter Property="Appearance" Value="Transparent"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="8,6"/><Setter Property="Foreground" Value="{StaticResource AccentBrush}"/></Style>
     <!-- 페이지 머리말: 제목 26, 설명 13, 아래 간격 24로 모든 화면에서 같은 위치에 둔다. -->
     <Style x:Key="PageTitle" TargetType="TextBlock"><Setter Property="FontSize" Value="26"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
