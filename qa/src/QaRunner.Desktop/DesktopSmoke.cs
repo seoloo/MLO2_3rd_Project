@@ -38,9 +38,9 @@ public partial class MainWindow
             "Windows용 Kafka 네이티브 라이브러리 로드·버전 조회");
 
         await Capture("start");
-        Require(((System.Windows.Media.SolidColorBrush)FindResource("AccentBrush")).Color == System.Windows.Media.Color.FromRgb(13, 148, 136)
-            && ((System.Windows.Media.SolidColorBrush)FindResource("AccentBackgroundBrush")).Color == System.Windows.Media.Color.FromRgb(224, 242, 239),
-            "밝은 Stone·Teal 테마와 청록 선택 강조 적용");
+        Require(((System.Windows.Media.SolidColorBrush)FindResource("AccentBrush")).Color == System.Windows.Media.Color.FromRgb(79, 70, 229)
+            && ((System.Windows.Media.SolidColorBrush)FindResource("AccentBackgroundBrush")).Color == System.Windows.Media.Color.FromRgb(238, 242, 255),
+            "밝은 Slate·Indigo 테마와 남보라 선택 강조 적용");
         Require(NavigationBar.TranslatePoint(new Point(), WorkspaceRoot).X < HomeQuestions.TranslatePoint(new Point(), WorkspaceRoot).X
             && HomeHero.IsVisible && HomeSuiteCards.Columns == 2, "좁은 탐색 레일·배너·2×2 시험 카드 배치");
         Require(OverviewPage.IsVisible && HomeVerdictChoice.IsChecked == true && ResultsSection.Visibility == Visibility.Collapsed,
