@@ -62,6 +62,8 @@ public partial class App : Application
         // 결과 표가 화면에 다 그려질 때까지 한 번 기다린 뒤 찍는다
         await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
         mainWindow.SelectPage(FindOptionValue(startupEventArgs.Args, "--page") ?? "run");
+        // 고른 화면의 목록(사례·기록)이 채워진 뒤에 찍어야 빈 표로 저장되지 않는다
+        await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
         mainWindow.SaveScreenshot(captureFilePath!);
         Shutdown();
     }
