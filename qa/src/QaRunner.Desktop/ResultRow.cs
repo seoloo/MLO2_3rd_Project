@@ -20,7 +20,15 @@ public sealed record ResultRow(
     bool IsPassed)
 {
     /// <summary>결과 칸에 보여 줄 말</summary>
-    public string ResultLabel => IsPassed ? "통과" : "실패";
+    public bool IsSystemFailure { get; init; }
+    public bool HasThreshold { get; init; }
+    public string ResultLabel => IsSystemFailure ? "응답 없음" : IsPassed ? "통과" : HasThreshold ? "기준 미달" : "불일치";
+    public string CheckDescription => CheckName.Contains("p95") ? "95%의 요청이나 이벤트가 이 시간 안에 끝났다는 뜻이에요. 나머지 5%는 더 오래 걸릴 수 있어요."
+        : CheckName.Contains("오류율") ? "전체 요청 중 오류가 난 비율이에요. 낮을수록 좋아요."
+        : CheckName.Contains("Silver") ? "중복을 제외하고 남은 고유 이벤트 건수예요."
+        : CheckName.Contains("Bronze") ? "처음 받은 원본 이벤트를 보관한 건수예요."
+        : CheckName.Contains("격리") ? "조건에 맞지 않아 정상 집계에서 따로 뺀 이벤트 건수예요."
+        : "";
 
     /// <summary>
     /// 채점 결과 하나를 표의 한 줄로 바꾼다.
@@ -37,6 +45,7 @@ public sealed record ResultRow(
             testResult.Input,
             testResult.Expected,
             actualDisplay,
-            testResult.IsPassed);
+            testResult.IsPassed)
+        { IsSystemFailure = testResult.IsSystemFailure, HasThreshold = testResult.MeetsTarget is not null };
     }
 }

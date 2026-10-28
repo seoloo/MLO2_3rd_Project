@@ -19,6 +19,9 @@ public sealed record TestRun(
     string TargetName,
     IReadOnlyList<TestResult> Results)
 {
+    /// <summary>AI 제안 라벨이 섞인 탐색 시험인지. 기존 입력값 파일을 쓰는 실행은 false다.</summary>
+    public bool HasProvisionalLabels { get; init; }
+
     /// <summary>채점한 확인 항목 수</summary>
     public int TotalCount => Results.Count;
 
