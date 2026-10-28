@@ -6,78 +6,74 @@
   <Style x:Key="EmptyWhenNoCases" TargetType="TextBlock" BasedOn="{StaticResource EmptyListText}"><Style.Triggers><DataTrigger Binding="{Binding HasItems, ElementName=CasesGrid}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style>
   <Style x:Key="EmptyWhenNoRuns" TargetType="TextBlock" BasedOn="{StaticResource EmptyListText}"><Style.Triggers><DataTrigger Binding="{Binding HasItems, ElementName=TeamRunsGrid}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style>
   <Style x:Key="EmptyWhenNoResults" TargetType="TextBlock" BasedOn="{StaticResource EmptyListText}"><Style.Triggers><DataTrigger Binding="{Binding HasItems, ElementName=SharedResultsGrid}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style>
-  <!-- 정답 확인 단계 한 칸 -->
-  <Style x:Key="ReviewStep" TargetType="Border"><Setter Property="CornerRadius" Value="8"/><Setter Property="Padding" Value="12,8"/><Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/></Style>
+  <Style x:Key="FirstSectionTitle" TargetType="TextBlock" BasedOn="{StaticResource SectionTitle}"><Setter Property="Margin" Value="0,0,0,8"/></Style>
  </UserControl.Resources>
- <Grid Margin="32,28"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-  <!-- 머리말: 제목·설명 / 이 화면의 동작 버튼 -->
-  <DockPanel Style="{StaticResource PageHeader}">
-   <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Top" HorizontalAlignment="Right" MaxWidth="760">
+ <Grid Margin="24,16,32,24"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <!-- 머리말: 제목 / 이 화면의 동작 버튼 -->
+  <DockPanel Margin="0,0,0,20">
+   <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Top" HorizontalAlignment="Right" MaxWidth="680">
     <ui:Button x:Name="AiPageButton" Content="AI 문자 만들기" Tag="ai" Click="OpenPage_Click" Style="{StaticResource TextButton}" Margin="0,0,8,8" local:UsageHelp.Key="ai-page"/>
-    <ui:Button x:Name="LoadRulesButton" Content="기본 문자 불러오기" Click="LoadRules_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" local:UsageHelp.Key="cases"/>
-    <ui:Button x:Name="GenerateButton" Content="예제 4건 가져오기" Click="Generate_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" local:UsageHelp.Key="generate-demo"/>
+    <ui:Button x:Name="LoadRulesButton" Content="기본 문자" Click="LoadRules_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" local:UsageHelp.Key="cases"/>
+    <ui:Button x:Name="GenerateButton" Content="예제 4건" Click="Generate_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" local:UsageHelp.Key="generate-demo"/>
     <ui:Button x:Name="RefreshButton" Content="새로고침" Click="Refresh_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" local:UsageHelp.Key="refresh-team"/>
-    <ui:Button x:Name="ExecuteButton" Content="예제 시험하고 공유하기" Style="{StaticResource PrimaryButton}" IsEnabled="False" Click="Execute_Click" Margin="0,0,0,8" local:UsageHelp.Key="execute-demo"/>
+    <ui:Button x:Name="ExecuteButton" Content="예제 시험하고 공유" Style="{StaticResource PrimaryButton}" IsEnabled="False" Click="Execute_Click" Margin="0,0,0,8" local:UsageHelp.Key="execute-demo"/>
    </WrapPanel>
    <StackPanel Margin="0,0,16,0"><TextBlock x:Name="PageTitle" Text="시험 사례" Style="{StaticResource PageTitle}"/><TextBlock x:Name="PageSubtitle" Style="{StaticResource PageSubtitle}"/></StackPanel>
   </DockPanel>
-  <!-- 공유 기록: 실행자·환경·버전·공유 방식을 펼치지 않아도 보이는 한 줄 -->
-  <Border x:Name="TeamSettingsBar" Grid.Row="1" Style="{StaticResource Panel}" Padding="20,12" Margin="0,0,0,16">
+  <!-- 공유 기록: 실행자·환경·버전·공유 방식 한 줄 -->
+  <Border x:Name="TeamSettingsBar" Grid.Row="1" Style="{StaticResource Panel}" Margin="0,0,0,20">
    <Grid x:Name="SettingsPanel"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="1.3*"/></Grid.ColumnDefinitions>
-    <StackPanel Margin="0,0,16,0"><TextBlock Text="실행자" Style="{StaticResource HintText}" FontWeight="SemiBold"/><ui:TextBox x:Name="ActorBox" Margin="0,8,0,0" local:UsageHelp.Key="actor"/></StackPanel>
-    <StackPanel Grid.Column="1" Margin="0,0,16,0"><TextBlock Text="시험 환경" Style="{StaticResource HintText}" FontWeight="SemiBold"/><ui:TextBox x:Name="EnvironmentBox" Text="local-demo" Margin="0,8,0,0" local:UsageHelp.Key="environment"/></StackPanel>
-    <StackPanel Grid.Column="2" Margin="0,0,16,0"><TextBlock Text="코드 버전" Style="{StaticResource HintText}" FontWeight="SemiBold"/><ui:TextBox x:Name="CodeVersionBox" Text="prototype" Margin="0,8,0,0" local:UsageHelp.Key="version"/></StackPanel>
-    <StackPanel Grid.Column="3"><TextBlock Text="공유 방식" Style="{StaticResource HintText}" FontWeight="SemiBold"/><ComboBox x:Name="SharingModeBox" SelectedIndex="0" Margin="0,8,0,0" SelectionChanged="SharingMode_Changed" local:UsageHelp.Key="sharing-mode"><ComboBoxItem Content="이 앱 안에서만 확인"/><ComboBoxItem Content="같은 PC의 공유 서버"/></ComboBox></StackPanel>
+    <StackPanel Margin="0,0,12,0"><TextBlock Text="실행자" Style="{StaticResource HintText}"/><ui:TextBox x:Name="ActorBox" Margin="0,4,0,0" local:UsageHelp.Key="actor"/></StackPanel>
+    <StackPanel Grid.Column="1" Margin="0,0,12,0"><TextBlock Text="시험 환경" Style="{StaticResource HintText}"/><ui:TextBox x:Name="EnvironmentBox" Text="local-demo" Margin="0,4,0,0" local:UsageHelp.Key="environment"/></StackPanel>
+    <StackPanel Grid.Column="2" Margin="0,0,12,0"><TextBlock Text="코드 버전" Style="{StaticResource HintText}"/><ui:TextBox x:Name="CodeVersionBox" Text="prototype" Margin="0,4,0,0" local:UsageHelp.Key="version"/></StackPanel>
+    <StackPanel Grid.Column="3"><TextBlock Text="공유 방식" Style="{StaticResource HintText}"/><ComboBox x:Name="SharingModeBox" SelectedIndex="0" Margin="0,4,0,0" SelectionChanged="SharingMode_Changed" local:UsageHelp.Key="sharing-mode"><ComboBoxItem Content="이 앱 안에서만 확인"/><ComboBoxItem Content="같은 PC의 공유 서버"/></ComboBox></StackPanel>
    </Grid>
   </Border>
   <TabControl x:Name="ContentTabs" Grid.Row="2" BorderThickness="0" Background="Transparent">
    <TabControl.Template><ControlTemplate TargetType="TabControl"><ContentPresenter ContentSource="SelectedContent"/></ControlTemplate></TabControl.Template>
 
-   <!-- 시험 문자 + 정답 검토: 왼쪽 문자 목록 / 오른쪽 고른 문자의 정답·근거 -->
-   <TabItem Header="사례"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="1.1*"/></Grid.ColumnDefinitions>
-    <Border Style="{StaticResource Panel}" Padding="0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-     <StackPanel Margin="20,16,20,12"><TextBlock Text="문자 목록" Style="{StaticResource CardTitle}"/><TextBlock x:Name="DatasetText" Text="기본 문자를 불러오는 중입니다." Style="{StaticResource HintText}" Margin="0,4,0,0"/></StackPanel>
-     <DataGrid x:Name="CasesGrid" Grid.Row="1" VerticalAlignment="Top" BorderThickness="0,1,0,0" SelectionChanged="ReviewCase_Selected"><DataGrid.Columns><DataGridTextColumn Header="사례" Binding="{Binding CaseId}" Width="100" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="시험 문자" Binding="{Binding Message}" Width="*" MinWidth="160" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="예상 정답" Binding="{Binding ExpectedVerdict}" Width="104"/></DataGrid.Columns></DataGrid>
-     <TextBlock Grid.Row="1" Text="아직 불러온 문자가 없어요. 위에서 기본 문자나 예제 문자를 불러와 주세요." IsHitTestVisible="False" Style="{StaticResource EmptyWhenNoCases}"/>
+   <!-- 시험 문자 + 정답 검토 -->
+   <TabItem Header="사례"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <StackPanel Margin="0,0,0,8"><TextBlock Text="문자 목록" Style="{StaticResource FirstSectionTitle}" Margin="0"/><TextBlock x:Name="DatasetText" Text="기본 문자를 불러오는 중입니다." Style="{StaticResource HintText}" Margin="0,2,0,0"/></StackPanel>
+    <Border Grid.Row="1" Style="{StaticResource Panel}" Padding="0" VerticalAlignment="Top"><Grid>
+     <DataGrid x:Name="CasesGrid" Margin="0,4" SelectionChanged="ReviewCase_Selected"><DataGrid.Columns><DataGridTextColumn Header="사례" Binding="{Binding CaseId}" Width="104" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="시험 문자" Binding="{Binding Message}" Width="*" MinWidth="140" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="예상 정답" Binding="{Binding ExpectedVerdict}" Width="104"/></DataGrid.Columns></DataGrid>
+     <TextBlock Text="아직 불러온 문자가 없어요." IsHitTestVisible="False" Style="{StaticResource EmptyWhenNoCases}"/>
     </Grid></Border>
-    <Border Grid.Column="2" Style="{StaticResource Panel}" Padding="0"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,20">
-     <TextBlock Text="고른 문자" Style="{StaticResource HintText}" FontWeight="SemiBold"/>
-     <Border Background="{StaticResource AppBackgroundBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="16" Padding="16,12" Margin="0,8,0,0"><TextBlock x:Name="ReviewMessage" Text="왼쪽에서 문자를 하나 골라 주세요." FontSize="16" TextWrapping="Wrap" LineHeight="26"/></Border>
-     <TextBlock Text="예상 정답" Style="{StaticResource SectionLabel}" Margin="0,20,0,8"/>
-     <StackPanel Orientation="Horizontal"><TextBlock x:Name="ReviewVerdict" Text="—" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/><Border x:Name="ReviewStateBadge" Style="{StaticResource StatusBadge}" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"><TextBlock x:Name="ReviewStateText" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NoticeBrush}"/></Border></StackPanel>
-     <TextBlock Text="판정 근거" Style="{StaticResource SectionLabel}"/>
+    <TextBlock Grid.Column="2" Text="고른 문자" Style="{StaticResource FirstSectionTitle}"/>
+    <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Panel}" Padding="20" VerticalAlignment="Top"><StackPanel>
+     <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="12" Padding="16,12"><TextBlock x:Name="ReviewMessage" Text="왼쪽에서 문자를 하나 골라 주세요." FontSize="15" TextWrapping="Wrap" LineHeight="24"/></Border>
+     <TextBlock Text="예상 정답" Style="{StaticResource HintText}" Margin="0,16,0,4"/>
+     <StackPanel Orientation="Horizontal"><TextBlock x:Name="ReviewVerdict" Text="—" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/><Border x:Name="ReviewStateBadge" Style="{StaticResource StatusBadge}" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"><TextBlock x:Name="ReviewStateText" FontSize="12" Foreground="{StaticResource NoticeBrush}"/></Border></StackPanel>
+     <TextBlock Text="판정 근거" Style="{StaticResource HintText}" Margin="0,16,0,4"/>
      <TextBlock x:Name="ReviewRationale" Text="—" TextWrapping="Wrap" LineHeight="22"/>
-     <TextBlock Text="정답 확인 단계" Style="{StaticResource SectionLabel}" Margin="0,20,0,8"/>
-     <UniformGrid Columns="3">
-      <Border Style="{StaticResource ReviewStep}" Background="{StaticResource PassBackgroundBrush}" BorderThickness="0" Margin="0,0,8,0"><TextBlock Text="1  예제·AI가 제안" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource PassBrush}"/></Border>
-      <Border Style="{StaticResource ReviewStep}" Background="{StaticResource AccentBackgroundBrush}" BorderThickness="0" Margin="4,0"><TextBlock Text="2  사람이 근거 확인" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"/></Border>
-      <Border Style="{StaticResource ReviewStep}" Margin="8,0,0,0"><TextBlock Text="3  정답 승인" FontSize="13" Foreground="{StaticResource MutedBrush}"/></Border>
-     </UniformGrid>
-     <Border Background="{StaticResource NoticeBackgroundBrush}" Padding="16,12" CornerRadius="8" Margin="0,16,0,0"><TextBlock Text="정답을 고치거나 승인하는 기능은 준비 중이에요. 지금은 근거를 읽고 시험에 사용할 수 있어요. AI가 제안한 정답도 사람의 확인이 필요해요." Foreground="{StaticResource NoticeBrush}" TextWrapping="Wrap" LineHeight="20" FontSize="13"/></Border>
-     <ui:Button Content="정답 승인 · 준비 중" IsEnabled="False" HorizontalAlignment="Right" Margin="0,16,0,0" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="review-pending"/>
-    </StackPanel></ScrollViewer></Border>
+     <ui:InfoBar Margin="0,20,0,0" IsOpen="True" IsClosable="False" Severity="Informational" Title="정답 승인은 준비 중" Message="지금은 근거를 읽고 시험에 쓸 수 있어요. AI가 제안한 정답도 사람의 확인이 필요해요."/>
+    </StackPanel></Border>
    </Grid></TabItem>
 
-   <!-- 공유 기록: 왼쪽 실행 목록 / 오른쪽 고른 기록의 사례별 비교 -->
-   <TabItem Header="팀 기록"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
-    <TextBlock x:Name="SharingStatus" Grid.ColumnSpan="3" Style="{StaticResource HintText}" Margin="0,0,0,12"/>
-    <Border Grid.Row="1" Style="{StaticResource Panel}" Padding="0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-     <StackPanel Margin="20,16,20,12"><TextBlock Text="실행 목록" Style="{StaticResource CardTitle}"/><TextBlock Text="새 기록을 보려면 새로고침을 눌러 주세요." Style="{StaticResource HintText}" Margin="0,4,0,0"/></StackPanel>
-     <DataGrid x:Name="TeamRunsGrid" Grid.Row="1" VerticalAlignment="Top" BorderThickness="0,1,0,0" SelectionChanged="TeamRun_Selected"><DataGrid.Columns><DataGridTextColumn Header="실행자" Binding="{Binding ActorName}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="상태" Binding="{Binding StateText}" Width="72"/><DataGridTextColumn Header="통과" Binding="{Binding CountText}" Width="64" ElementStyle="{StaticResource NumberCell}" HeaderStyle="{StaticResource NumberHeader}"/><DataGridTextColumn Header="시작 시각" Binding="{Binding StartedAtText}" Width="124" ElementStyle="{StaticResource NumberCell}" HeaderStyle="{StaticResource NumberHeader}"/></DataGrid.Columns></DataGrid>
-     <TextBlock Grid.Row="1" Text="아직 공유된 기록이 없어요. 예제 시험을 실행하거나 새로고침해 주세요." IsHitTestVisible="False" Style="{StaticResource EmptyWhenNoRuns}"/>
+   <!-- 공유 기록 -->
+   <TabItem Header="팀 기록"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
+    <TextBlock x:Name="SharingStatus" Grid.ColumnSpan="3" Style="{StaticResource HintText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Margin="0,0,0,12"/>
+    <TextBlock Grid.Row="1" Text="실행 목록" Style="{StaticResource FirstSectionTitle}"/>
+    <Border Grid.Row="2" Style="{StaticResource Panel}" Padding="0" VerticalAlignment="Top"><Grid>
+     <DataGrid x:Name="TeamRunsGrid" Margin="0,4" SelectionChanged="TeamRun_Selected"><DataGrid.Columns><DataGridTextColumn Header="실행자" Binding="{Binding ActorName}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="상태" Binding="{Binding StateText}" Width="64"/><DataGridTextColumn Header="통과" Binding="{Binding CountText}" Width="60" ElementStyle="{StaticResource NumberCell}" HeaderStyle="{StaticResource NumberHeader}"/><DataGridTextColumn Header="시작 시각" Binding="{Binding StartedAtText}" Width="120" ElementStyle="{StaticResource NumberCell}" HeaderStyle="{StaticResource NumberHeader}"/></DataGrid.Columns></DataGrid>
+     <TextBlock Text="아직 공유된 기록이 없어요." IsHitTestVisible="False" Style="{StaticResource EmptyWhenNoRuns}"/>
     </Grid></Border>
-    <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Panel}" Padding="0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-     <StackPanel Margin="20,16,20,12"><TextBlock Text="사례별 비교" Style="{StaticResource CardTitle}"/><TextBlock x:Name="SelectedRunText" Text="기록을 고르면 예상 정답과 실제 판정을 비교할 수 있어요." Style="{StaticResource HintText}" Margin="0,4,0,0"/></StackPanel>
-     <DataGrid x:Name="SharedResultsGrid" Grid.Row="1" VerticalAlignment="Top" BorderThickness="0,1,0,0"><DataGrid.Columns><DataGridTextColumn Header="사례" Binding="{Binding CaseId}" Width="100" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="예상 정답" Binding="{Binding Expected}" Width="110"/><DataGridTextColumn Header="실제 판정" Binding="{Binding Actual}" Width="110"/><DataGridTextColumn Header="결과" Binding="{Binding ResultText}" Width="72"/><DataGridTextColumn Header="오류" Binding="{Binding Error}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/></DataGrid.Columns></DataGrid>
-     <TextBlock Grid.Row="1" Text="왼쪽에서 기록을 하나 고르면 사례별 결과가 여기에 보여요." IsHitTestVisible="False" Style="{StaticResource EmptyWhenNoResults}"/>
+    <DockPanel Grid.Row="1" Grid.Column="2"><TextBlock x:Name="SelectedRunText" DockPanel.Dock="Right" Text="기록을 고르면 비교가 보여요." Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="320" Margin="0,2,0,0"/><TextBlock Text="사례별 비교" Style="{StaticResource FirstSectionTitle}"/></DockPanel>
+    <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource Panel}" Padding="0" VerticalAlignment="Top"><Grid>
+     <DataGrid x:Name="SharedResultsGrid" Margin="0,4"><DataGrid.Columns><DataGridTextColumn Header="사례" Binding="{Binding CaseId}" Width="104" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="예상 정답" Binding="{Binding Expected}" Width="104"/><DataGridTextColumn Header="실제 판정" Binding="{Binding Actual}" Width="104"/><DataGridTextColumn Header="결과" Binding="{Binding ResultText}" Width="72"/><DataGridTextColumn Header="오류" Binding="{Binding Error}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/></DataGrid.Columns></DataGrid>
+     <TextBlock Text="왼쪽에서 기록을 골라 주세요." IsHitTestVisible="False" Style="{StaticResource EmptyWhenNoResults}"/>
     </Grid></Border>
    </Grid></TabItem>
 
-   <!-- AI 생성: 연결 전 안내 (Runpod 연결 자리) -->
-   <TabItem Header="AI 생성"><ScrollViewer VerticalScrollBarVisibility="Auto"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.4*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <Border Style="{StaticResource Panel}" VerticalAlignment="Top"><StackPanel><TextBlock Text="AI로 시험 문자 만들기" Style="{StaticResource CardTitle}"/><TextBlock Text="Runpod은 아직 연결하지 않았어요. 지금은 예제 4건 가져오기로 시험과 결과 공유를 연습할 수 있어요." Style="{StaticResource HintText}" Margin="0,8,0,8"/><TextBlock Text="대상 상황" Style="{StaticResource SectionLabel}"/><ui:TextBox Text="인증번호 타인 전달 · 외부 앱 설치" IsReadOnly="True"/><TextBlock Text="모델 / 프롬프트" Style="{StaticResource SectionLabel}"/><ui:TextBox Text="모델은 아직 정하지 않았어요" IsReadOnly="True"/><TextBlock Text="생성 후 정답 상태" Style="{StaticResource SectionLabel}"/><ui:TextBox Text="아직 사람이 확인하지 않은 정답" IsReadOnly="True"/><ui:Button Content="AI 연결 준비 중" IsEnabled="False" HorizontalAlignment="Left" Margin="0,24,0,0" Style="{StaticResource PrimaryButton}" local:UsageHelp.Key="runpod-pending"/></StackPanel></Border>
-    <Border Grid.Column="2" Style="{StaticResource Panel}" VerticalAlignment="Top"><StackPanel><TextBlock Text="지금 사용할 수 있는 기능" Style="{StaticResource CardTitle}"/><DockPanel Margin="0,16,0,0"><Ellipse Width="8" Height="8" Fill="{StaticResource MutedBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Runpod · 아직 연결하지 않았어요" Style="{StaticResource HintText}" FontSize="13"/></DockPanel><DockPanel Margin="0,12,0,0"><Ellipse Width="8" Height="8" Fill="{StaticResource PassBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="예제 문자 가져오기 · 사용할 수 있어요" Foreground="{StaticResource PassBrush}" FontSize="13"/></DockPanel><TextBlock Text="정답은 QA 안에서 비교하고 시험 대상에는 문자만 보내요. 예제 문자의 정답도 시험 전에 근거를 확인해 주세요." Style="{StaticResource HintText}" Margin="0,16,0,0"/></StackPanel></Border>
-   </Grid></ScrollViewer></TabItem>
+   <!-- AI 생성: Runpod 연결 자리 -->
+   <TabItem Header="AI 생성"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel MaxWidth="1000" HorizontalAlignment="Stretch">
+    <ui:InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="Runpod은 아직 연결 전이에요" Message="지금은 ‘예제 4건’으로 시험과 결과 공유를 연습할 수 있어요." Margin="0,0,0,8"/>
+    <TextBlock Text="생성 조건" Style="{StaticResource SectionTitle}"/>
+    <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="TargetArrow24"/></ui:CardControl.Icon><ui:CardControl.Header><TextBlock Text="대상 상황" Style="{StaticResource SettingName}"/></ui:CardControl.Header><TextBlock Text="인증번호 타인 전달 · 외부 앱 설치" Style="{StaticResource HintText}" FontSize="13"/></ui:CardControl>
+    <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="Bot24"/></ui:CardControl.Icon><ui:CardControl.Header><TextBlock Text="모델 / 프롬프트" Style="{StaticResource SettingName}"/></ui:CardControl.Header><TextBlock Text="아직 정하지 않았어요" Style="{StaticResource HintText}" FontSize="13"/></ui:CardControl>
+    <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="CheckmarkCircle24"/></ui:CardControl.Icon><ui:CardControl.Header><TextBlock Text="생성 후 정답 상태" Style="{StaticResource SettingName}"/></ui:CardControl.Header><TextBlock Text="사람 확인 전 (검토 후 사용)" Style="{StaticResource HintText}" FontSize="13"/></ui:CardControl>
+    <ui:Button Content="AI 연결 준비 중" IsEnabled="False" HorizontalAlignment="Left" Margin="0,16,0,0" Style="{StaticResource PrimaryButton}" local:UsageHelp.Key="runpod-pending"/>
+   </StackPanel></ScrollViewer></TabItem>
   </TabControl>
  </Grid>
 </UserControl>

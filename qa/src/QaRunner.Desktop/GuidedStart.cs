@@ -28,10 +28,10 @@ public partial class MainWindow
             : "서버 연결 없이 기본 예제로 실행하고 결과를 확인할 수 있어요.";
         HomeRecommendationTitle.Text = suite switch
         {
-            TestSuite.Pipeline => "선택한 시험: 데이터 처리",
-            TestSuite.Load => "선택한 시험: 부하와 응답 속도",
-            TestSuite.Recovery => "선택한 시험: 중단 후 복구",
-            _ => "선택한 시험: 문자 판정",
+            TestSuite.Pipeline => "데이터 처리 시험",
+            TestSuite.Load => "부하와 응답 속도 시험",
+            TestSuite.Recovery => "중단 후 복구 시험",
+            _ => "문자 판정 시험",
         };
         HomeRecommendationText.Text = suite switch
         {
@@ -57,7 +57,7 @@ public partial class MainWindow
         SelectSuite(HomeSuite);
         ApiUrlBox.Text = api;
         ResultsSection.Visibility = Visibility.Collapsed;
-        ExecutionError.Visibility = Visibility.Collapsed;
+        ExecutionError.IsOpen = false;
         SelectPage("run");
         ExecutionScroll.ScrollToTop();
         ShowStatus("조건을 확인한 뒤 ‘시험 시작하기’를 눌러 주세요.", false);
@@ -72,15 +72,15 @@ public partial class MainWindow
         var connected = usesApi && ApiUrlBox.Text.Trim().Length > 0;
         ExecutionApiField.Visibility = usesApi && (connected || HomeApiTarget.IsChecked == true)
             ? Visibility.Visible : Visibility.Collapsed;
-        ApiUrlHint.Text = connected ? "입력한 주소의 API를 시험해요. 예상 정답은 QA 안에서만 비교해요."
-            : usesApi ? "지금은 연습용 판정기를 사용해요. 내 API를 시험하려면 시작하기나 설정에서 주소를 입력해 주세요."
-            : "지금은 연습용 파이프라인을 사용해요. 실제 서버에는 연결하지 않아요.";
+        ApiUrlHint.Text = connected ? "입력한 주소의 API를 시험해요."
+            : usesApi ? "연습용 판정기로 시험해요. 내 API는 설정에서 주소를 넣어요."
+            : "연습용 파이프라인으로 시험해요.";
     }
 
     private void ShowExecutionError(string message)
     {
-        ExecutionErrorText.Text = message;
-        ExecutionError.Visibility = Visibility.Visible;
+        ExecutionError.Message = message;
+        ExecutionError.IsOpen = true;
         ResultsSection.Visibility = Visibility.Collapsed;
         SelectPage("run");
         ShowStatus(message, true);
@@ -101,7 +101,7 @@ public partial class MainWindow
     {
         _displayedRun = run;
         ResultsSection.Visibility = Visibility.Visible;
-        ExecutionError.Visibility = Visibility.Collapsed;
+        ExecutionError.IsOpen = false;
         var unavailable = run.Results.Count(row => row.IsSystemFailure);
         ResultSummaryTitle.Text = run.TotalCount == 0 ? "확인할 항목이 없어요."
             : unavailable > 0 ? $"{unavailable}개 항목의 결과를 받지 못했어요."
