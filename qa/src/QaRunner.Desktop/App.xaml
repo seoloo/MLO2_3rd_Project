@@ -4,7 +4,7 @@
     <!-- 창은 App.xaml.cs의 OnStartup에서 직접 띄운다 (화면 캡처 모드 때문) -->
     <Application.Resources>
         <ResourceDictionary><ResourceDictionary.MergedDictionaries>
-            <ui:ThemesDictionary Theme="Dark"/><ui:ControlsDictionary/><ResourceDictionary Source="DesktopTheme.xaml"/>
+            <ui:ThemesDictionary Theme="Light"/><ui:ControlsDictionary/><ResourceDictionary Source="DesktopTheme.xaml"/>
         </ResourceDictionary.MergedDictionaries></ResourceDictionary>
     </Application.Resources>
 </Application>

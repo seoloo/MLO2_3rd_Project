@@ -35,7 +35,8 @@ public partial class CollaborationView : UserControl
     /// <summary>메인 탐색에서 기존 사례·생성·검수·팀 기록 콘텐츠를 선택한다.</summary>
     public void ShowPage(string page)
     {
-        ContentTabs.SelectedIndex = page switch { "team" => 1, "ai" => 2, "review" => 3, _ => 0 };
+        // 정답 검토는 시험 문자 화면 오른쪽 상세에 합쳤다
+        ContentTabs.SelectedIndex = page switch { "team" => 1, "ai" => 2, _ => 0 };
         PageTitle.Text = page switch { "team" => "공유 기록", "ai" => "AI 문자 만들기", "review" => "예상 정답 검토", _ => "시험 문자" };
         PageSubtitle.Text = page switch
         {
@@ -44,11 +45,12 @@ public partial class CollaborationView : UserControl
             "review" => "문자와 예상 정답을 함께 읽어 보세요. 정답을 고치거나 승인하는 기능은 준비 중이에요.",
             _ => "문자마다 어떤 정답을 예상했는지 볼 수 있어요. 정답은 시험 대상에 보내지 않아요.",
         };
-        SettingsExpander.Visibility = page == "team" ? Visibility.Visible : Visibility.Collapsed;
+        TeamSettingsBar.Visibility = page == "team" ? Visibility.Visible : Visibility.Collapsed;
         LoadRulesButton.Visibility = page == "cases" ? Visibility.Visible : Visibility.Collapsed;
         GenerateButton.Visibility = page is "cases" or "ai" ? Visibility.Visible : Visibility.Collapsed;
         ExecuteButton.Visibility = page is "cases" or "team" ? Visibility.Visible : Visibility.Collapsed;
         RefreshButton.Visibility = page == "team" ? Visibility.Visible : Visibility.Collapsed;
+        AiPageButton.Visibility = page is "cases" or "review" ? Visibility.Visible : Visibility.Collapsed;
         // 공유 방식·업로드 결과 안내는 공유 기록 화면에서만 보여 준다. 사례 화면 안내는 DatasetText가 맡는다
         SharingStatus.Visibility = page == "team" ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -86,8 +88,7 @@ public partial class CollaborationView : UserControl
     private void ShowCases(CaseRow[] rows)
     {
         CasesGrid.ItemsSource = rows;
-        ReviewCasesList.ItemsSource = rows;
-        ReviewCasesList.SelectedIndex = rows.Length > 0 ? 0 : -1;
+        CasesGrid.SelectedIndex = rows.Length > 0 ? 0 : -1;
         if (rows.Length == 0)
         {
             ReviewMessage.Text = "아직 불러온 문자가 없어요. 시험 문자에서 파일을 골라 주세요.";
@@ -103,7 +104,7 @@ public partial class CollaborationView : UserControl
 
     private void ReviewCase_Selected(object sender, SelectionChangedEventArgs e)
     {
-        if (ReviewCasesList.SelectedItem is not CaseRow row) return;
+        if (CasesGrid.SelectedItem is not CaseRow row) return;
         ReviewMessage.Text = row.Message;
         ReviewVerdict.Text = row.ExpectedVerdict;
         ReviewRationale.Text = row.Rationale;
