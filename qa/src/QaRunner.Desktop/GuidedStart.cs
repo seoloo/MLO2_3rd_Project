@@ -234,8 +234,45 @@ public partial class MainWindow
     private void ResetJourney()
     {
         foreach (var step in _checklistSteps) step.IsDone = false;
+        _coachShownCount = 0;
         UpdateChecklist();
     }
+
+    // 다음 행동 말풍선은 앱을 켠 뒤 처음 몇 번만 보여 준다. 익숙해진 뒤에는 완료 카드와 상태 표시줄만으로 충분하다
+    private const int CoachShowLimit = 3;
+    private int _coachShownCount;
+
+    /// <summary>
+    /// 방금 끝난 시험을 완료 카드·상태 표시줄 색 띠·다음 행동 말풍선으로 알린다.
+    /// </summary>
+    /// <param name="run">방금 끝난 실행 기록</param>
+    private void ShowCompletion(TestRun run)
+    {
+        var unavailable = run.Results.Count(row => row.IsSystemFailure);
+        ResultHeroTitle.Text = "시험이 끝났어요";
+        ResultHeroIcon.Symbol = unavailable > 0 ? Symbol.Warning24 : Symbol.Checkmark24;
+
+        var (tone, message) = unavailable > 0
+            ? (StatusTone.Fail, $"시험이 끝났지만 {unavailable}개 항목의 결과를 받지 못했어요. 항목을 골라 오류 내용을 확인해 보세요. 보고서도 저장했어요.")
+            : run.FailedCount > 0
+                ? (StatusTone.Notice, $"시험이 끝났어요. 다시 볼 항목 {run.FailedCount}개를 골라 자세히 확인해 보세요. 보고서도 저장했어요.")
+                : (StatusTone.Pass, "시험이 끝났어요. 모든 항목이 통과했어요. 보고서도 저장했어요.");
+        ShowStatus(message, tone, showReportActions: true);
+
+        if (_coachShownCount >= CoachShowLimit || ResultsGrid.Items.Count == 0) return;
+        _coachShownCount++;
+        ResultCoachText.Text = unavailable > 0 ? "이 줄을 눌러 어떤 오류가 났는지 먼저 확인해 보세요."
+            : run.FailedCount > 0 ? "이 줄을 눌러 예상과 실제가 어떻게 다른지 비교해 보세요."
+            : "항목을 눌러 입력과 실제 결과를 확인해 보세요.";
+        ResultCoach.Visibility = Visibility.Visible;
+    }
+
+    private void HideCoach() => ResultCoach.Visibility = Visibility.Collapsed;
+
+    private void CloseCoach_Click(object sender, RoutedEventArgs e) => HideCoach();
+
+    // 결과 표를 한 번이라도 누르면 말풍선이 할 일을 다 한 것이므로 닫는다
+    private void ResultsGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) => HideCoach();
 
     /// <summary>설정 화면에서 안내를 처음 상태로 되돌린다.</summary>
     private void ResetChecklist_Click(object sender, RoutedEventArgs e)
