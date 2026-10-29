@@ -163,6 +163,7 @@ dotnet run --project src/QaRunner.Desktop
 | 목록 | 카드 안에 테두리 없이 행 높이 40. 건수·시간은 `NumberCell`로 오른쪽 정렬, 긴 값은 `TrimmedCell`로 말줄임 + 말풍선, 빈 목록은 `EmptyListText` 안내 |
 | 상태 표시 | 고른 항목은 옅은 청록 바탕 + 왼쪽 강조선(`SelectableListItem`). 짧은 상태는 `StatusBadge`(확인 완료 초록, 확인 전 노랑) |
 | 배경 이미지 | 홈 배너는 `Assets/Backgrounds/`의 압축 이미지 20개 중 한 장을 무작위로 골라 그 한 장만 읽고, 위에 그라데이션을 덮음. 출처와 라이선스는 `THIRD-PARTY-NOTICES.txt` |
+| 앱 아이콘 | 방패 돋보기(어두운 청록 바탕 `#0F2A27`, 방패 `#2DD4BF`, 흰 돋보기). exe·바로 가기·작업 표시줄·창에 `Assets/AppIcon.ico`(16~256px 9가지 크기), 왼쪽 메뉴 로고에 `Assets/AppIcon.png`(128px). 원본은 `Assets/AppIcon.svg`이고, 바꿀 때는 이 그림을 기준으로 두 파일을 다시 만듦 |
 
 ### 화면 캡처와 UI 점검
 
@@ -174,7 +175,7 @@ dotnet run --project src/QaRunner.Desktop -- --capture C:/Temp/screen.png --suit
 
 `--page`에는 `home`, `run`, `reports`, `team`, `cases`, `ai`, `settings`를 쓸 수 있습니다(생략하면 `run`).
 
-`--ui-smoke`는 실제 화면 컨트롤을 눌러 보며 97가지를 점검하고, 단계별 PNG와 `ui-smoke.json`을 저장합니다. 메뉴·탭 이동, 홈 영역 카드(서비스·앱·QA 도구), 홈 카드 → 조건 시트, 주소 오류 안내(`/checks`까지 넣은 주소 포함), 다섯 종류 시험(QA 도구 점검 포함) 실행·보고서 저장, 가짜 판정 서버 켜기·실제 HTTP 요청·받은 요청 목록·끄고 채점, 시험 중 진행 카드, 완료 카드·상태 표시줄 색 띠·다음 행동 말풍선, 중복 실행 차단, 여정 단계 체크, 팀 공유, 기록 다시 열기, 최소 창 크기, Windows용 Kafka 라이브러리 로드까지 확인합니다. 보고서는 지정한 폴더 안의 `reports/`에만 남깁니다.
+`--ui-smoke`는 실제 화면 컨트롤을 눌러 보며 98가지를 점검하고, 단계별 PNG와 `ui-smoke.json`을 저장합니다. 메뉴·탭 이동, 홈 영역 카드(서비스·앱·QA 도구), 홈 카드 → 조건 시트, 주소 오류 안내(`/checks`까지 넣은 주소 포함), 다섯 종류 시험(QA 도구 점검 포함) 실행·보고서 저장, 가짜 판정 서버 켜기·실제 HTTP 요청·받은 요청 목록·끄고 채점, 시험 중 진행 카드, 완료 카드·상태 표시줄 색 띠·다음 행동 말풍선, 중복 실행 차단, 여정 단계 체크, 팀 공유, 기록 다시 열기, 최소 창 크기, Windows용 Kafka 라이브러리 로드까지 확인합니다. 보고서는 지정한 폴더 안의 `reports/`에만 남깁니다.
 
 ```bash
 dotnet run --project src/QaRunner.Desktop -- --ui-smoke C:/Temp/qa-ui-review
@@ -655,6 +656,7 @@ qa/
 │   ├─ ResultRow.cs                  결과 표의 한 줄
 │   ├─ QaFolderLocator.cs            qa 폴더를 찾아 기준 폴더로 삼기
 │   ├─ Assets/Backgrounds/           배너 배경 이미지 20개 (압축본)
+│   ├─ Assets/AppIcon.svg·.ico·.png  앱 아이콘 원본과 크기별 파일 (exe·창·작업 표시줄·왼쪽 메뉴 로고)
 │   └─ THIRD-PARTY-NOTICES.txt       외부 소스·이미지 출처와 라이선스
 └─ tests/QaRunner.Tests/             QA 러너 자체의 테스트
 ```
