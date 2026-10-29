@@ -50,13 +50,21 @@ public static class DashboardWriter
     {
         var suiteSections = new StringBuilder();
 
-        // 시험 종류마다 섹션 하나. 한 번도 돌리지 않은 시험은 건너뛴다
-        foreach (var testSuite in Enum.GetValues<TestSuite>())
+        // 영역(서비스 · 앱 · QA 도구)마다 제목을 달고, 그 안에 시험 종류마다 섹션 하나. 한 번도 돌리지 않은 시험은 건너뛴다
+        foreach (var testArea in Enum.GetValues<TestArea>())
         {
-            var suiteName = testSuite.ToKoreanName();
-            var suiteRuns = testRuns.Where(testRun => testRun.SuiteName == suiteName).ToList();
-            if (suiteRuns.Count > 0)
-                suiteSections.Append(BuildSuiteSection(suiteName, suiteRuns, MetricChartsFor(testSuite)));
+            var areaSections = new StringBuilder();
+            foreach (var testSuite in Enum.GetValues<TestSuite>().Where(testSuite => testSuite.Area() == testArea))
+            {
+                var suiteName = testSuite.ToKoreanName();
+                var suiteRuns = testRuns.Where(testRun => testRun.SuiteName == suiteName).ToList();
+                if (suiteRuns.Count > 0)
+                    areaSections.Append(BuildSuiteSection(suiteName, suiteRuns, MetricChartsFor(testSuite)));
+            }
+            if (areaSections.Length == 0)
+                continue;
+            suiteSections.Append($"""<div class="area"><span>{Encode(testArea.ToKoreanName())} 영역</span>{Encode(testArea.Describe())}</div>""");
+            suiteSections.Append(areaSections);
         }
 
         var latestRun = testRuns.Count > 0 ? testRuns[^1] : null;
@@ -118,6 +126,8 @@ public static class DashboardWriter
               td a:hover { text-decoration: underline; }
               .fake { font-size: 11px; font-weight: 700; color: #8a5a12; background: #fdf4e7; border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; }
               .empty { color: #5f7173; padding: 24px 0; }
+              .area { margin: 40px 0 0; padding: 10px 14px; border-radius: 10px; background: #e6faf6; color: #33494b; font-size: 13px; }
+              .area span { display: block; color: #0f7a73; font-weight: 800; font-size: 15px; margin-bottom: 2px; }
               @media (max-width: 640px) { .summary { grid-template-columns: 1fr; } }
             </style>
             </head>

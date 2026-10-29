@@ -66,6 +66,22 @@ public partial class MainWindow
         HomeNav.IsChecked = true;
         Require(HomePage.IsVisible && !SectionHeader.IsVisible, "홈 버튼으로 홈 돌아가기");
 
+        // 홈의 영역 탭: 서비스 · 앱(준비 중) · QA 도구
+        Require(ServiceAreaTab.IsChecked == true && HomeSuiteCards.IsVisible && !HomeAppArea.IsVisible && !HomeQaToolCards.IsVisible
+            && HomeAreaDescription.Text.Length > 0, "홈은 서비스 영역의 시험 카드 4개부터");
+        AppAreaTab.IsChecked = true;
+        Require(HomeAppArea.IsVisible && !HomeSuiteCards.IsVisible, "앱 영역은 준비 중 안내");
+        QaToolAreaTab.IsChecked = true;
+        Require(HomeQaToolCards.IsVisible && HomeSelfCheckCard.IsVisible && !HomeAppArea.IsVisible, "QA 도구 영역의 QA 도구 점검 카드");
+        await Capture("home-qatool");
+        HomeSelfCheckCard.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Require(IsSheetOpen && SelfCheckSuiteRadio.IsChecked == true && CasesPathField.Visibility == Visibility.Collapsed
+            && TargetChoicePanel.Visibility == Visibility.Collapsed && MeasurementPanel.Visibility == Visibility.Collapsed
+            && !SheetPracticeNote.IsVisible, "QA 도구 점검 시트는 입력 파일·대상·측정 칸 없이 바로 시작");
+        CloseSheet();
+        ServiceAreaTab.IsChecked = true;
+        ResetJourney();
+
         var historyBeforePreparation = ReportHistoryLoaderCount();
         HomeVerdictCard.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Require(IsSheetOpen && VerdictSuiteRadio.IsChecked == true && PracticeTargetRadio.IsChecked == true

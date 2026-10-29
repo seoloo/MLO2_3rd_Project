@@ -85,18 +85,22 @@ public partial class MainWindow
             TestSuite.Pipeline => Symbol.DataTrending24,
             TestSuite.Load => Symbol.Gauge24,
             TestSuite.Recovery => Symbol.ArrowClockwise24,
+            TestSuite.SelfCheck => Symbol.ShieldCheckmark24,
             _ => Symbol.Flash24,
         };
         SheetDurationText.Text = suite switch
         {
             TestSuite.Verdict => "약 10초 걸려요",
             TestSuite.Pipeline => "약 20초 걸려요",
+            TestSuite.SelfCheck => "약 1초 걸려요",
             _ => int.TryParse(DurationBox.Text.Trim(), out var seconds) && seconds > 0
                 ? seconds >= 60 ? $"약 {seconds / 60}분 {(seconds % 60 > 0 ? $"{seconds % 60}초 " : "")}걸려요" : $"약 {seconds}초 걸려요"
                 : "보내는 시간을 넣어 주세요",
         };
         var usesApi = suite is TestSuite.Verdict or TestSuite.Load;
-        SheetPracticeNote.Visibility = usesApi && ApiTargetRadio.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
+        // QA 도구 점검은 연습용 대상이 아니라 QA 도구 자신을 점검하므로 연습용 안내를 붙이지 않는다
+        SheetPracticeNote.Visibility = suite == TestSuite.SelfCheck || usesApi && ApiTargetRadio.IsChecked == true
+            ? Visibility.Collapsed : Visibility.Visible;
     }
 
     // ---------- 홈의 시험 카드 ----------
@@ -109,6 +113,7 @@ public partial class MainWindow
             "pipeline" => TestSuite.Pipeline,
             "load" => TestSuite.Load,
             "recovery" => TestSuite.Recovery,
+            "selfcheck" => TestSuite.SelfCheck,
             _ => TestSuite.Verdict,
         };
         // 홈 카드의 판정 시험은 '빠른 점검': 연습용 대상으로 연다
@@ -183,6 +188,29 @@ public partial class MainWindow
         ApiUrlHint.Text = apiChosen
             ? ApiUrlBox.Text.Trim().Length > 0 ? "입력한 주소의 API를 시험해요. 예상 정답은 QA 안에서만 비교해요." : "시험할 API 주소를 넣어 주세요."
             : usesApi ? "연습용 판정기로 시험해요. 서버가 없어도 돼요." : "연습용 파이프라인으로 시험해요.";
+    }
+
+    // ---------- 홈: 시험 영역 탭 ----------
+
+    // 홈의 영역 탭(서비스 · 앱 · QA 도구)을 누르면 그 영역의 카드와 설명으로 바꾼다
+    private void HomeArea_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string tag })
+            SelectHomeArea(tag switch { "app" => TestArea.App, "qatool" => TestArea.QaTool, _ => TestArea.Service });
+    }
+
+    /// <summary>홈에서 고른 시험 영역의 카드만 보여 준다. 앱 영역은 앱이 나오기 전까지 준비 중 안내를 보여 준다.</summary>
+    /// <param name="area">보여 줄 시험 영역</param>
+    private void SelectHomeArea(TestArea area)
+    {
+        if (HomeAreaDescription is null || HomeAppArea is null || HomeQaToolCards is null) return;
+        ServiceAreaTab.IsChecked = area == TestArea.Service;
+        AppAreaTab.IsChecked = area == TestArea.App;
+        QaToolAreaTab.IsChecked = area == TestArea.QaTool;
+        HomeAreaDescription.Text = area.Describe();
+        HomeSuiteCards.Visibility = area == TestArea.Service ? Visibility.Visible : Visibility.Collapsed;
+        HomeAppArea.Visibility = area == TestArea.App ? Visibility.Visible : Visibility.Collapsed;
+        HomeQaToolCards.Visibility = area == TestArea.QaTool ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ---------- 홈: 여정 지도 · 다음 할 일 ----------
@@ -389,7 +417,9 @@ public partial class MainWindow
         if (row.CheckDescription.Length > 0) DetailExplanationText.Text += "\n\n" + row.CheckDescription;
     }
 
-    private static string DescribeTarget(TestRun run) => run.UsedFakeTarget
+    private static string DescribeTarget(TestRun run) => run.TargetName == QaRunner.SelfCheck.QaToolSelfChecker.TargetName
+        ? "QA 러너 자체"
+        : run.UsedFakeTarget
         ? run.TargetName.Contains("ApiVerdictService", StringComparison.Ordinal)
             ? "연결한 API + 연습용 파이프라인" : "연습용 대상"
         : run.TargetName.Contains("Kafka", StringComparison.Ordinal) ? "연결한 데이터 파이프라인" : "연결한 API";

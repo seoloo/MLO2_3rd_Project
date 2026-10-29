@@ -48,6 +48,7 @@ public partial class MainWindow : Window
         UserInitialText.Text = userName.Length > 0 ? userName[..1].ToUpperInvariant() : "?";
         HomeGreetingText.Text = $"안녕하세요, {userName}님";
         InitializeChecklist();
+        SelectHomeArea(TestArea.Service);
         RefreshHeader();
         RefreshHistory();
         // 이미 시험해 본 기록이 있으면 여정의 앞 두 단계(고르기·실행하기)는 끝낸 것으로 본다
@@ -83,6 +84,7 @@ public partial class MainWindow : Window
         PipelineSuiteRadio.IsChecked = testSuite == TestSuite.Pipeline;
         LoadSuiteRadio.IsChecked = testSuite == TestSuite.Load;
         RecoverySuiteRadio.IsChecked = testSuite == TestSuite.Recovery;
+        SelfCheckSuiteRadio.IsChecked = testSuite == TestSuite.SelfCheck;
     }
 
     /// <summary>
@@ -211,6 +213,7 @@ public partial class MainWindow : Window
         PipelineSuiteRadio.IsChecked == true ? TestSuite.Pipeline
         : LoadSuiteRadio.IsChecked == true ? TestSuite.Load
         : RecoverySuiteRadio.IsChecked == true ? TestSuite.Recovery
+        : SelfCheckSuiteRadio.IsChecked == true ? TestSuite.SelfCheck
         : TestSuite.Verdict;
 
     // 화면에서 바로 시연할 때 쓰는 측정 시간 기본값. 실행안 기준(부하 300초, 복구 120초·30초 중단)은 기다리기 길어서
@@ -228,14 +231,14 @@ public partial class MainWindow : Window
 
         var suite = SelectedSuite;
 
-        // 입력: 판정·부하는 입력값 파일, 파이프라인은 시나리오 폴더, 복구는 쓰지 않음
+        // 입력: 판정·부하는 입력값 파일, 파이프라인은 시나리오 폴더, 복구·QA 도구 점검은 쓰지 않음
         CasesPathLabel.Text = suite == TestSuite.Pipeline ? "시험 시나리오가 있는 폴더" : "시험 문자와 예상 정답";
-        CasesPathField.Visibility = suite == TestSuite.Recovery ? Visibility.Collapsed : Visibility.Visible;
+        CasesPathField.Visibility = suite.UsesNoCasesPath() ? Visibility.Collapsed : Visibility.Visible;
         StopSecondsField.Visibility = suite == TestSuite.Recovery ? Visibility.Visible : Visibility.Collapsed;
         _applyingSuiteDefaults = true;
         CasesPathBox.Text = suite == TestSuite.Verdict ? _verdictCasesPath : CommandLineOptions.DefaultCasesPathFor(suite);
         _applyingSuiteDefaults = false;
-        CasesPathBox.IsEnabled = suite != TestSuite.Recovery;
+        CasesPathBox.IsEnabled = !suite.UsesNoCasesPath();
 
         // API 주소: 판정 시험과 부하 시험(API 부하)에서만 쓴다
         var usesApi = suite is TestSuite.Verdict or TestSuite.Load;
@@ -262,6 +265,7 @@ public partial class MainWindow : Window
                 TestSuite.Pipeline => "데이터 처리 시험",
                 TestSuite.Load => "부하와 응답 속도 시험",
                 TestSuite.Recovery => "중단 후 복구 시험",
+                TestSuite.SelfCheck => "QA 도구 점검",
                 _ => "문자 판정 시험",
             };
             SuiteDescriptionText.Text = suite switch
@@ -269,6 +273,7 @@ public partial class MainWindow : Window
                 TestSuite.Pipeline => "중복·순서 변경·지연 조건에서 저장·정제·집계 건수를 비교해요.",
                 TestSuite.Load => "입력을 계속 보내면서 응답 속도와 오류, 밀린 작업이 있는지 확인해요.",
                 TestSuite.Recovery => "처리를 잠깐 멈췄다가 다시 켜고, 얼마나 빨리 따라잡는지 확인해요.",
+                TestSuite.SelfCheck => "답을 이미 아는 입력으로 이 QA 도구의 채점기·정답 계산·보고서가 맞게 동작하는지 확인해요.",
                 _ => "문자를 보내고 돌아온 판정이 미리 정한 정답과 같은지 비교해요.",
             };
         }
@@ -317,7 +322,7 @@ public partial class MainWindow : Window
 
         return new CommandLineOptions(
             Suite: suite,
-            CasesPath: suite == TestSuite.Recovery ? CommandLineOptions.NoCasesPath : CasesPathBox.Text.Trim(),
+            CasesPath: suite.UsesNoCasesPath() ? CommandLineOptions.NoCasesPath : CasesPathBox.Text.Trim(),
             ReportDirectory: reportDirectory.Length > 0 ? reportDirectory : CommandLineOptions.DefaultReportDirectory,
             ApiBaseUrl: usesApi && apiUrl.Length > 0 ? apiUrl : null,
             Measurement: measurement);
@@ -608,7 +613,7 @@ public partial class MainWindow : Window
         HistoryLatestText.Text = rows.Length == 0 ? "—" : $"{rows[0].SuiteName} {rows[0].CountText.Replace(" ", "")}";
         // 시험 종류마다 가장 최근 기록을 카드 아래에 보여 준다
         foreach (var (suite, label) in new[] { (TestSuite.Verdict, PresetVerdictLast), (TestSuite.Pipeline, PresetPipelineLast),
-                     (TestSuite.Load, PresetLoadLast), (TestSuite.Recovery, PresetRecoveryLast) })
+                     (TestSuite.Load, PresetLoadLast), (TestSuite.Recovery, PresetRecoveryLast), (TestSuite.SelfCheck, PresetSelfCheckLast) })
         {
             var last = rows.FirstOrDefault(row => row.SuiteName == suite.ToKoreanName());
             label.Text = last is null ? "아직 실행 전" : $"최근 {last.CountText.Replace(" ", "")} 통과";
@@ -621,6 +626,7 @@ public partial class MainWindow : Window
     {
         public string RunId => Run.RunId;
         public string SuiteName => Run.SuiteName;
+        public string AreaName => Run.AreaName;
         public string StartedAtText => Run.StartedAt.ToLocalTime().ToString("MM-dd HH:mm:ss");
         public string CountText => $"{Run.PassedCount} / {Run.TotalCount}";
         public string TargetText => DescribeTarget(Run);

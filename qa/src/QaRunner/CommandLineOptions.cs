@@ -77,7 +77,7 @@ public sealed record CommandLineOptions(
     public static string DefaultCasesPathFor(TestSuite testSuite) => testSuite switch
     {
         TestSuite.Pipeline => DefaultPipelineCasesPath,
-        TestSuite.Recovery => NoCasesPath,
+        TestSuite.Recovery or TestSuite.SelfCheck => NoCasesPath,
         _ => DefaultVerdictCasesPath,
     };
 
