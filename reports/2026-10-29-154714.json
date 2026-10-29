@@ -1,0 +1,63 @@
+{
+  "runId": "2026-10-29-154714",
+  "suiteName": "판정 시험",
+  "startedAt": "2026-10-29T15:47:14.9773877+09:00",
+  "finishedAt": "2026-10-29T15:47:14.9964051+09:00",
+  "casesPath": "cases/rules.json",
+  "targetName": "FakeVerdictService",
+  "results": [
+    {
+      "caseId": "R-001",
+      "checkName": "판정",
+      "input": "[택배] 상담원에게 인증번호를 알려주세요",
+      "expected": "고위험",
+      "actual": "고위험",
+      "errorMessage": null,
+      "meetsTarget": null,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "R-002",
+      "checkName": "판정",
+      "input": "보안 앱을 설치해야 환불됩니다. 링크: https://refund.test/app",
+      "expected": "고위험",
+      "actual": "신호 미발견",
+      "errorMessage": null,
+      "meetsTarget": null,
+      "isPassed": false,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "R-003",
+      "checkName": "판정",
+      "input": "내일 3시 회의 잊지 마세요",
+      "expected": "신호 미발견",
+      "actual": "신호 미발견",
+      "errorMessage": null,
+      "meetsTarget": null,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "R-004",
+      "checkName": "판정",
+      "input": "본인 확인이 필요합니다",
+      "expected": "판단 보류",
+      "actual": "신호 미발견",
+      "errorMessage": null,
+      "meetsTarget": null,
+      "isPassed": false,
+      "isSystemFailure": false
+    }
+  ],
+  "hasProvisionalLabels": false,
+  "areaName": "서비스",
+  "totalCount": 4,
+  "passedCount": 2,
+  "failedCount": 2,
+  "systemFailureCount": 0,
+  "passRate": 50,
+  "duration": "00:00:00.0190174",
+  "usedFakeTarget": true
+}
