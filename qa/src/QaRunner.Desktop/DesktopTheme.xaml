@@ -148,7 +148,7 @@
             </Grid>
             <ControlTemplate.Triggers>
                 <Trigger Property="Tag" Value="run"><Setter TargetName="NavIcon" Property="Symbol" Value="Play24"/></Trigger>
-                <Trigger Property="Tag" Value="cases"><Setter TargetName="NavIcon" Property="Symbol" Value="DocumentText24"/></Trigger>
+                <Trigger Property="Tag" Value="cases"><Setter TargetName="NavIcon" Property="Symbol" Value="Wrench24"/></Trigger>
                 <Trigger Property="Tag" Value="team"><Setter TargetName="NavIcon" Property="Symbol" Value="PeopleTeam24"/></Trigger>
                 <Trigger Property="Tag" Value="reports"><Setter TargetName="NavIcon" Property="Symbol" Value="History24"/></Trigger>
                 <Trigger Property="Tag" Value="settings"><Setter TargetName="NavIcon" Property="Symbol" Value="Settings24"/></Trigger>
@@ -209,6 +209,39 @@
             </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
     </Style>
+    <!-- 기록·관리 안쪽 탭: 글자 + 아래 짧은 막대 (아이콘 없음) -->
+    <Style x:Key="SubTabNavigation" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/><Setter Property="Cursor" Value="Hand"/><Setter Property="FontSize" Value="14"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
+            <Grid Margin="0,0,4,0">
+                <Border x:Name="Item" CornerRadius="4" Background="Transparent" Padding="12,8"><ContentPresenter/></Border>
+                <Border x:Name="Indicator" Height="3" Width="20" CornerRadius="2" Background="{StaticResource AccentBrush}" VerticalAlignment="Bottom" HorizontalAlignment="Center" Visibility="Collapsed"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Item" Property="Background" Value="{StaticResource HoverBrush}"/></Trigger>
+                <Trigger Property="IsChecked" Value="True"><Setter TargetName="Indicator" Property="Visibility" Value="Visible"/><Setter Property="Foreground" Value="{StaticResource InkBrush}"/><Setter Property="FontWeight" Value="SemiBold"/></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Item" Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter TargetName="Item" Property="BorderThickness" Value="1"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <!-- 빠른 시작 카드: 누르면 바로 시험. 둥근 모서리 12로 부드럽게. -->
+    <Style x:Key="PresetCard" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}"/><Setter Property="Cursor" Value="Hand"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Margin" Value="4"/><Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/><Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+            <Border x:Name="Surface" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="16,14">
+                <ContentPresenter HorizontalAlignment="Stretch"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="{StaticResource ToolbarBrush}"/><Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="{StaticResource AccentBackgroundBrush}"/></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="RecommendedPresetCard" TargetType="Button" BasedOn="{StaticResource PresetCard}"><Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <!-- 카드 안 작은 알약 (걸리는 시간 등) -->
+    <Style x:Key="Chip" TargetType="Border"><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,2"/><Setter Property="Background" Value="{StaticResource HoverBrush}"/><Setter Property="HorizontalAlignment" Value="Left"/></Style>
     <!-- 표: 카드 안에 넣고 테두리 없이, 머리줄은 아래 선 하나만 -->
     <Style TargetType="DataGrid"><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="CanUserDeleteRows" Value="False"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="RowHeaderWidth" Value="0"/><Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/><Setter Property="BorderThickness" Value="0"/><Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/><Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/><Setter Property="RowBackground" Value="{StaticResource CardBackgroundBrush}"/><Setter Property="Foreground" Value="{StaticResource InkBrush}"/><Setter Property="MinRowHeight" Value="40"/><Setter Property="VerticalGridLinesBrush" Value="Transparent"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/></Style>
     <Style TargetType="DataGridColumnHeader"><Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/><Setter Property="Foreground" Value="{StaticResource MutedBrush}"/><Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="Normal"/><Setter Property="Padding" Value="12,10"/><Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/><Setter Property="BorderThickness" Value="0,0,0,1"/></Style>
