@@ -1,0 +1,63 @@
+{
+  "runId": "2026-10-29-140424",
+  "suiteName": "부하 시험",
+  "startedAt": "2026-10-29T14:04:24.7849831+09:00",
+  "finishedAt": "2026-10-29T14:04:35.9085458+09:00",
+  "casesPath": "cases/rules.json",
+  "targetName": "FakeVerdictService + FakeStreamingPipeline",
+  "results": [
+    {
+      "caseId": "LOAD-API",
+      "checkName": "API 응답 시간 p95",
+      "input": "가상 사용자 5명 · 10초 · 요청 250건",
+      "expected": "3초 이하",
+      "actual": "0.00초",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "LOAD-API",
+      "checkName": "API 오류율",
+      "input": "가상 사용자 5명 · 10초 · 요청 250건",
+      "expected": "0%",
+      "actual": "0.0%",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "LOAD-STREAM",
+      "checkName": "Gold 반영 시간 p95",
+      "input": "초당 5건 · 10초 · 이벤트 50건",
+      "expected": "10초 이하",
+      "actual": "1.54초",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "LOAD-STREAM",
+      "checkName": "Gold 반영 건수 (적체 없음)",
+      "input": "초당 5건 · 10초 · 이벤트 50건",
+      "expected": "50",
+      "actual": "50",
+      "errorMessage": null,
+      "meetsTarget": null,
+      "isPassed": true,
+      "isSystemFailure": false
+    }
+  ],
+  "hasProvisionalLabels": false,
+  "areaName": "서비스",
+  "totalCount": 4,
+  "passedCount": 4,
+  "failedCount": 0,
+  "systemFailureCount": 0,
+  "passRate": 100,
+  "duration": "00:00:11.1235627",
+  "usedFakeTarget": true
+}
