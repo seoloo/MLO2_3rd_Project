@@ -34,7 +34,7 @@
 
 디자인 검토용 PNG·PDF·HTML·압축 파일과 화면 캡처는 저장소에 보관하지 않습니다.
 
-팀원에게 전달할 Windows 64비트 배포본은 `qa/publish-qa-desktop.cmd`로 만듭니다. 배경 20개를 포함해 실행 파일은 약 **27.4 MiB**, 전달용 ZIP은 약 **12.6 MiB**입니다. 실행 PC에는 .NET 10 Desktop Runtime(x64)이 필요합니다. Kafka·MongoDB 라이브러리와 Spark·Runpod·EC2 확장 구조는 유지하며, 배포 대상과 다른 운영체제의 바이너리만 해당 배포본에서 제외합니다. 자세한 내용은 [QA 배포 안내](qa/README.md#배포-파일로-실행하기)에 있습니다.
+팀원에게 전달할 Windows 64비트 배포본은 `qa/publish-qa-desktop.cmd`로 만듭니다. 배경 20개를 포함해 실행 파일은 약 **27.6 MiB**, 전달용 ZIP은 약 **12.7 MiB**입니다. 실행 PC에는 .NET 10 Desktop Runtime(x64)이 필요합니다. Kafka·MongoDB 라이브러리와 Spark·Runpod·EC2 확장 구조는 유지하며, 배포 대상과 다른 운영체제의 바이너리만 해당 배포본에서 제외합니다. 자세한 내용은 [QA 배포 안내](qa/README.md#배포-파일로-실행하기)에 있습니다.
 
 ## 전체 흐름
 
