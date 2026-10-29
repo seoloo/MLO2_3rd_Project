@@ -41,16 +41,22 @@ public partial class MainWindow : Window
         CollaborationPage.BusyChanged += _ => UpdateInteractionState();
         // 메인 창에서는 위쪽 '기록·관리' 제목과 탭이 화면 이름을 보여 주므로 안쪽 큰 제목은 숨긴다
         CollaborationPage.PageTitle.Visibility = Visibility.Collapsed;
+        HomeHeroContent.SizeChanged += ClipHomeHero;
+        // 인사말과 왼쪽 아래 사용자 표시는 Windows 사용자 이름을 쓴다
+        var userName = Environment.UserName;
+        UserNameText.Text = userName;
+        UserInitialText.Text = userName.Length > 0 ? userName[..1].ToUpperInvariant() : "?";
+        HomeGreetingText.Text = $"안녕하세요, {userName}님";
         InitializeChecklist();
         RefreshHeader();
         RefreshHistory();
-        SelectPage("run");
-        // 이미 시험해 본 사람에게는 처음 사용하는 순서와 말풍선을 접어서 보여 준다
+        // 이미 시험해 본 기록이 있으면 여정의 앞 두 단계(고르기·실행하기)는 끝낸 것으로 본다
         if (HistoryGrid.Items.Count > 0)
         {
-            SetChecklistExpanded(false);
-            CoachHint.Visibility = Visibility.Collapsed;
+            CompleteStep(ChecklistStepKind.PickTest);
+            CompleteStep(ChecklistStepKind.RunTest);
         }
+        SelectPage("home");
 
         // 예전에 만든 대시보드가 있으면 실행 전에도 바로 열 수 있게 한다
         OpenDashboardButton.IsEnabled = File.Exists(DashboardPath);
@@ -90,6 +96,7 @@ public partial class MainWindow : Window
         {
             var options = ReadOptionsFromScreen();
             CompleteStep(ChecklistStepKind.PickTest);
+            CloseSheet();
             SelectPage("run");
             ExecutionScroll.ScrollToTop();
             SetRunning(true, options);
@@ -116,7 +123,6 @@ public partial class MainWindow : Window
             RefreshHistory();
             ShowStatus("시험이 끝났어요. 결과를 골라 자세히 확인해 보세요. 보고서도 저장했어요.", isError: false);
             CompleteStep(ChecklistStepKind.RunTest);
-            CoachHint.Visibility = Visibility.Collapsed;
         }
         catch (Exception exception) when (QaRunService.IsPreparationError(exception))
         {
@@ -266,6 +272,7 @@ public partial class MainWindow : Window
             };
         }
         RefreshHeader();
+        UpdateSheetHeader();
         if (_isReady)
         {
             ResultsGrid.ItemsSource = null;
@@ -380,6 +387,7 @@ public partial class MainWindow : Window
     /// <summary>화면이 속한 메뉴. 시험(run) · 기록(reports·team) · 관리(cases·ai·review·settings)</summary>
     private static string SectionOf(string page) => page switch
     {
+        "home" => "home",
         "reports" or "team" => "history",
         "cases" or "ai" or "review" or "settings" => "manage",
         _ => "test",
@@ -392,9 +400,10 @@ public partial class MainWindow : Window
     public void SelectPage(string page)
     {
         if (!_isReady) return;
-        if (page == "overview") page = "run";
+        if (page == "overview") page = "home";
         var section = SectionOf(page);
         _selectingPage = true;
+        HomeNav.IsChecked = section == "home";
         TestNav.IsChecked = section == "test";
         HistoryNav.IsChecked = section == "history";
         ManageNav.IsChecked = section == "manage";
@@ -405,9 +414,10 @@ public partial class MainWindow : Window
             tab.IsChecked = tag == page || (page == "review" && tag == "cases");
         }
         _selectingPage = false;
-        SectionHeader.Visibility = section == "test" ? Visibility.Collapsed : Visibility.Visible;
+        SectionHeader.Visibility = section is "test" or "home" ? Visibility.Collapsed : Visibility.Visible;
         SectionTitleText.Text = section == "history" ? "기록" : "관리";
 
+        HomePage.Visibility = page == "home" ? Visibility.Visible : Visibility.Collapsed;
         ExecutionScroll.Visibility = page == "run" ? Visibility.Visible : Visibility.Collapsed;
         ReportsPage.Visibility = page == "reports" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "settings" ? Visibility.Visible : Visibility.Collapsed;
@@ -419,7 +429,7 @@ public partial class MainWindow : Window
                 ? ReportDirectoryBox.Text.Trim() : CommandLineOptions.DefaultReportDirectory;
             CollaborationPage.ShowPage(page);
         }
-        if (page is "run" or "reports") RefreshHistory();
+        if (page is "home" or "run" or "reports") RefreshHistory();
         RefreshHeader();
         if (page != _currentPage)
         {
@@ -436,7 +446,8 @@ public partial class MainWindow : Window
     /// <summary>제목 표시줄 "정보지킴 QA / 화면 이름"에 쓸 화면 이름.</summary>
     private static string PageNameFor(string page) => page switch
     {
-        "run" => "시험",
+        "home" => "홈",
+        "run" => "시험 결과",
         "cases" => "관리 / 시험 문자",
         "ai" => "관리 / AI 문자",
         "review" => "관리 / 예상 정답 검토",
@@ -449,8 +460,9 @@ public partial class MainWindow : Window
     /// <summary>화면을 옮겼을 때 아래 상태 표시줄에 보여 줄 한 줄 안내.</summary>
     private string PageHintFor(string page) => page switch
     {
+        "home" => "‘다음 할 일’을 따라가거나 시험 카드를 골라 주세요.",
         "run" => ResultsSection.Visibility == Visibility.Visible
-            ? "결과를 골라 예상과 실제 값을 비교해 보세요." : "카드를 눌러 바로 시작하거나 세부 조건을 펼쳐 주세요.",
+            ? "결과를 골라 예상과 실제 값을 비교해 보세요." : "‘시험 고르기’를 누르면 오른쪽에서 조건을 확인할 수 있어요.",
         "cases" => "시험에 쓸 문자와 예상 정답을 확인할 수 있어요.",
         "ai" => "AI 연결은 준비 중이에요. 예제 문자로 먼저 연습할 수 있어요.",
         "review" => "문자를 고르면 예상 정답과 판정 근거를 볼 수 있어요.",
@@ -467,11 +479,12 @@ public partial class MainWindow : Window
     }
 
     private void NewRun_Click(object sender, RoutedEventArgs e) => SelectPage("run");
+    private void OpenHistory_Click(object sender, RoutedEventArgs e) => SelectPage("reports");
 
     public bool NavigateFromGuide(string page)
     {
         if (_isRunning || CollaborationPage.IsBusy) { ShowStatus("시험이 끝나면 이동할 수 있어요.", false); return false; }
-        if (page == "verdict") { SelectSuite(TestSuite.Verdict); SelectPage("run"); }
+        if (page == "verdict") { SelectPage("home"); OpenConditionSheet(TestSuite.Verdict); }
         else SelectPage(page);
         return true;
     }
@@ -524,7 +537,7 @@ public partial class MainWindow : Window
         var idle = !_isRunning && !CollaborationPage.IsBusy;
         RunButton.IsEnabled = SuitePanel.IsEnabled = ExecutionOptions.IsEnabled = SettingsFields.IsEnabled = CasesSelectorButton.IsEnabled = idle;
         CollaborationPage.IsEnabled = !_isRunning;
-        PresetGrid.IsEnabled = idle;
+        HomeSuiteCards.IsEnabled = NextStepButton.IsEnabled = idle;
     }
 
     private void Result_Selected(object sender, SelectionChangedEventArgs e)
@@ -547,7 +560,10 @@ public partial class MainWindow : Window
             var runs = ReportHistoryLoader.LoadAll(directory);
             var rows = runs.OrderByDescending(run => run.StartedAt).Select(run => new HistoryRow(run)).ToArray();
             HistoryGrid.ItemsSource = rows;
+            RecentRunsGrid.ItemsSource = rows.Take(3).ToArray();
+            HistoryEmptyText.Visibility = rows.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
             ShowHistorySummary(runs, rows);
+            ShowHomeSummary(runs);
             OpenDashboardButton.IsEnabled = File.Exists(DashboardPath);
         }
         catch (Exception exception) when (QaRunService.IsPreparationError(exception))
@@ -586,7 +602,7 @@ public partial class MainWindow : Window
                      (TestSuite.Load, PresetLoadLast), (TestSuite.Recovery, PresetRecoveryLast) })
         {
             var last = rows.FirstOrDefault(row => row.SuiteName == suite.ToKoreanName());
-            label.Text = last is null ? "" : $"최근 {last.CountText.Replace(" ", "")} 통과";
+            label.Text = last is null ? "아직 실행 전" : $"최근 {last.CountText.Replace(" ", "")} 통과";
             label.Foreground = (Brush)FindResource(last is null ? "MutedBrush"
                 : last.Run.FailedCount == 0 ? "PassBrush" : "NoticeBrush");
         }
@@ -600,6 +616,8 @@ public partial class MainWindow : Window
         public string CountText => $"{Run.PassedCount} / {Run.TotalCount}";
         public string TargetText => DescribeTarget(Run);
         public string LabelText => Run.HasProvisionalLabels ? "정답 검토 전" : "사례 파일 기준";
+        /// <summary>홈 최근 실행의 점 색: 모두 통과하면 초록, 아니면 주황</summary>
+        public bool IsAllPassed => Run.FailedCount == 0;
     }
 
     private void ShowStatus(string message, bool isError)

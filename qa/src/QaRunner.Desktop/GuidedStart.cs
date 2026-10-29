@@ -3,24 +3,35 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using QaRunner.Models;
+using Symbol = Wpf.Ui.Controls.SymbolRegular;
 
 namespace QaRunner.Desktop;
 
-/// <summary>처음 사용하는 순서에서 완료를 표시할 단계.</summary>
+/// <summary>처음 사용하는 순서(홈의 여정 지도)에서 완료를 표시할 단계.</summary>
 public enum ChecklistStepKind { PickTest, RunTest, OpenReport, ReopenHistory }
 
-/// <summary>시험 화면 오른쪽 '처음 사용하는 순서'의 한 줄. 완료·현재 단계가 바뀌면 화면이 따라 바뀐다.</summary>
-public sealed class ChecklistStep(ChecklistStepKind kind, int number, string title, string hint) : INotifyPropertyChanged
+/// <summary>홈 여정 지도의 한 칸. 완료·현재 단계가 바뀌면 화면이 따라 바뀐다.</summary>
+public sealed class ChecklistStep(ChecklistStepKind kind, int number, string shortTitle, bool isFirst, bool isLast) : INotifyPropertyChanged
 {
     private bool _isDone;
     private bool _isCurrent;
+    private bool _leftActive;
+    private bool _rightActive;
     public ChecklistStepKind Kind { get; } = kind;
     public int Number { get; } = number;
-    public string Title { get; } = title;
-    public string Hint { get; } = hint;
+    /// <summary>여정 지도 원 아래에 쓰는 짧은 이름</summary>
+    public string ShortTitle { get; } = shortTitle;
+    /// <summary>처음·마지막 칸은 바깥쪽 연결선을 그리지 않는다</summary>
+    public bool IsFirst { get; } = isFirst;
+    public bool IsLast { get; } = isLast;
     public bool IsDone { get => _isDone; set => Set(ref _isDone, value); }
     public bool IsCurrent { get => _isCurrent; set => Set(ref _isCurrent, value); }
+    /// <summary>왼쪽·오른쪽 연결선을 색칠할지. 양쪽 단계에 모두 도달했을 때만 칠한다</summary>
+    public bool LeftActive { get => _leftActive; set => Set(ref _leftActive, value); }
+    public bool RightActive { get => _rightActive; set => Set(ref _rightActive, value); }
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void Set(ref bool field, bool value, [CallerMemberName] string? name = null)
@@ -32,34 +43,91 @@ public sealed class ChecklistStep(ChecklistStepKind kind, int number, string tit
 }
 
 /// <summary>
-/// 시험 화면의 빠른 시작 카드(프리셋), 시험 대상 선택, 처음 사용하는 순서와 말풍선 안내.
+/// 홈(여정 지도·다음 할 일·시험 카드)과 오른쪽 조건 시트, 시험 대상 선택.
 /// </summary>
 public partial class MainWindow
 {
     private TestRun? _displayedRun;
     private readonly ObservableCollection<ChecklistStep> _checklistSteps = [];
 
-    // ---------- 빠른 시작 카드 ----------
+    // ---------- 오른쪽 조건 시트 ----------
 
-    private async void Preset_Click(object sender, RoutedEventArgs e)
+    /// <summary>오른쪽 조건 시트가 열려 있는지</summary>
+    public bool IsSheetOpen => SheetLayer.Visibility == Visibility.Visible;
+
+    /// <summary>
+    /// 조건 시트를 연다. 시험 종류를 넘기면 그 시험으로 바꿔서 연다. 시험은 시트의 '시험 시작하기'를 눌러야 시작한다.
+    /// </summary>
+    public void OpenConditionSheet(TestSuite? suite = null)
     {
-        if (sender is FrameworkElement { Tag: string preset }) await RunPresetAsync(preset);
+        if (_isRunning || CollaborationPage.IsBusy) return;
+        if (suite is { } chosen) SelectSuite(chosen);
+        SheetError.IsOpen = false;
+        SheetLayer.Visibility = Visibility.Visible;
+        UpdateSheetHeader();
+        CompleteStep(ChecklistStepKind.PickTest);
+    }
+
+    private void CloseSheet() => SheetLayer.Visibility = Visibility.Collapsed;
+
+    private void CloseSheet_Click(object sender, RoutedEventArgs e) => CloseSheet();
+    private void SheetBackdrop_MouseDown(object sender, MouseButtonEventArgs e) => CloseSheet();
+    private void OpenSheet_Click(object sender, RoutedEventArgs e) => OpenConditionSheet();
+    private void SheetDuration_Changed(object sender, TextChangedEventArgs e) => UpdateSheetHeader();
+
+    /// <summary>시트 위쪽 아이콘과 아래쪽 '약 N초 걸려요', 연습용 안내를 지금 조건에 맞춘다.</summary>
+    private void UpdateSheetHeader()
+    {
+        if (SheetIcon is null || SheetDurationText is null || SheetPracticeNote is null || DurationBox is null) return;
+        var suite = SelectedSuite;
+        SheetIcon.Symbol = suite switch
+        {
+            TestSuite.Pipeline => Symbol.DataTrending24,
+            TestSuite.Load => Symbol.Gauge24,
+            TestSuite.Recovery => Symbol.ArrowClockwise24,
+            _ => Symbol.Flash24,
+        };
+        SheetDurationText.Text = suite switch
+        {
+            TestSuite.Verdict => "약 10초 걸려요",
+            TestSuite.Pipeline => "약 20초 걸려요",
+            _ => int.TryParse(DurationBox.Text.Trim(), out var seconds) && seconds > 0
+                ? seconds >= 60 ? $"약 {seconds / 60}분 {(seconds % 60 > 0 ? $"{seconds % 60}초 " : "")}걸려요" : $"약 {seconds}초 걸려요"
+                : "보내는 시간을 넣어 주세요",
+        };
+        var usesApi = suite is TestSuite.Verdict or TestSuite.Load;
+        SheetPracticeNote.Visibility = usesApi && ApiTargetRadio.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    // ---------- 홈의 시험 카드 ----------
+
+    private void SuiteCard_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string tag }) return;
+        var suite = tag switch
+        {
+            "pipeline" => TestSuite.Pipeline,
+            "load" => TestSuite.Load,
+            "recovery" => TestSuite.Recovery,
+            _ => TestSuite.Verdict,
+        };
+        // 홈 카드의 판정 시험은 '빠른 점검': 연습용 대상으로 연다
+        if (suite == TestSuite.Verdict && ApiUrlBox.Text.Trim().Length == 0) PracticeTargetRadio.IsChecked = true;
+        OpenConditionSheet(suite);
     }
 
     /// <summary>
-    /// 카드에 묶어 둔 조건을 적용하고 바로 시험한다. '내 API 판정'은 주소가 필요해서 세부 조건만 열어 준다.
-    /// 화면 점검(UI 스모크)도 같은 경로를 쓴다.
+    /// 묶어 둔 조건을 적용하고 바로 시험한다. '내 API 판정(api)'은 주소가 필요해서 시트만 열어 준다.
+    /// '다음 할 일' 버튼과 화면 점검(UI 스모크)이 같은 경로를 쓴다.
     /// </summary>
     public async Task RunPresetAsync(string preset)
     {
         if (_isRunning || CollaborationPage.IsBusy) return;
-        CompleteStep(ChecklistStepKind.PickTest);
         switch (preset)
         {
             case "api":
-                SelectSuite(TestSuite.Verdict);
+                OpenConditionSheet(TestSuite.Verdict);
                 ApiTargetRadio.IsChecked = true;
-                AdvancedOptions.IsExpanded = true;
                 RunInfoText.Text = "판정 API 주소를 넣고 ‘시험 시작하기’를 눌러 주세요.";
                 ShowStatus(RunInfoText.Text, false);
                 ApiUrlBox.Focus();
@@ -71,7 +139,7 @@ public partial class MainWindow
             case "load-standard":
                 SelectSuite(TestSuite.Load);
                 PracticeTargetRadio.IsChecked = true;
-                // 같은 시험을 다시 고르면 기본값이 다시 채워지지 않으므로 카드의 시간·건수를 직접 넣는다
+                // 같은 시험을 다시 고르면 기본값이 다시 채워지지 않으므로 시간·건수를 직접 넣는다
                 DurationBox.Text = preset == "load" ? "30" : "300";
                 RateBox.Text = "5";
                 break;
@@ -86,6 +154,7 @@ public partial class MainWindow
                 PracticeTargetRadio.IsChecked = true;
                 break;
         }
+        CompleteStep(ChecklistStepKind.PickTest);
         await RunSelectedSuiteAsync();
     }
 
@@ -97,6 +166,7 @@ public partial class MainWindow
         // 연습용으로 바꾸면 이전에 넣은 API 주소를 시험 대상에서 뺀다
         if (PracticeTargetRadio.IsChecked == true && ApiUrlBox.Text.Length > 0) ApiUrlBox.Text = "";
         RefreshExecutionTarget();
+        UpdateSheetHeader();
         if (ApiTargetRadio.IsChecked == true && IsLoaded) ApiUrlBox.Focus();
     }
 
@@ -115,15 +185,15 @@ public partial class MainWindow
             : usesApi ? "연습용 판정기로 시험해요. 서버가 없어도 돼요." : "연습용 파이프라인으로 시험해요.";
     }
 
-    // ---------- 처음 사용하는 순서 · 말풍선 ----------
+    // ---------- 홈: 여정 지도 · 다음 할 일 ----------
 
     private void InitializeChecklist()
     {
-        _checklistSteps.Add(new(ChecklistStepKind.PickTest, 1, "시험 하나 고르기", "‘빠른 점검’ 카드부터 눌러 보세요."));
-        _checklistSteps.Add(new(ChecklistStepKind.RunTest, 2, "끝까지 실행해 보기", "결과가 아래에 정리돼요."));
-        _checklistSteps.Add(new(ChecklistStepKind.OpenReport, 3, "보고서 열어 보기", "브라우저로 자세한 결과를 봐요."));
-        _checklistSteps.Add(new(ChecklistStepKind.ReopenHistory, 4, "기록에서 다시 열기", "기록 메뉴에서 지난 결과를 골라요."));
-        ChecklistItems.ItemsSource = _checklistSteps;
+        _checklistSteps.Add(new(ChecklistStepKind.PickTest, 1, "시험 고르기", true, false));
+        _checklistSteps.Add(new(ChecklistStepKind.RunTest, 2, "실행하기", false, false));
+        _checklistSteps.Add(new(ChecklistStepKind.OpenReport, 3, "보고서 열기", false, false));
+        _checklistSteps.Add(new(ChecklistStepKind.ReopenHistory, 4, "기록 다시 보기", false, true));
+        JourneyItems.ItemsSource = _checklistSteps;
         UpdateChecklist();
     }
 
@@ -136,48 +206,49 @@ public partial class MainWindow
         UpdateChecklist();
     }
 
+    /// <summary>여정 지도와 홈의 '다음 할 일' 배너를 지금 단계에 맞춘다.</summary>
     private void UpdateChecklist()
     {
         var current = _checklistSteps.FirstOrDefault(item => !item.IsDone);
         foreach (var step in _checklistSteps) step.IsCurrent = ReferenceEquals(step, current);
+        for (var i = 0; i < _checklistSteps.Count; i++)
+        {
+            bool Reached(int index) => _checklistSteps[index].IsDone || _checklistSteps[index].IsCurrent;
+            _checklistSteps[i].LeftActive = i > 0 && _checklistSteps[i - 1].IsDone && Reached(i);
+            _checklistSteps[i].RightActive = i < _checklistSteps.Count - 1 && _checklistSteps[i].IsDone && Reached(i + 1);
+        }
         var done = _checklistSteps.Count(item => item.IsDone);
-        ChecklistProgress.Value = done;
-        ChecklistProgressText.Text = $"{done} / {_checklistSteps.Count}";
-        ChecklistCollapsedText.Text = current is null ? "순서 완료" : $"순서 {done}/{_checklistSteps.Count}";
-        if (current is null) SetChecklistExpanded(false);
+        JourneyProgressText.Text = $"{done}/{_checklistSteps.Count} 완료";
+        (NextStepTitle.Text, NextStepHint.Text, NextStepButtonText.Text) = current?.Kind switch
+        {
+            ChecklistStepKind.PickTest => ("빠른 점검을 골라 볼까요?", "서버 없이 기본 문자 4건으로 10초면 끝나요.", "빠른 점검 고르기"),
+            ChecklistStepKind.RunTest => ("빠른 점검을 실행해 볼까요?", "연습용 대상으로 기본 문자 4건을 보내요. 약 10초 걸려요.", "지금 실행하기"),
+            ChecklistStepKind.OpenReport => ("보고서를 열어 볼까요?", "브라우저에서 항목별 결과와 설명을 자세히 볼 수 있어요.", "보고서 열기"),
+            ChecklistStepKind.ReopenHistory => ("지난 결과를 다시 열어 볼까요?", "기록에서 실행 하나를 고르면 그때 결과를 다시 보여 줘요.", "기록 보기"),
+            _ => ("오늘도 빠른 점검 한 번 해 볼까요?", "처음 사용하는 순서를 모두 마쳤어요. 원하는 시험을 골라 보세요.", "빠른 점검 고르기"),
+        };
+        HomeSubtitleText.Text = current is null ? "오늘은 무엇을 점검해 볼까요?" : "아래 길을 따라가면 첫 점검을 끝낼 수 있어요.";
     }
 
-    private void SetChecklistExpanded(bool expanded)
+    /// <summary>여정 지도와 '다음 할 일'을 처음 상태로 되돌린다.</summary>
+    private void ResetJourney()
     {
-        ChecklistPanel.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
-        ChecklistCollapsed.Visibility = expanded ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var step in _checklistSteps) step.IsDone = false;
+        UpdateChecklist();
     }
-
-    private void ToggleChecklist_Click(object sender, RoutedEventArgs e) =>
-        SetChecklistExpanded(ChecklistPanel.Visibility != Visibility.Visible);
-
-    private void CloseCoachHint_Click(object sender, RoutedEventArgs e) => CoachHint.Visibility = Visibility.Collapsed;
 
     /// <summary>설정 화면에서 안내를 처음 상태로 되돌린다.</summary>
     private void ResetChecklist_Click(object sender, RoutedEventArgs e)
     {
-        foreach (var step in _checklistSteps) step.IsDone = false;
-        UpdateChecklist();
-        SetChecklistExpanded(true);
-        CoachHint.Visibility = Visibility.Visible;
-        SelectPage("run");
+        ResetJourney();
+        SelectPage("home");
     }
 
-    /// <summary>'지금 하기'를 누르면 그 단계를 대신 열어 준다.</summary>
-    private async void ChecklistAction_Click(object sender, RoutedEventArgs e)
+    /// <summary>'다음 할 일' 버튼: 지금 단계를 대신 열어 준다.</summary>
+    private async void NextStep_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is not ChecklistStep step) return;
-        switch (step.Kind)
+        switch (_checklistSteps.FirstOrDefault(item => !item.IsDone)?.Kind)
         {
-            case ChecklistStepKind.PickTest:
-                QuickPreset.Focus();
-                ShowStatus("‘빠른 점검’ 카드를 눌러 보세요. 서버 없이 바로 끝나요.", false);
-                break;
             case ChecklistStepKind.RunTest:
                 await RunPresetAsync("quick");
                 break;
@@ -188,20 +259,59 @@ public partial class MainWindow
             case ChecklistStepKind.ReopenHistory:
                 SelectPage("reports");
                 break;
+            default:
+                SuiteCard_Click(HomeVerdictCard, e);
+                break;
         }
     }
+
+    /// <summary>홈 요약 카드: 통과율 원, 이번 주 실행 수, 마지막 실행의 다시 볼 항목 수.</summary>
+    private void ShowHomeSummary(IReadOnlyList<TestRun> runs)
+    {
+        var scored = runs.Where(run => run.TotalCount > 0).ToArray();
+        var rate = scored.Length == 0 ? 0 : scored.Average(run => run.PassRate) / 100;
+        HomeRateText.Text = scored.Length == 0 ? "—" : $"{rate:P0}".Replace(" ", "");
+        HomeRateArc.Data = RingArc(rate, 104, 11);
+        var weekAgo = DateTimeOffset.Now.AddDays(-7);
+        HomeWeekText.Text = $"{runs.Count(run => run.StartedAt >= weekAgo)}회";
+        var latest = runs.OrderByDescending(run => run.StartedAt).FirstOrDefault();
+        HomeRecheckText.Text = $"{latest?.FailedCount ?? 0}건";
+    }
+
+    /// <summary>위쪽(12시)에서 시계 방향으로 ratio만큼 그린 원호. 0이면 아무것도 그리지 않는다.</summary>
+    private static Geometry RingArc(double ratio, double size, double thickness)
+    {
+        if (ratio <= 0) return Geometry.Empty;
+        ratio = Math.Min(ratio, 0.9999);
+        var radius = (size - thickness) / 2;
+        var center = size / 2;
+        var angle = ratio * 2 * Math.PI;
+        var figure = new PathFigure { StartPoint = new Point(center, center - radius) };
+        figure.Segments.Add(new ArcSegment(new Point(center + radius * Math.Sin(angle), center - radius * Math.Cos(angle)),
+            new Size(radius, radius), 0, ratio > 0.5, SweepDirection.Clockwise, true));
+        return new PathGeometry([figure]);
+    }
+
+    /// <summary>배너 안쪽(그라데이션·장식 원)을 둥근 모서리 모양으로 자른다.</summary>
+    private void ClipHomeHero(object sender, SizeChangedEventArgs e) =>
+        HomeHeroContent.Clip = new RectangleGeometry(new Rect(e.NewSize), 22, 22);
 
     // ---------- 결과 안내 ----------
 
     private void ShowExecutionError(string message)
     {
+        ShowStatus(message, true);
+        // 시트에서 시작하다 막히면 시트 안에서 바로 고칠 수 있게 시트에 알린다
+        if (IsSheetOpen)
+        {
+            SheetError.Message = message;
+            SheetError.IsOpen = true;
+            return;
+        }
         ExecutionError.Message = message;
         ExecutionError.IsOpen = true;
         ResultsSection.Visibility = Visibility.Collapsed;
         SelectPage("run");
-        ShowStatus(message, true);
-        // 세부 조건을 펼쳐 둔 상태에서도 오류 안내가 화면 안에 보이게 내려 준다
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() => ExecutionError.BringIntoView()));
     }
 
     private static void ValidateMeasurement(Measurement.MeasurementSettings settings, TestSuite suite)
