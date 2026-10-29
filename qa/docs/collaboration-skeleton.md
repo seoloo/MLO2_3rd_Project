@@ -28,7 +28,7 @@ AI 생성 사례는 판정 시험에만 사용합니다. 파이프라인 집계 
 | `src/QaRunner/Collaboration/DemoTeamRunClient.cs` | 앱 내부 결과 보관 | 한 프로세스의 메모리만 사용 |
 | `src/QaRunner/Collaboration/HttpTeamRunClient.cs` | 공유 API HTTP 계약 | 루프백 주소만 허용 |
 | `src/QaRunner.Sharing.Api/` | 공용 QA 서버 뼈대 | localhost·메모리 저장 전용 |
-| `src/QaRunner.Desktop/CollaborationView.xaml(.cs)` | 생성 사례·실행·팀 목록·상세·검수 근거 | 메인 탐색 메뉴에서 공통 콘텐츠 사용 |
+| `src/QaRunner.Desktop/CollaborationView.xaml(.cs)` | 생성 사례·실행·팀 목록·상세·검수 근거 | 메인 창의 관리(시험 문자·AI 문자)·기록(팀 공유) 탭에서 공통으로 사용 |
 | `src/QaRunner.Desktop/CollaborationWindow.xaml(.cs)` | 별도 창 호스트 | 같은 CollaborationView 재사용 |
 | `tests/QaRunner.Tests/CollaborationTests.cs` | 라벨 검증·정보 분리·공유 장애·중복 전송 검사 | 기존 테스트와 함께 실행 |
 
@@ -44,11 +44,11 @@ dotnet test --configuration Release --no-build
 dotnet run --project src/QaRunner.Desktop
 ```
 
-1. 메인 화면의 **공유 기록**에서 **실행한 사람과 공유 방법 바꾸기**를 펼칩니다.
-2. 실행자·시험 환경·코드 버전을 입력합니다. 코드 버전은 현재 직접 입력하는 값입니다.
-3. 기본 공유 방식 **이 앱 안에서만 확인**을 둔 채 **시험 문자 → AI 문자 만들기**에서 **예제 문자 4건 가져오기**를 누릅니다. 시험 문자 목록으로 이동합니다.
-4. **예제 시험하고 결과 공유하기**를 누릅니다. 일부 불일치는 결함을 넣은 가짜 판정기의 예상 결과입니다.
-5. 팀 실행 기록을 선택해 예상 정답과 실제 판정을 확인합니다.
+1. 왼쪽 메뉴 **기록 › 팀 공유** 위쪽 한 줄에 실행자·시험 환경·코드 버전을 입력합니다. 코드 버전은 현재 직접 입력하는 값입니다.
+2. 공유 방식은 기본값 **이 앱 안에서만 확인**으로 둡니다.
+3. **관리 › 시험 문자**(또는 **AI 문자**)에서 **예제 4건**을 누릅니다. 시험 문자 목록에 합성 문자 4건이 들어옵니다.
+4. **예제 시험하고 공유**를 누릅니다. 일부 불일치는 결함을 넣은 가짜 판정기의 예상 결과입니다. 끝나면 **기록 › 팀 공유**로 이동합니다.
+5. 왼쪽 실행 목록에서 하나를 골라 오른쪽에서 예상 정답과 실제 판정을 확인합니다.
 
 같은 앱에서는 공유 모드와 실행자를 바꾸고 실행해 기록의 출처를 확인할 수 있습니다. 앱을 별도로 두 번 실행한 경우 앱 내부 메모리는 서로 공유되지 않습니다.
 
@@ -60,7 +60,7 @@ dotnet run --project src/QaRunner.Desktop
 dotnet run --project src/QaRunner.Sharing.Api
 ```
 
-**공유 기록**의 연결 설정에서 공유 방식을 **같은 PC의 공유 서버**로 바꾸고 예제 시험을 실행합니다. 같은 PC에서 다른 앱 인스턴스를 켜 같은 방식을 선택하면 **공유 기록 새로고침**으로 기록을 읽을 수 있습니다.
+**기록 › 팀 공유** 위쪽의 공유 방식을 **같은 PC의 공유 서버**로 바꾸고 예제 시험을 실행합니다. 같은 PC에서 다른 앱 인스턴스를 켜 같은 방식을 선택하면 **새로고침**으로 기록을 읽을 수 있습니다.
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:5085/health
