@@ -3,9 +3,10 @@ using QaRunner.Models;
 using QaRunner.Pipeline;
 
 // 사용법 (qa 폴더에서):
-//   dotnet run --project src/QaRunner -- [--suite verdict|pipeline|load|recovery|selfcheck] [--cases 경로] [--reports 보고서폴더] [--api-url API주소]
+//   dotnet run --project src/QaRunner -- [--suite verdict|pipeline|load|recovery|selfcheck|mockapi] [--cases 경로] [--reports 보고서폴더] [--api-url API주소]
 //                                         [--duration 초] [--rate 초당건수] [--stop-seconds 초]   ← 부하·복구 시험용
 //                                         [--kafka 주소 --mongo 연결문자열] [--kafka-topic] [--mongo-db] [--spark-container]   ← 실제 파이프라인
+//                                         [--port 8000] [--scenario auto|500|slow|...] [--allow-lan] [--duration 초]   ← 가짜 판정 서버 (앱 영역)
 // 옵션을 주지 않으면 판정 시험을 cases/rules.json으로, 가짜 판정 대상에 대해 돌리고 reports 폴더에 보고서를 저장한다.
 // 실제 절차(준비 → 채점 → 보고서 저장)는 데스크탑 앱과 함께 쓰는 QaRunService에 있다.
 
@@ -28,6 +29,25 @@ catch (Exception exception) when (QaRunService.IsPreparationError(exception))
 // 2. 채점 (부하·복구 시험은 정해진 시간 동안 돌기 때문에 미리 알려 준다)
 if (options.Measurement is not null)
     Console.WriteLine($"{options.Suite.ToKoreanName()}을 약 {options.Measurement.DurationSeconds}초 동안 실행합니다...\n");
+
+// 가짜 판정 서버처럼 끌 때까지 도는 시험은 주소를 알려 주고, Enter나 Ctrl+C로 끄면 그때까지 받은 요청으로 채점한다
+if (preparedRun.Announcement is not null)
+    Console.WriteLine(preparedRun.Announcement + "\n");
+if (preparedRun.RequestStop is { } requestStop)
+{
+    Console.CancelKeyPress += (_, cancelEvent) =>
+    {
+        cancelEvent.Cancel = true;
+        requestStop();
+    };
+    Console.WriteLine(options.MockServer?.DurationSeconds is { } seconds
+        ? $"{seconds}초 뒤에 저절로 꺼져요. 먼저 끄려면 Ctrl+C를 눌러 주세요.\n"
+        : "앱에서 판정을 요청해 보세요. 끝내려면 Enter나 Ctrl+C를 눌러 주세요.\n");
+
+    // 입력이 파일·파이프로 들어오는 경우(CI)에는 Enter를 기다리지 않는다. 바로 빈 줄을 읽어 서버가 꺼지기 때문이다
+    if (!Console.IsInputRedirected)
+        _ = Task.Run(() => { Console.ReadLine(); requestStop(); });
+}
 
 TestRun testRun;
 try

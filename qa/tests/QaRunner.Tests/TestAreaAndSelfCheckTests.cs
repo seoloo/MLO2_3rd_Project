@@ -17,12 +17,13 @@ public class TestAreaAndSelfCheckTests : IDisposable
     public void Dispose() => Directory.Delete(_tempFolder, recursive: true);
 
     [Fact]
-    public void Self_check_belongs_to_qa_tool_area_and_other_suites_to_service()
+    public void Self_check_belongs_to_qa_tool_area_mock_api_to_app_and_other_suites_to_service()
     {
         Assert.Equal(TestArea.QaTool, TestSuite.SelfCheck.Area());
+        Assert.Equal(TestArea.App, TestSuite.MockApi.Area());
         Assert.All(new[] { TestSuite.Verdict, TestSuite.Pipeline, TestSuite.Load, TestSuite.Recovery },
             testSuite => Assert.Equal(TestArea.Service, testSuite.Area()));
-        Assert.False(TestArea.App.HasRunnableSuites());
+        Assert.True(TestArea.App.HasRunnableSuites());
         Assert.True(TestArea.QaTool.HasRunnableSuites());
     }
 

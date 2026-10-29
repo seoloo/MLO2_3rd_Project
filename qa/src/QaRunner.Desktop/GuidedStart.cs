@@ -208,6 +208,7 @@ public partial class MainWindow
         AppAreaTab.IsChecked = area == TestArea.App;
         QaToolAreaTab.IsChecked = area == TestArea.QaTool;
         HomeAreaDescription.Text = area.Describe();
+        HomeAreaHint.Text = area == TestArea.App ? "서버를 켜고 앱의 API 주소를 바꿔 주세요" : "카드를 누르면 오른쪽에서 조건을 확인해요";
         HomeSuiteCards.Visibility = area == TestArea.Service ? Visibility.Visible : Visibility.Collapsed;
         HomeAppArea.Visibility = area == TestArea.App ? Visibility.Visible : Visibility.Collapsed;
         HomeQaToolCards.Visibility = area == TestArea.QaTool ? Visibility.Visible : Visibility.Collapsed;
@@ -502,6 +503,7 @@ public partial class MainWindow
 
     private static string DescribeTarget(TestRun run) => run.TargetName == QaRunner.SelfCheck.QaToolSelfChecker.TargetName
         ? "QA 러너 자체"
+        : run.TargetName == QaRunner.AppMock.MockVerdictServer.TargetName ? "앱 → 가짜 판정 서버"
         : run.UsedFakeTarget
         ? run.TargetName.Contains("ApiVerdictService", StringComparison.Ordinal)
             ? "연결한 API + 연습용 파이프라인" : "연습용 대상"

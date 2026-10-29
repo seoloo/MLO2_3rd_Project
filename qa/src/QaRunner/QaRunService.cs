@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QaRunner.AppMock;
 using QaRunner.Measurement;
 using QaRunner.Models;
 using QaRunner.Pipeline;
@@ -16,12 +17,18 @@ namespace QaRunner;
 /// <param name="TargetName">시험 대상 이름 (보고서에 남김)</param>
 /// <param name="RunAllChecks">실행 번호를 받아 채점하고 결과를 돌려주는 작업</param>
 /// <param name="ResourceToDispose">실행이 끝나면 정리할 연결 (Kafka 연결 등). 없으면 null</param>
+/// <param name="RequestStop">
+/// 사용자가 끌 때까지 도는 시험(가짜 판정 서버)을 멈추는 방법. Enter·Ctrl+C나 화면의 끄기 버튼에서 부른다. 정해진 시간에 끝나는 시험은 null
+/// </param>
+/// <param name="Announcement">채점을 시작하기 전에 사용자에게 알려 줄 말 (가짜 판정 서버 주소 등). 없으면 null</param>
 public sealed record PreparedRun(
     TestSuite Suite,
     string CasesPath,
     string TargetName,
     Func<string, Task<List<TestResult>>> RunAllChecks,
-    IDisposable? ResourceToDispose = null);
+    IDisposable? ResourceToDispose = null,
+    Action? RequestStop = null,
+    string? Announcement = null);
 
 /// <summary>
 /// 저장한 보고서 파일 경로.
@@ -49,6 +56,7 @@ public static class QaRunService
         TestSuite.Load => PrepareLoadSuite(options),
         TestSuite.Recovery => PrepareRecoverySuite(options),
         TestSuite.SelfCheck => PrepareSelfCheckSuite(options),
+        TestSuite.MockApi => PrepareMockApiSuite(options),
         _ => throw new ArgumentException($"알 수 없는 시험 종류입니다: {options.Suite}"),
     };
 
@@ -138,6 +146,39 @@ public static class QaRunService
         CommandLineOptions.NoCasesPath,
         TargetName: QaToolSelfChecker.TargetName,
         RunAllChecks: _ => QaToolSelfChecker.CheckAllAsync());
+
+    // 가짜 판정 서버: 지금 서버를 켜고(포트가 막혀 있으면 준비 오류), 끌 때까지 받은 요청을 계약과 비교한다
+    private static PreparedRun PrepareMockApiSuite(CommandLineOptions options)
+    {
+        var settings = options.MockServer ?? MockServerSettings.Default;
+        var server = MockVerdictServer.Start(settings);
+        var duration = settings.DurationSeconds is { } seconds ? TimeSpan.FromSeconds(seconds) : (TimeSpan?)null;
+        return CreateMockApiRun(server, duration);
+    }
+
+    /// <summary>
+    /// 이미 켠 가짜 판정 서버로 실행을 준비한다. 데스크탑 앱은 받은 요청을 바로 보여 주려고 서버를 직접 켠 뒤 이것을 부른다.
+    /// 채점은 서버가 꺼질 때(끄기 버튼, Enter·Ctrl+C, 정한 시간 끝) 그때까지 받은 요청으로 한다.
+    /// </summary>
+    /// <param name="server">켜 둔 가짜 판정 서버</param>
+    /// <param name="duration">켜 둘 시간. null이면 직접 끌 때까지</param>
+    public static PreparedRun CreateMockApiRun(MockVerdictServer server, TimeSpan? duration)
+    {
+        var addressLines = string.Join(Environment.NewLine, server.Addresses.Select(address => $"  {address.Label}: {address.Url}"));
+        return new PreparedRun(
+            TestSuite.MockApi,
+            CommandLineOptions.NoCasesPath,
+            TargetName: MockVerdictServer.TargetName,
+            RunAllChecks: async _ =>
+            {
+                await server.WaitUntilStoppedAsync(duration);
+                return MockRequestGrader.Grade(server.Records);
+            },
+            ResourceToDispose: server,
+            RequestStop: server.Stop,
+            Announcement: $"가짜 판정 서버를 켰어요 (응답 방식: {server.Scenario.ToKoreanName()}). 앱의 판정 API 주소를 아래 중 하나로 바꿔 주세요."
+                + Environment.NewLine + addressLines);
+    }
 
     /// <summary>실제 파이프라인을 대상으로 돌렸을 때 보고서에 남기는 시험 대상 이름</summary>
     public const string RealPipelineTargetName = "Kafka + MongoDB";
