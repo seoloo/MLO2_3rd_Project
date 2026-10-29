@@ -201,6 +201,21 @@ public class MockVerdictServerTests : IDisposable
     }
 
     [Fact]
+    public async Task Localhost_reaches_the_server_over_ipv6_without_waiting()
+    {
+        // Windows는 localhost를 ::1로 먼저 시도한다. ::1에서도 받아야 요청마다 2초씩 헛걸음하지 않는다
+        if (!Socket.OSSupportsIPv6)
+            return;
+        using var server = MockVerdictServer.Start(MockServerSettings.Default with { Port = 0 });
+        using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
+
+        Assert.Contains("가짜 판정 서버", await httpClient.GetStringAsync($"http://[::1]:{server.Port}/"));
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        await httpClient.GetStringAsync($"http://localhost:{server.Port}/");
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(1), $"localhost 요청이 {stopwatch.Elapsed.TotalSeconds:0.0}초 걸렸어요");
+    }
+
+    [Fact]
     public void Port_in_use_is_a_preparation_error()
     {
         using var occupied = new TcpListener(IPAddress.Loopback, 0);

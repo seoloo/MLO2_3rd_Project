@@ -25,19 +25,20 @@ public sealed class MockVerdictServer : IDisposable
     // 요청을 다 받을 때까지 기다리는 시간. 연결만 열고 아무것도 보내지 않는 경우를 정리한다
     private static readonly TimeSpan RequestReadTimeout = TimeSpan.FromSeconds(10);
 
-    private readonly TcpListener _listener;
+    // 연결을 받는 곳. IPv4(127.0.0.1)와, 운영체제가 지원하면 IPv6(::1)도 함께 연다
+    private readonly IReadOnlyList<TcpListener> _listeners;
     private readonly CancellationTokenSource _stopping = new();
     private readonly TaskCompletionSource _stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly List<MockRequestRecord> _records = [];
     private readonly Lock _recordsLock = new();
     private int _scenario;
 
-    private MockVerdictServer(TcpListener listener, MockServerSettings settings)
+    private MockVerdictServer(IReadOnlyList<TcpListener> listeners, MockServerSettings settings)
     {
-        _listener = listener;
+        _listeners = listeners;
         _scenario = (int)settings.Scenario;
         AllowsLan = settings.AllowLan;
-        Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        Port = ((IPEndPoint)listeners[0].LocalEndpoint).Port;
     }
 
     /// <summary>실제로 연 포트 (설정에서 0을 줬으면 운영체제가 고른 포트)</summary>
@@ -86,25 +87,55 @@ public sealed class MockVerdictServer : IDisposable
         if (settings.Port != 0 && !settings.AllowLan && !IsPortFreeOnAllAddresses(settings.Port))
             throw PortInUse(settings.Port, SocketError.AddressAlreadyInUse);
 
-        var listener = new TcpListener(settings.AllowLan ? IPAddress.Any : IPAddress.Loopback, settings.Port);
-        // Windows에서는 같은 포트를 다른 프로그램이 함께 열어 요청을 가로채지 못하게 한다 (맥·리눅스는 원래 막혀 있다)
-        if (OperatingSystem.IsWindows())
-            listener.ExclusiveAddressUse = true;
-
+        var ipv4Listener = CreateListener(settings.AllowLan ? IPAddress.Any : IPAddress.Loopback, settings.Port);
         try
         {
-            listener.Start();
+            ipv4Listener.Start();
         }
         catch (SocketException exception)
         {
             throw PortInUse(settings.Port, exception.SocketErrorCode);
         }
 
-        var server = new MockVerdictServer(listener, settings);
+        // Windows는 localhost를 IPv6(::1)로 먼저 시도한다. IPv4에서만 열면 요청마다 약 2초씩 헛걸음한 뒤 127.0.0.1로 붙으므로 ::1에서도 받는다
+        var listeners = new List<TcpListener> { ipv4Listener };
+        var port = ((IPEndPoint)ipv4Listener.LocalEndpoint).Port;
+        try
+        {
+            if (Socket.OSSupportsIPv6)
+            {
+                var ipv6Listener = CreateListener(settings.AllowLan ? IPAddress.IPv6Any : IPAddress.IPv6Loopback, port);
+                ipv6Listener.Server.DualMode = false;
+                ipv6Listener.Start();
+                listeners.Add(ipv6Listener);
+            }
+        }
+        catch (SocketException exception) when (exception.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied)
+        {
+            // 다른 프로그램이 ::1의 같은 포트를 쓰고 있으면 localhost 요청이 그쪽으로 가므로 켜지 않는다
+            ipv4Listener.Stop();
+            throw PortInUse(port, exception.SocketErrorCode);
+        }
+        catch (SocketException)
+        {
+            // IPv6를 쓸 수 없는 환경이면 IPv4만으로 돈다
+        }
+
+        var server = new MockVerdictServer(listeners, settings);
         if (!settings.AllowLan)
             server._allAddressGuard = ReserveAllAddresses(server.Port);
-        _ = server.AcceptLoopAsync();
+        foreach (var listener in listeners)
+            _ = server.AcceptLoopAsync(listener);
         return server;
+    }
+
+    // Windows에서는 같은 포트를 다른 프로그램이 함께 열어 요청을 가로채지 못하게 한다 (맥·리눅스는 원래 막혀 있다)
+    private static TcpListener CreateListener(IPAddress address, int port)
+    {
+        var listener = new TcpListener(address, port);
+        if (OperatingSystem.IsWindows())
+            listener.ExclusiveAddressUse = true;
+        return listener;
     }
 
     // 이 서버가 켜져 있는 동안 다른 프로그램이 같은 포트를 0.0.0.0으로 열지 못하게 잡아 두는 소켓.
@@ -187,7 +218,8 @@ public sealed class MockVerdictServer : IDisposable
             return;
 
         _stopping.Cancel();
-        _listener.Stop();
+        foreach (var listener in _listeners)
+            listener.Stop();
         _allAddressGuard?.Dispose();
         _stopped.TrySetResult();
     }
@@ -195,14 +227,14 @@ public sealed class MockVerdictServer : IDisposable
     public void Dispose() => Stop();
 
     // 연결을 받을 때마다 따로 처리한다. 느린 응답을 기다리는 동안에도 다른 요청을 받을 수 있다
-    private async Task AcceptLoopAsync()
+    private async Task AcceptLoopAsync(TcpListener listener)
     {
         while (!_stopping.IsCancellationRequested)
         {
             TcpClient client;
             try
             {
-                client = await _listener.AcceptTcpClientAsync(_stopping.Token);
+                client = await listener.AcceptTcpClientAsync(_stopping.Token);
             }
             catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException or SocketException)
             {
