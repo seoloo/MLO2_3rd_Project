@@ -190,9 +190,9 @@ public partial class MainWindow
             : usesApi ? "연습용 판정기로 시험해요. 서버가 없어도 돼요." : "연습용 파이프라인으로 시험해요.";
     }
 
-    // ---------- 홈: 시험 영역 탭 ----------
+    // ---------- 홈: 시험 영역 카드 ----------
 
-    // 홈의 영역 탭(서비스 · 앱 · QA 도구)을 누르면 그 영역의 카드와 설명으로 바꾼다
+    // 홈의 영역 카드(서비스 · 앱 · QA 도구)를 누르면 그 영역의 카드와 설명으로 바꾼다
     private void HomeArea_Checked(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string tag })
@@ -208,7 +208,7 @@ public partial class MainWindow
         AppAreaTab.IsChecked = area == TestArea.App;
         QaToolAreaTab.IsChecked = area == TestArea.QaTool;
         HomeAreaDescription.Text = area.Describe();
-        HomeAreaHint.Text = area == TestArea.App ? "서버를 켜고 앱의 API 주소를 바꿔 주세요" : "카드를 누르면 오른쪽에서 조건을 확인해요";
+        HomeAreaHint.Text = area == TestArea.App ? "아래에서 서버를 켜고 앱의 API 주소를 바꿔 주세요" : "아래 시험 카드를 누르면 오른쪽에서 조건을 확인해요";
         HomeSuiteCards.Visibility = area == TestArea.Service ? Visibility.Visible : Visibility.Collapsed;
         HomeAppArea.Visibility = area == TestArea.App ? Visibility.Visible : Visibility.Collapsed;
         HomeQaToolCards.Visibility = area == TestArea.QaTool ? Visibility.Visible : Visibility.Collapsed;

@@ -118,16 +118,31 @@
         </Grid>
        </Border>
       </Grid>
-      <!-- 시험 영역과 종류 카드: 영역 탭으로 서비스 · 앱 · QA 도구를 바꾸고, 카드를 누르면 오른쪽 조건 시트 -->
+      <!-- 시험 영역 카드와 종류 카드: 영역 카드(서비스 · 앱 · QA 도구)로 무엇을 점검할지 고르면, 아래에 그 영역의 시험이 나온다 -->
       <DockPanel Margin="0,28,0,2">
-       <TextBlock x:Name="HomeAreaHint" DockPanel.Dock="Right" Text="카드를 누르면 오른쪽에서 조건을 확인해요" Style="{StaticResource HintText}" VerticalAlignment="Center"/>
-       <TextBlock Text="무엇을 점검할까요" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0"/>
-       <StackPanel x:Name="HomeAreaTabs" Orientation="Horizontal" local:UsageHelp.Key="home-area">
-        <RadioButton x:Name="ServiceAreaTab" GroupName="HomeArea" Tag="service" Content="서비스" IsChecked="True" Checked="HomeArea_Checked" Style="{StaticResource SubTabNavigation}"/>
-        <RadioButton x:Name="AppAreaTab" GroupName="HomeArea" Tag="app" Content="앱" Checked="HomeArea_Checked" Style="{StaticResource SubTabNavigation}"/>
-        <RadioButton x:Name="QaToolAreaTab" GroupName="HomeArea" Tag="qatool" Content="QA 도구" Checked="HomeArea_Checked" Style="{StaticResource SubTabNavigation}"/>
-       </StackPanel>
+       <TextBlock x:Name="HomeAreaHint" DockPanel.Dock="Right" Text="아래 시험 카드를 누르면 오른쪽에서 조건을 확인해요" Style="{StaticResource HintText}" VerticalAlignment="Center"/>
+       <TextBlock Text="무엇을 점검할까요" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
       </DockPanel>
+      <UniformGrid x:Name="HomeAreaTabs" Columns="3" Margin="-6,4,-6,8" local:UsageHelp.Key="home-area">
+       <RadioButton x:Name="ServiceAreaTab" GroupName="HomeArea" Tag="service" IsChecked="True" Checked="HomeArea_Checked" Style="{StaticResource AreaCard}" AutomationProperties.Name="서비스 영역">
+        <DockPanel>
+         <Border DockPanel.Dock="Left" Style="{StaticResource SuiteIconBox}" Width="40" Height="40" Background="#E0F2FE" VerticalAlignment="Top"><ui:SymbolIcon Symbol="Cloud24" FontSize="20" Foreground="#0369A1" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+         <StackPanel Margin="12,0,24,0"><TextBlock Text="서비스" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="판정 API · 데이터 파이프라인" Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis"/><TextBlock Text="시험 4개 · B·C 담당" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0"/></StackPanel>
+        </DockPanel>
+       </RadioButton>
+       <RadioButton x:Name="AppAreaTab" GroupName="HomeArea" Tag="app" Checked="HomeArea_Checked" Style="{StaticResource AreaCard}" AutomationProperties.Name="앱 영역">
+        <DockPanel>
+         <Border DockPanel.Dock="Left" Style="{StaticResource SuiteIconBox}" Width="40" Height="40" Background="#FEF3C7" VerticalAlignment="Top"><ui:SymbolIcon Symbol="Phone24" FontSize="20" Foreground="#B45309" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+         <StackPanel Margin="12,0,24,0"><TextBlock Text="앱" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="가짜 판정 서버에 앱 연결" Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis"/><TextBlock Text="서버 1개 · A 담당" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0"/></StackPanel>
+        </DockPanel>
+       </RadioButton>
+       <RadioButton x:Name="QaToolAreaTab" GroupName="HomeArea" Tag="qatool" Checked="HomeArea_Checked" Style="{StaticResource AreaCard}" AutomationProperties.Name="QA 도구 영역">
+        <DockPanel>
+         <Border DockPanel.Dock="Left" Style="{StaticResource SuiteIconBox}" Width="40" Height="40" Background="#DCFCE7" VerticalAlignment="Top"><ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="20" Foreground="#15803D" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+         <StackPanel Margin="12,0,24,0"><TextBlock Text="QA 도구" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="이 QA 프로그램 자체 점검" Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis"/><TextBlock Text="점검 1개 · QA 담당" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0"/></StackPanel>
+        </DockPanel>
+       </RadioButton>
+      </UniformGrid>
       <TextBlock x:Name="HomeAreaDescription" Style="{StaticResource HintText}" Margin="0,0,0,10" TextWrapping="Wrap"/>
       <UniformGrid x:Name="HomeSuiteCards" Columns="4" Margin="-6">
        <Button x:Name="HomeVerdictCard" Tag="verdict" Click="SuiteCard_Click" Style="{StaticResource SuiteCard}" local:UsageHelp.Key="preset-quick"><StackPanel>

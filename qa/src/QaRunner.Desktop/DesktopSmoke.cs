@@ -66,8 +66,8 @@ public partial class MainWindow
         HomeNav.IsChecked = true;
         Require(HomePage.IsVisible && !SectionHeader.IsVisible, "홈 버튼으로 홈 돌아가기");
 
-        // 홈의 영역 탭: 서비스 · 앱(가짜 판정 서버) · QA 도구
-        Require(ServiceAreaTab.IsChecked == true && HomeSuiteCards.IsVisible && !HomeAppArea.IsVisible && !HomeQaToolCards.IsVisible
+        // 홈의 영역 카드: 서비스 · 앱(가짜 판정 서버) · QA 도구
+        Require(ServiceAreaTab.IsChecked == true && HomeAreaTabs.Columns == 3 && ServiceAreaTab.ActualHeight > 60 && HomeSuiteCards.IsVisible && !HomeAppArea.IsVisible && !HomeQaToolCards.IsVisible
             && HomeAreaDescription.Text.Length > 0, "홈은 서비스 영역의 시험 카드 4개부터");
         AppAreaTab.IsChecked = true;
         Require(HomeAppArea.IsVisible && !HomeSuiteCards.IsVisible && !IsMockServerRunning && MockStartButton.IsEnabled && !MockStopButton.IsEnabled
@@ -299,8 +299,8 @@ public partial class MainWindow
         Require(_mockRequestRows.Count == 3 && !MockEmptyText.IsVisible && MockRequestCountText.Text.Contains("계약과 다른 요청 1건")
             && _mockRequestRows[0].ResponseText == "서버 오류 500" && !_mockRequestRows[1].MatchesContract,
             "받은 요청이 바로 목록 맨 위에 쌓이고 계약과 다른 요청을 표시");
-        // 서버 조건·주소·켜기 버튼과 받은 요청 목록이 함께 보이도록 앱 영역까지 내려서 찍는다
-        HomePage.ScrollToVerticalOffset(HomeAppArea.TranslatePoint(new Point(0, 0), HomeMain).Y - 60);
+        // 영역 카드·서버 조건·주소·켜기 버튼과 받은 요청 목록이 함께 보이도록 영역 카드까지 내려서 찍는다
+        HomePage.ScrollToVerticalOffset(HomeAreaTabs.TranslatePoint(new Point(0, 0), HomeMain).Y - 70);
         await Capture("home-app");
         var beforeMock = ReportHistoryLoaderCount();
         await StopMockServerAsync();
