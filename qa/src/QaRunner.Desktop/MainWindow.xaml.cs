@@ -103,6 +103,7 @@ public partial class MainWindow : Window
             ResultsGrid.ItemsSource = null;
             ResultsSection.Visibility = Visibility.Collapsed;
             ExecutionError.IsOpen = false;
+            HideCoach();
             _displayedRun = null;
             DetailCaseText.Text = "시험이 끝나면 결과를 확인할 수 있어요.";
             DetailInputText.Text = DetailExpectedText.Text = DetailActualText.Text = "—";
@@ -121,8 +122,8 @@ public partial class MainWindow : Window
             _lastHtmlReportPath = Path.GetFullPath(savedReports.HtmlReportPath);
             OpenDashboardButton.IsEnabled = true;
             RefreshHistory();
-            ShowStatus("시험이 끝났어요. 결과를 골라 자세히 확인해 보세요. 보고서도 저장했어요.", isError: false);
             CompleteStep(ChecklistStepKind.RunTest);
+            ShowCompletion(testRun);
         }
         catch (Exception exception) when (QaRunService.IsPreparationError(exception))
         {
@@ -281,6 +282,7 @@ public partial class MainWindow : Window
             DetailCaseText.Text = "위에서 항목을 골라 주세요.";
             ResultsSection.Visibility = Visibility.Collapsed;
             ExecutionError.IsOpen = false;
+            HideCoach();
             _displayedRun = null;
             DetailInputText.Text = DetailExpectedText.Text = DetailActualText.Text = "—";
             RunInfoText.Text = "조건을 확인했다면 시험을 시작해 주세요.";
@@ -354,10 +356,16 @@ public partial class MainWindow : Window
         var targetDescription = DescribeTarget(testRun);
         RunInfoText.Text = $"{targetDescription} · {testRun.Duration.TotalSeconds:0.00}초 · 실행 {testRun.RunId}"
             + (testRun.HasProvisionalLabels ? " · 정답 검토 전" : "");
-        FakeTargetNotice.IsOpen = testRun.UsedFakeTarget;
-        FakeTargetNotice.Message = testRun.TargetName.Contains("ApiVerdictService", StringComparison.Ordinal)
-            ? "판정 API에는 실제로 요청했지만, 데이터 처리는 연습용 파이프라인을 사용했어요. 각 항목의 시험 대상을 구분해 읽어 주세요."
-            : "연습용 대상의 결과예요. 일부러 틀리는 규칙이 들어 있어서 실제 서비스의 품질과는 다를 수 있어요.";
+        // 연습용 대상이면 완료 카드에 작은 표시를 붙이고, API와 연습용 파이프라인이 섞였을 때만 노란 안내를 따로 띄운다
+        var mixedTarget = testRun.TargetName.Contains("ApiVerdictService", StringComparison.Ordinal);
+        ResultTargetChip.Visibility = testRun.UsedFakeTarget ? Visibility.Visible : Visibility.Collapsed;
+        ResultTargetChipText.Text = mixedTarget ? "API + 연습용 파이프라인" : "연습용 대상";
+        ResultTargetChip.ToolTip = "연습용 대상에는 일부러 틀리는 규칙이 들어 있어서 실제 서비스의 품질과는 다를 수 있어요.";
+        FakeTargetNotice.IsOpen = testRun.UsedFakeTarget && mixedTarget;
+        FakeTargetNotice.Message = "판정 API에는 실제로 요청했지만, 데이터 처리는 연습용 파이프라인을 사용했어요. 각 항목의 시험 대상을 구분해 읽어 주세요.";
+        // 기록에서 다시 연 결과는 ‘지난 실행’으로, 방금 끝난 결과는 ShowCompletion이 ‘시험이 끝났어요’로 바꾼다
+        ResultHeroTitle.Text = "지난 실행 결과예요";
+        ResultHeroIcon.Symbol = Wpf.Ui.Controls.SymbolRegular.History24;
 
         TotalCountText.Text = testRun.TotalCount.ToString();
         PassedCountText.Text = testRun.PassedCount.ToString();
@@ -379,7 +387,8 @@ public partial class MainWindow : Window
             {
                 UpdateLayout();
                 var top = ResultsSection.TranslatePoint(new Point(0, 0), ExecutionScroll).Y + ExecutionScroll.VerticalOffset;
-                ExecutionScroll.ScrollToVerticalOffset(top);
+                // 완료 카드 위에 숨 쉴 여백을 조금 남긴다
+                ExecutionScroll.ScrollToVerticalOffset(Math.Max(0, top - 16));
             }
         }));
     }
@@ -620,9 +629,45 @@ public partial class MainWindow : Window
         public bool IsAllPassed => Run.FailedCount == 0;
     }
 
-    private void ShowStatus(string message, bool isError)
+    /// <summary>상태 표시줄의 색. 평소에는 바탕 없이 회색 글자, 시험이 끝나거나 오류가 나면 색 띠로 바뀐다.</summary>
+    private enum StatusTone { Normal, Pass, Notice, Fail }
+
+    private void ShowStatus(string message, bool isError) => ShowStatus(message, isError ? StatusTone.Fail : StatusTone.Normal);
+
+    /// <summary>
+    /// 상태 표시줄에 안내를 쓰고 색을 바꾼다.
+    /// </summary>
+    /// <param name="message">보여 줄 안내 문장</param>
+    /// <param name="tone">띠 색: 통과(초록) · 다시 볼 항목 있음(주황) · 오류(빨강)</param>
+    /// <param name="showReportActions">보고서 열기·폴더 열기 버튼을 함께 보여 줄지</param>
+    private void ShowStatus(string message, StatusTone tone, bool showReportActions = false)
     {
         StatusText.Text = message;
-        StatusText.Foreground = (Brush)FindResource(isError ? "FailBrush" : "MutedBrush");
+        var (inkKey, backgroundKey, symbol) = tone switch
+        {
+            StatusTone.Pass => ("PassBrush", "PassBackgroundBrush", Wpf.Ui.Controls.SymbolRegular.Checkmark24),
+            StatusTone.Notice => ("NoticeBrush", "NoticeBackgroundBrush", Wpf.Ui.Controls.SymbolRegular.Checkmark24),
+            StatusTone.Fail => ("FailBrush", "FailBackgroundBrush", Wpf.Ui.Controls.SymbolRegular.ErrorCircle24),
+            _ => ("MutedBrush", "", Wpf.Ui.Controls.SymbolRegular.Checkmark24),
+        };
+        var ink = (Brush)FindResource(inkKey);
+        var colored = tone != StatusTone.Normal;
+        StatusText.Foreground = ink;
+        StatusText.FontWeight = colored ? FontWeights.SemiBold : FontWeights.Normal;
+        StatusText.FontSize = colored ? 13 : 12;
+        StatusBarBorder.Background = colored ? (Brush)FindResource(backgroundKey) : Brushes.Transparent;
+        StatusBarBorder.BorderBrush = colored ? ink : Brushes.Transparent;
+        StatusIconBadge.Visibility = colored ? Visibility.Visible : Visibility.Collapsed;
+        StatusIconBadge.Background = ink;
+        StatusIcon.Symbol = symbol;
+        StatusActions.Visibility = showReportActions ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // 방금 저장한 보고서가 있는 폴더를 탐색기로 연다
+    private void OpenReportFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = _lastHtmlReportPath is not null ? Path.GetDirectoryName(_lastHtmlReportPath) : Path.GetDirectoryName(DashboardPath);
+        if (folder is not null && Directory.Exists(folder)) OpenLocalPath(folder);
+        else ShowStatus("아직 보고서 폴더가 없어요. 시험을 한 번 실행하면 만들어져요.", isError: true);
     }
 }

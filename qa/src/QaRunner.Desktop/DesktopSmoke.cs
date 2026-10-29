@@ -184,6 +184,25 @@ public partial class MainWindow
             Require(DetailExpectedText.Text != "—" && DetailActualText.Text != "—", $"{suite} 선택 결과 비교");
             Require(ResultsSection.Visibility == Visibility.Visible && ResultSummaryTitle.Text.Length > 0
                 && DetailExplanationText.Text.Length > 0, $"{suite} 결과 요약과 다음 확인 사항 안내");
+            if (suite == TestSuite.Verdict)
+            {
+                // 방금 끝난 시험은 완료 카드 · 색 띠 상태 표시줄 · 다음 행동 말풍선으로 알린다
+                Require(ResultHero.IsVisible && ResultHeroTitle.Text == "시험이 끝났어요" && ResultTargetChip.IsVisible && !FakeTargetNotice.IsOpen,
+                    "완료 카드에 시험이 끝났다는 제목과 연습용 대상 표시");
+                Require(StatusActions.IsVisible && StatusIconBadge.IsVisible
+                    && ((System.Windows.Media.SolidColorBrush)StatusBarBorder.Background).Color
+                        == ((System.Windows.Media.SolidColorBrush)FindResource("NoticeBackgroundBrush")).Color,
+                    "다시 볼 항목이 있으면 상태 표시줄이 주황 띠와 보고서 바로가기로 바뀜");
+                Require(ResultCoach.IsVisible && ResultCoachText.Text.Length > 0, "처음 실행하면 첫 줄을 가리키는 다음 행동 말풍선");
+                await Capture("completion");
+                ResultsGrid.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0,
+                    System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent });
+                Require(!ResultCoach.IsVisible, "결과 표를 누르면 말풍선 닫힘");
+                SelectPage("home");
+                Require(!StatusActions.IsVisible && !StatusIconBadge.IsVisible && StatusBarBorder.Background == System.Windows.Media.Brushes.Transparent,
+                    "다른 화면으로 가면 상태 표시줄이 평소 모양으로 돌아옴");
+                SelectPage("run");
+            }
             Require(RunButton.IsEnabled && !RunProgress.IsVisible, $"{suite} 실행 종료 후 조작 복구");
             await Capture(suite.ToString().ToLowerInvariant());
         }
