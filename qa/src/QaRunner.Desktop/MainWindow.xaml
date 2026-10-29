@@ -11,26 +11,28 @@
   <Style x:Key="FirstSectionTitle" TargetType="TextBlock" BasedOn="{StaticResource SectionTitle}"><Setter Property="Margin" Value="0,0,0,8"/></Style>
   <!-- 숨김이 아닌 알림만 보이게 한다 -->
   <Style x:Key="NoticeBar" TargetType="{x:Type ui:InfoBar}" BasedOn="{StaticResource {x:Type ui:InfoBar}}"><Setter Property="IsClosable" Value="False"/><Setter Property="Margin" Value="0,0,0,12"/><Setter Property="Visibility" Value="{Binding IsOpen, RelativeSource={RelativeSource Self}, Converter={StaticResource BoolToVisibility}}"/></Style>
-  <!-- 빠른 시작 카드 안의 글자 -->
-  <Style x:Key="PresetTitle" TargetType="TextBlock"><Setter Property="FontSize" Value="16"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Margin" Value="0,12,0,0"/></Style>
-  <Style x:Key="PresetIcon" TargetType="ui:SymbolIcon"><Setter Property="FontSize" Value="18"/><Setter Property="Foreground" Value="{StaticResource AccentBrush}"/><Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
-  <!-- 처음 사용하는 순서의 한 줄 -->
-  <DataTemplate x:Key="ChecklistStepTemplate">
-   <Border x:Name="StepCard" Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Padding="12,10" Margin="0,0,0,8" BorderBrush="{StaticResource LineBrush}" BorderThickness="1">
-    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-     <Border x:Name="StepCircle" Width="26" Height="26" CornerRadius="13" Background="{StaticResource AccentBackgroundBrush}" VerticalAlignment="Top" Margin="0,0,12,0">
-      <Grid><TextBlock x:Name="StepNumber" Text="{Binding Number}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/><ui:SymbolIcon x:Name="StepCheck" Symbol="Checkmark24" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/></Grid>
-     </Border>
-     <StackPanel Grid.Column="1">
-      <TextBlock x:Name="StepTitle" Text="{Binding Title}" FontSize="14" TextWrapping="Wrap"/>
-      <TextBlock x:Name="StepHint" Text="{Binding Hint}" Style="{StaticResource HintText}" Margin="0,2,0,0" Visibility="Collapsed"/>
-      <ui:Button x:Name="StepAction" Content="지금 하기 →" Click="ChecklistAction_Click" Style="{StaticResource TextButton}" Padding="0,2" MinHeight="24" HorizontalAlignment="Left" Margin="0,4,0,0" Visibility="Collapsed"/>
-     </StackPanel>
-    </Grid>
-   </Border>
+  <!-- 홈 시험 카드 안의 아이콘 칸 -->
+  <Style x:Key="SuiteIconBox" TargetType="Border"><Setter Property="Width" Value="42"/><Setter Property="Height" Value="42"/><Setter Property="CornerRadius" Value="14"/><Setter Property="HorizontalAlignment" Value="Left"/></Style>
+  <!-- 여정 지도의 한 칸: 선 · 번호 원 · 이름. 끝난 단계는 체크, 지금 단계는 옅은 테두리로 강조 -->
+  <DataTemplate x:Key="JourneyStepTemplate">
+   <Grid>
+    <Grid.RowDefinitions><RowDefinition Height="52"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+    <Border x:Name="LeftLine" Height="6" Background="{StaticResource HoverBrush}" VerticalAlignment="Center"/>
+    <Border x:Name="RightLine" Grid.Column="1" Height="6" Background="{StaticResource HoverBrush}" VerticalAlignment="Center"/>
+    <Ellipse x:Name="Halo" Grid.ColumnSpan="2" Width="50" Height="50" Fill="{StaticResource AccentBackgroundBrush}" HorizontalAlignment="Center" Visibility="Collapsed"/>
+    <Border x:Name="Dot" Grid.ColumnSpan="2" Width="36" Height="36" CornerRadius="18" Background="{StaticResource HoverBrush}" HorizontalAlignment="Center" VerticalAlignment="Center">
+     <Grid><TextBlock x:Name="Num" Text="{Binding Number}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/><ui:SymbolIcon x:Name="Check" Symbol="Checkmark24" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/></Grid>
+    </Border>
+    <TextBlock x:Name="Label" Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding ShortTitle}" FontSize="13" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+   </Grid>
    <DataTemplate.Triggers>
-    <DataTrigger Binding="{Binding IsDone}" Value="True"><Setter TargetName="StepCircle" Property="Background" Value="{StaticResource AccentBrush}"/><Setter TargetName="StepNumber" Property="Visibility" Value="Collapsed"/><Setter TargetName="StepCheck" Property="Visibility" Value="Visible"/><Setter TargetName="StepTitle" Property="Foreground" Value="{StaticResource MutedBrush}"/><Setter TargetName="StepCard" Property="BorderThickness" Value="0"/><Setter TargetName="StepCard" Property="Background" Value="Transparent"/></DataTrigger>
-    <DataTrigger Binding="{Binding IsCurrent}" Value="True"><Setter TargetName="StepCard" Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter TargetName="StepCard" Property="BorderThickness" Value="2"/><Setter TargetName="StepTitle" Property="FontWeight" Value="SemiBold"/><Setter TargetName="StepHint" Property="Visibility" Value="Visible"/><Setter TargetName="StepAction" Property="Visibility" Value="Visible"/></DataTrigger>
+    <DataTrigger Binding="{Binding IsFirst}" Value="True"><Setter TargetName="LeftLine" Property="Visibility" Value="Hidden"/></DataTrigger>
+    <DataTrigger Binding="{Binding IsLast}" Value="True"><Setter TargetName="RightLine" Property="Visibility" Value="Hidden"/></DataTrigger>
+    <DataTrigger Binding="{Binding IsDone}" Value="True"><Setter TargetName="Dot" Property="Background" Value="{StaticResource AccentBrush}"/><Setter TargetName="Num" Property="Visibility" Value="Collapsed"/><Setter TargetName="Check" Property="Visibility" Value="Visible"/><Setter TargetName="Label" Property="Foreground" Value="{StaticResource InkBrush}"/></DataTrigger>
+    <DataTrigger Binding="{Binding LeftActive}" Value="True"><Setter TargetName="LeftLine" Property="Background" Value="{StaticResource AccentBrush}"/></DataTrigger>
+    <DataTrigger Binding="{Binding RightActive}" Value="True"><Setter TargetName="RightLine" Property="Background" Value="{StaticResource AccentBrush}"/></DataTrigger>
+    <DataTrigger Binding="{Binding IsCurrent}" Value="True"><Setter TargetName="Halo" Property="Visibility" Value="Visible"/><Setter TargetName="Dot" Property="Background" Value="{StaticResource AccentBrush}"/><Setter TargetName="Num" Property="Foreground" Value="White"/><Setter TargetName="Label" Property="Foreground" Value="{StaticResource InkBrush}"/><Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/></DataTrigger>
    </DataTemplate.Triggers>
   </DataTemplate>
  </Window.Resources>
@@ -38,19 +40,30 @@
   <Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/><RowDefinition Height="28"/></Grid.RowDefinitions>
   <local:WindowTitleBar x:Name="TitleBar"/>
   <Grid x:Name="WorkspaceViewport" Grid.Row="1" ClipToBounds="True"><Grid x:Name="WorkspaceRoot">
-   <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-   <!-- 왼쪽 메뉴: 시험 · 기록 · 관리 세 개 -->
-   <DockPanel>
-    <ui:Button DockPanel.Dock="Bottom" Command="{x:Static ApplicationCommands.Help}" Appearance="Transparent" BorderThickness="0" Margin="8,2,8,8" Height="40" Padding="16,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" local:UsageHelp.Key="help"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="QuestionCircle24" FontSize="18"/><TextBlock Text="사용 안내" FontSize="14" Margin="14,0,0,0" VerticalAlignment="Center"/></StackPanel></ui:Button>
-    <StackPanel x:Name="NavigationBar" Margin="0,4,0,0">
-     <RadioButton x:Name="TestNav" GroupName="Section" Content="시험" Tag="run" Style="{StaticResource SidebarNavigation}" Checked="Navigation_Checked" IsChecked="True" local:UsageHelp.Key="run-page"/>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="212"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <!-- 왼쪽 메뉴: 홈 · 시험 · 기록 · 관리 -->
+   <Border Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0"><DockPanel>
+    <DockPanel DockPanel.Dock="Top" Margin="20,16,12,16">
+     <Border Width="36" Height="36" CornerRadius="12" Background="{StaticResource AccentBrush}" Margin="0,0,12,0"><ui:SymbolIcon Symbol="Shield24" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+     <StackPanel VerticalAlignment="Center"><TextBlock Text="정보지킴 QA" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="자동화 점검 도구" Style="{StaticResource HintText}" FontSize="11"/></StackPanel>
+    </DockPanel>
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,12">
+     <ui:Button Command="{x:Static ApplicationCommands.Help}" Appearance="Transparent" BorderThickness="0" Margin="8,0" Height="40" Padding="16,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Foreground="{StaticResource MutedBrush}" local:UsageHelp.Key="help"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="QuestionCircle24" FontSize="18"/><TextBlock Text="사용 안내" FontSize="14" Margin="14,0,0,0" VerticalAlignment="Center"/></StackPanel></ui:Button>
+     <DockPanel Margin="20,8,12,0">
+      <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource AccentBackgroundBrush}" Margin="0,0,10,0"><TextBlock x:Name="UserInitialText" Text="P" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+      <StackPanel VerticalAlignment="Center"><TextBlock x:Name="UserNameText" Text="Playdata" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="이 PC · 연습용" Style="{StaticResource HintText}" FontSize="11"/></StackPanel>
+     </DockPanel>
+    </StackPanel>
+    <StackPanel x:Name="NavigationBar">
+     <RadioButton x:Name="HomeNav" GroupName="Section" Content="홈" Tag="home" Style="{StaticResource SidebarNavigation}" Checked="Navigation_Checked" IsChecked="True" local:UsageHelp.Key="home"/>
+     <RadioButton x:Name="TestNav" GroupName="Section" Content="시험" Tag="run" Style="{StaticResource SidebarNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="run-page"/>
      <RadioButton x:Name="HistoryNav" GroupName="Section" Content="기록" Tag="reports" Style="{StaticResource SidebarNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="reports"/>
      <RadioButton x:Name="ManageNav" GroupName="Section" Content="관리" Tag="cases" Style="{StaticResource SidebarNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="manage"/>
     </StackPanel>
-   </DockPanel>
+   </DockPanel></Border>
    <Grid Grid.Column="1"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-    <!-- 기록·관리의 제목과 안쪽 탭 (시험 화면에서는 숨김) -->
-    <StackPanel x:Name="SectionHeader" Margin="24,16,32,0" Visibility="Collapsed">
+    <!-- 기록·관리의 제목과 안쪽 탭 (홈·시험 화면에서는 숨김) -->
+    <StackPanel x:Name="SectionHeader" Margin="32,20,32,0" Visibility="Collapsed">
      <TextBlock x:Name="SectionTitleText" Text="기록" Style="{StaticResource PageTitle}"/>
      <StackPanel x:Name="SubTabBar" Orientation="Horizontal" Margin="-12,8,0,0">
       <RadioButton x:Name="ReportsTab" GroupName="SubPage" Content="내 기록" Tag="reports" Style="{StaticResource SubTabNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="reports"/>
@@ -61,153 +74,161 @@
      </StackPanel>
     </StackPanel>
 
-    <!-- ===== 시험: 빠른 시작 카드 · 세부 조건 · 결과 / 오른쪽 처음 사용하는 순서 ===== -->
-    <ScrollViewer x:Name="ExecutionScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-     <Grid x:Name="ExecutionPage" Margin="24,16,32,24"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-      <StackPanel x:Name="TestMain">
-       <!-- Adapted from WPF UI 2.0.3 Demo Dashboard. See THIRD-PARTY-NOTICES.txt. -->
-       <Border x:Name="HomeHero" Height="128" CornerRadius="16" ClipToBounds="True">
-        <Border.Background><SolidColorBrush Color="#0F172A"/></Border.Background>
-        <Grid>
-         <Border CornerRadius="16"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#E60F172A" Offset="0"/><GradientStop Color="#800F172A" Offset="0.55"/><GradientStop Color="#1A0F172A" Offset="1"/></LinearGradientBrush></Border.Background></Border>
-         <StackPanel Margin="28,0" VerticalAlignment="Center" HorizontalAlignment="Left">
-          <TextBlock Text="어떤 점검을 할까요?" Foreground="White" FontSize="22" FontWeight="SemiBold"/>
-          <TextBlock Text="카드를 누르면 바로 시작해요. 조건은 아래에서 직접 바꿀 수도 있어요." Foreground="#D9FFFFFF" FontSize="13" Margin="0,6,0,0"/>
+    <!-- ===== 홈: 인사 · 여정 지도 · 다음 할 일 · 요약 · 시험 카드 · 최근 실행 ===== -->
+    <ScrollViewer x:Name="HomePage" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+     <StackPanel x:Name="HomeMain" Margin="32,24,32,32">
+      <TextBlock x:Name="HomeGreetingText" Text="안녕하세요" FontSize="26" FontWeight="SemiBold"/>
+      <TextBlock x:Name="HomeSubtitleText" Text="아래 길을 따라가면 첫 점검을 끝낼 수 있어요." Style="{StaticResource PageSubtitle}" FontSize="14"/>
+      <!-- 여정 지도 -->
+      <Border Style="{StaticResource SoftCard}" Margin="0,20,0,0" Padding="20,14,20,16" local:UsageHelp.Key="checklist">
+       <StackPanel>
+        <DockPanel><TextBlock x:Name="JourneyProgressText" DockPanel.Dock="Right" Text="0/4 완료" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"/><TextBlock Text="처음 사용하는 순서" FontSize="14" FontWeight="SemiBold"/></DockPanel>
+        <ItemsControl x:Name="JourneyItems" ItemTemplate="{StaticResource JourneyStepTemplate}" Margin="0,6,0,0"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
+       </StackPanel>
+      </Border>
+      <!-- 다음 할 일 + 요약 -->
+      <Grid Margin="0,20,0,0" Height="176"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="300"/></Grid.ColumnDefinitions>
+       <!-- Adapted from WPF UI 2.0.3 Demo Dashboard. See THIRD-PARTY-NOTICES.txt. 배경 사진 위에 민트 그라데이션을 덮는다. -->
+       <Border x:Name="HomeHero" CornerRadius="22" Effect="{StaticResource CardShadow}">
+        <Border.Background><SolidColorBrush Color="#0D9488"/></Border.Background>
+        <Grid x:Name="HomeHeroContent">
+         <Rectangle RadiusX="22" RadiusY="22"><Rectangle.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F00D9488" Offset="0"/><GradientStop Color="#E014B8A6" Offset="0.55"/><GradientStop Color="#C822C55E" Offset="1"/></LinearGradientBrush></Rectangle.Fill></Rectangle>
+         <Ellipse Width="200" Height="200" Fill="#26FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-70,-40,0"/>
+         <Ellipse Width="130" Height="130" Fill="#1FFFFFFF" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,-60"/>
+         <StackPanel Margin="26,0" VerticalAlignment="Center" HorizontalAlignment="Left">
+          <Border Background="#33FFFFFF" CornerRadius="11" Padding="10,2" HorizontalAlignment="Left"><TextBlock Text="다음 할 일" FontSize="12" FontWeight="SemiBold" Foreground="White"/></Border>
+          <TextBlock x:Name="NextStepTitle" Text="빠른 점검을 골라 볼까요?" Foreground="White" FontSize="22" FontWeight="SemiBold" Margin="0,10,0,0" TextWrapping="Wrap"/>
+          <TextBlock x:Name="NextStepHint" Foreground="#E6FFFFFF" FontSize="13" Margin="0,4,0,0" TextWrapping="Wrap"/>
+          <ui:Button x:Name="NextStepButton" Click="NextStep_Click" Style="{StaticResource PillButton}" Margin="0,14,0,0" HorizontalAlignment="Left" local:UsageHelp.Key="next-step"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="Play24" FontSize="14" Filled="True" Foreground="{StaticResource AccentBrush}"/><TextBlock x:Name="NextStepButtonText" Text="빠른 점검 고르기" Margin="8,0,0,0" Foreground="{StaticResource AccentBrush}"/></StackPanel></ui:Button>
          </StackPanel>
-         <TextBlock Text="WPF UI Gallery" Foreground="#99FFFFFF" FontSize="12" Margin="12,8" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+         <TextBlock Text="WPF UI Gallery" Foreground="#99FFFFFF" FontSize="11" Margin="14,8" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
         </Grid>
        </Border>
-       <!-- 말풍선 안내: 첫 실행 전까지만 -->
-       <Border x:Name="CoachHint" Background="#FFFBEB" BorderBrush="#FCD34D" BorderThickness="1" CornerRadius="12" Padding="16,8" Margin="0,16,0,0">
-        <DockPanel><ui:Button DockPanel.Dock="Right" Content="닫기" Click="CloseCoachHint_Click" Style="{StaticResource TextButton}" Foreground="#92400E" MinHeight="24" Padding="8,2"/><ui:SymbolIcon Symbol="Lightbulb24" FontSize="16" Foreground="#B45309" Margin="0,0,10,0" VerticalAlignment="Center"/><TextBlock Text="처음이라면 ‘빠른 점검’ 카드를 눌러 보세요. 서버 없이 10초면 끝나요." Foreground="#92400E" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap"/></DockPanel>
-       </Border>
-       <TextBlock Text="빠른 시작" Style="{StaticResource SectionTitle}"/>
-       <UniformGrid x:Name="PresetGrid" Columns="3" Margin="-4">
-        <Button x:Name="QuickPreset" Tag="quick" Click="Preset_Click" Style="{StaticResource RecommendedPresetCard}" local:UsageHelp.Key="preset-quick"><StackPanel>
-         <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource StatusBadge}" Background="{StaticResource AccentBackgroundBrush}" VerticalAlignment="Top"><TextBlock Text="추천" FontSize="12" Foreground="{StaticResource AccentBrush}"/></Border><Border Style="{StaticResource IconCircle}" HorizontalAlignment="Left"><ui:SymbolIcon Symbol="Flash24" Style="{StaticResource PresetIcon}"/></Border></DockPanel>
-         <TextBlock Text="빠른 점검" Style="{StaticResource PresetTitle}"/><TextBlock Text="문자 판정 · 연습용 대상" Style="{StaticResource HintText}"/>
-         <DockPanel Margin="0,10,0,0"><Border Style="{StaticResource Chip}"><TextBlock Text="약 10초" FontSize="12"/></Border><TextBlock x:Name="PresetVerdictLast" Style="{StaticResource HintText}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/></DockPanel>
-        </StackPanel></Button>
-        <Button x:Name="ApiPreset" Tag="api" Click="Preset_Click" Style="{StaticResource PresetCard}" local:UsageHelp.Key="preset-api"><StackPanel>
-         <Border Style="{StaticResource IconCircle}" HorizontalAlignment="Left"><ui:SymbolIcon Symbol="PlugConnected24" Style="{StaticResource PresetIcon}"/></Border>
-         <TextBlock Text="내 API 판정" Style="{StaticResource PresetTitle}"/><TextBlock Text="문자 판정 · 주소를 넣고 시작" Style="{StaticResource HintText}"/>
-         <Border Style="{StaticResource Chip}" Margin="0,10,0,0"><TextBlock Text="주소 필요" FontSize="12"/></Border>
-        </StackPanel></Button>
-        <Button x:Name="PipelinePreset" Tag="pipeline" Click="Preset_Click" Style="{StaticResource PresetCard}" local:UsageHelp.Key="pipeline"><StackPanel>
-         <Border Style="{StaticResource IconCircle}" HorizontalAlignment="Left"><ui:SymbolIcon Symbol="DataTrending24" Style="{StaticResource PresetIcon}"/></Border>
-         <TextBlock Text="데이터 처리 점검" Style="{StaticResource PresetTitle}"/><TextBlock Text="중복·순서·지연 이벤트" Style="{StaticResource HintText}"/>
-         <DockPanel Margin="0,10,0,0"><Border Style="{StaticResource Chip}"><TextBlock Text="약 20초" FontSize="12"/></Border><TextBlock x:Name="PresetPipelineLast" Style="{StaticResource HintText}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/></DockPanel>
-        </StackPanel></Button>
-        <Button x:Name="LoadPreset" Tag="load" Click="Preset_Click" Style="{StaticResource PresetCard}" local:UsageHelp.Key="load"><StackPanel>
-         <Border Style="{StaticResource IconCircle}" HorizontalAlignment="Left"><ui:SymbolIcon Symbol="Gauge24" Style="{StaticResource PresetIcon}"/></Border>
-         <TextBlock Text="부하 30초" Style="{StaticResource PresetTitle}"/><TextBlock Text="초당 5건 · 응답 속도" Style="{StaticResource HintText}"/>
-         <DockPanel Margin="0,10,0,0"><Border Style="{StaticResource Chip}"><TextBlock Text="약 30초" FontSize="12"/></Border><TextBlock x:Name="PresetLoadLast" Style="{StaticResource HintText}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/></DockPanel>
-        </StackPanel></Button>
-        <Button x:Name="LoadStandardPreset" Tag="load-standard" Click="Preset_Click" Style="{StaticResource PresetCard}" local:UsageHelp.Key="preset-load-standard"><StackPanel>
-         <Border Style="{StaticResource IconCircle}" HorizontalAlignment="Left"><ui:SymbolIcon Symbol="Timer24" Style="{StaticResource PresetIcon}"/></Border>
-         <TextBlock Text="부하 기준 (5분)" Style="{StaticResource PresetTitle}"/><TextBlock Text="실행안 기준 1,500건" Style="{StaticResource HintText}"/>
-         <Border Style="{StaticResource Chip}" Margin="0,10,0,0"><TextBlock Text="약 5분" FontSize="12"/></Border>
-        </StackPanel></Button>
-        <Button x:Name="RecoveryPreset" Tag="recovery" Click="Preset_Click" Style="{StaticResource PresetCard}" local:UsageHelp.Key="recovery"><StackPanel>
-         <Border Style="{StaticResource IconCircle}" HorizontalAlignment="Left"><ui:SymbolIcon Symbol="ArrowClockwise24" Style="{StaticResource PresetIcon}"/></Border>
-         <TextBlock Text="복구 연습" Style="{StaticResource PresetTitle}"/><TextBlock Text="15초 멈춘 뒤 회복" Style="{StaticResource HintText}"/>
-         <DockPanel Margin="0,10,0,0"><Border Style="{StaticResource Chip}"><TextBlock Text="약 1분" FontSize="12"/></Border><TextBlock x:Name="PresetRecoveryLast" Style="{StaticResource HintText}" Margin="8,1,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/></DockPanel>
-        </StackPanel></Button>
-       </UniformGrid>
-       <!-- 세부 조건: 필요할 때만 펼친다 -->
-       <Expander x:Name="AdvancedOptions" Margin="0,16,0,0">
-        <Expander.Header><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="Options24" FontSize="16" Margin="0,0,10,0"/><TextBlock Text="세부 조건 직접 정하기" FontSize="14"/></StackPanel></Expander.Header>
-        <StackPanel Margin="0,12,0,0">
-         <TextBlock x:Name="SuiteTitleText" Text="문자 판정 시험" FontSize="16" FontWeight="SemiBold"/>
-         <TextBlock x:Name="SuiteDescriptionText" Style="{StaticResource HintText}" Margin="0,2,0,0"/>
-         <UniformGrid x:Name="SuitePanel" Rows="1" HorizontalAlignment="Left" Margin="-12,8,0,0">
-          <RadioButton x:Name="VerdictSuiteRadio" GroupName="Suite" IsChecked="True" Tag="verdict" Content="문자 판정" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="verdict"/>
-          <RadioButton x:Name="PipelineSuiteRadio" GroupName="Suite" Tag="pipeline" Content="데이터 처리" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="pipeline"/>
-          <RadioButton x:Name="LoadSuiteRadio" GroupName="Suite" Tag="load" Content="부하·응답" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="load"/>
-          <RadioButton x:Name="RecoverySuiteRadio" GroupName="Suite" Tag="recovery" Content="중단 후 복구" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="recovery"/>
-         </UniformGrid>
-         <Border x:Name="ExecutionOptions" Style="{StaticResource Panel}" Margin="0,8,0,0"><StackPanel>
-          <WrapPanel x:Name="TargetChoicePanel" Margin="0,0,0,4"><TextBlock Text="시험 대상" Style="{StaticResource HintText}" FontSize="13" VerticalAlignment="Center" Margin="0,0,16,0"/><RadioButton x:Name="PracticeTargetRadio" GroupName="Target" Content="연습용 대상" IsChecked="True" Checked="Target_Checked" Style="{StaticResource TargetChoice}" Margin="0,0,16,0"/><RadioButton x:Name="ApiTargetRadio" GroupName="Target" Content="내 판정 API" Checked="Target_Checked" Style="{StaticResource TargetChoice}" local:UsageHelp.Key="api"/></WrapPanel>
-          <StackPanel x:Name="ExecutionApiField" Visibility="Collapsed"><TextBlock Text="판정 API 주소" Style="{StaticResource SectionLabel}" Margin="0,8,0,8"/><ui:TextBox x:Name="ApiUrlBox" PlaceholderText="http://localhost:8000" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="api"/></StackPanel>
-          <StackPanel x:Name="CasesPathField"><TextBlock x:Name="CasesPathLabel" Text="시험 문자와 예상 정답" Style="{StaticResource SectionLabel}"/><ui:TextBox x:Name="CasesPathBox" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="case-path"/></StackPanel>
-          <TextBlock x:Name="ApiUrlHint" Style="{StaticResource HintText}" Margin="0,8,0,0"/>
-          <StackPanel x:Name="MeasurementPanel" Visibility="Collapsed"><UniformGrid Columns="3">
-           <StackPanel Margin="0,0,8,0"><TextBlock Text="실행 시간 (초)" Style="{StaticResource SectionLabel}"/><ui:TextBox x:Name="DurationBox" local:UsageHelp.Key="duration"/></StackPanel>
-           <StackPanel Margin="4,0"><TextBlock Text="초당 전송 건수" Style="{StaticResource SectionLabel}"/><ui:TextBox x:Name="RateBox" local:UsageHelp.Key="rate"/></StackPanel>
-           <StackPanel x:Name="StopSecondsField" Margin="8,0,0,0"><TextBlock Text="중단 시간 (초)" Style="{StaticResource SectionLabel}"/><ui:TextBox x:Name="StopSecondsBox" local:UsageHelp.Key="stop"/></StackPanel>
-          </UniformGrid><TextBlock x:Name="MeasurementHint" Style="{StaticResource HintText}" Margin="0,8,0,0"/></StackPanel>
-          <DockPanel Margin="0,16,0,0"><ui:Button x:Name="RunButton" DockPanel.Dock="Right" Content="시험 시작하기" Style="{StaticResource PrimaryButton}" Click="RunButton_Click" MinWidth="160" MinHeight="40" CornerRadius="20" local:UsageHelp.Key="run"/><StackPanel VerticalAlignment="Center" Margin="0,0,16,0"><TextBlock Text="보고서 저장 위치" Style="{StaticResource HintText}"/><ui:TextBox x:Name="ReportDirectoryBox" Text="reports" Margin="0,4,0,0" local:UsageHelp.Key="report-path"/></StackPanel></DockPanel>
-         </StackPanel></Border>
-        </StackPanel>
-       </Expander>
-       <!-- 진행 상태 · 오류 · 결과 -->
-       <ProgressBar x:Name="RunProgress" Visibility="Collapsed" Height="3" IsIndeterminate="True" Foreground="{StaticResource AccentBrush}" Margin="0,20,0,0"/>
-       <TextBlock x:Name="RunInfoText" Text="카드를 누르거나 세부 조건에서 시작해 주세요." Style="{StaticResource HintText}" Margin="0,12,0,12"/>
-       <ui:InfoBar x:Name="ExecutionError" Style="{StaticResource NoticeBar}" Severity="Error" IsOpen="False" AutomationProperties.LiveSetting="Assertive"/>
-       <StackPanel x:Name="ResultsSection" Visibility="Collapsed">
-        <DockPanel>
-         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
-          <ui:Button x:Name="OpenDashboardButton" Content="전체 추이" IsEnabled="False" Click="OpenDashboardButton_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="dashboard" Margin="0,0,8,0"/>
-          <ui:Button x:Name="OpenReportButton" Content="보고서 열기" IsEnabled="False" Click="OpenReportButton_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="open-report"/>
+       <Border Grid.Column="2" Style="{StaticResource SoftCard}" CornerRadius="22">
+        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+         <Grid Width="104" Height="104" VerticalAlignment="Center">
+          <Ellipse Stroke="{StaticResource AccentBackgroundBrush}" StrokeThickness="11"/>
+          <Path x:Name="HomeRateArc" Stroke="{StaticResource AccentBrush}" StrokeThickness="11" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+          <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"><TextBlock x:Name="HomeRateText" Text="—" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock Text="통과율" Style="{StaticResource HintText}" FontSize="11" HorizontalAlignment="Center"/></StackPanel>
+         </Grid>
+         <StackPanel Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="이번 주 실행" Style="{StaticResource HintText}"/><TextBlock x:Name="HomeWeekText" Text="0회" FontSize="20" FontWeight="SemiBold"/>
+          <TextBlock Text="다시 볼 항목" Style="{StaticResource HintText}" Margin="0,12,0,0"/><TextBlock x:Name="HomeRecheckText" Text="0건" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource FailBrush}"/>
          </StackPanel>
-         <StackPanel Margin="0,0,16,0"><TextBlock x:Name="ResultSummaryTitle" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/><TextBlock x:Name="ResultSummaryHint" Style="{StaticResource PageSubtitle}" Margin="0,4,0,12"/></StackPanel>
-        </DockPanel>
+        </Grid>
+       </Border>
+      </Grid>
+      <!-- 시험 종류 카드: 누르면 오른쪽 조건 시트 -->
+      <DockPanel Margin="0,28,0,6"><TextBlock DockPanel.Dock="Right" Text="카드를 누르면 오른쪽에서 조건을 확인해요" Style="{StaticResource HintText}" VerticalAlignment="Bottom"/><TextBlock Text="시험 종류" FontSize="16" FontWeight="SemiBold"/></DockPanel>
+      <UniformGrid x:Name="HomeSuiteCards" Columns="4" Margin="-6">
+       <Button x:Name="HomeVerdictCard" Tag="verdict" Click="SuiteCard_Click" Style="{StaticResource SuiteCard}" local:UsageHelp.Key="preset-quick"><StackPanel>
+        <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource StatusBadge}" Background="{StaticResource AccentBackgroundBrush}" VerticalAlignment="Top" CornerRadius="10"><TextBlock Text="추천" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"/></Border><Border Style="{StaticResource SuiteIconBox}" Background="{StaticResource AccentBackgroundBrush}"><ui:SymbolIcon Symbol="Flash24" FontSize="20" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></DockPanel>
+        <TextBlock Text="빠른 점검" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,0"/><TextBlock Text="문자 판정 · 약 10초" Style="{StaticResource HintText}"/>
+        <TextBlock x:Name="PresetVerdictLast" Style="{StaticResource HintText}" FontWeight="SemiBold" Margin="0,6,0,0"/>
+       </StackPanel></Button>
+       <Button x:Name="HomePipelineCard" Tag="pipeline" Click="SuiteCard_Click" Style="{StaticResource SuiteCard}" local:UsageHelp.Key="pipeline"><StackPanel>
+        <Border Style="{StaticResource SuiteIconBox}" Background="#EEF2FF"><ui:SymbolIcon Symbol="DataTrending24" FontSize="20" Foreground="#6366F1" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+        <TextBlock Text="데이터 처리" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,0"/><TextBlock Text="중복·순서·지연 · 약 20초" Style="{StaticResource HintText}"/>
+        <TextBlock x:Name="PresetPipelineLast" Style="{StaticResource HintText}" FontWeight="SemiBold" Margin="0,6,0,0"/>
+       </StackPanel></Button>
+       <Button x:Name="HomeLoadCard" Tag="load" Click="SuiteCard_Click" Style="{StaticResource SuiteCard}" local:UsageHelp.Key="load"><StackPanel>
+        <Border Style="{StaticResource SuiteIconBox}" Background="#E0F2FE"><ui:SymbolIcon Symbol="Gauge24" FontSize="20" Foreground="#0EA5E9" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+        <TextBlock Text="부하·응답" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,0"/><TextBlock Text="초당 5건 · 약 30초" Style="{StaticResource HintText}"/>
+        <TextBlock x:Name="PresetLoadLast" Style="{StaticResource HintText}" FontWeight="SemiBold" Margin="0,6,0,0"/>
+       </StackPanel></Button>
+       <Button x:Name="HomeRecoveryCard" Tag="recovery" Click="SuiteCard_Click" Style="{StaticResource SuiteCard}" local:UsageHelp.Key="recovery"><StackPanel>
+        <Border Style="{StaticResource SuiteIconBox}" Background="#FCE7F3"><ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="20" Foreground="#DB2777" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+        <TextBlock Text="중단 후 복구" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,0"/><TextBlock Text="15초 멈춤 · 약 1분" Style="{StaticResource HintText}"/>
+        <TextBlock x:Name="PresetRecoveryLast" Style="{StaticResource HintText}" FontWeight="SemiBold" Margin="0,6,0,0"/>
+       </StackPanel></Button>
+      </UniformGrid>
+      <!-- 최근 실행 -->
+      <Border Style="{StaticResource SoftCard}" Margin="0,22,0,0" Padding="0,14,0,8">
+       <StackPanel>
+        <DockPanel Margin="20,0,12,4"><ui:Button DockPanel.Dock="Right" Content="전체 보기" Click="OpenHistory_Click" Style="{StaticResource TextButton}" MinHeight="26" Padding="8,2"/><TextBlock Text="최근 실행" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
+        <DataGrid x:Name="RecentRunsGrid" HeadersVisibility="None" GridLinesVisibility="None" SelectionChanged="RecentRun_Selected"><DataGrid.Columns>
+         <DataGridTemplateColumn Width="*"><DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Ellipse x:Name="RunDot" Width="10" Height="10" Fill="{StaticResource NoticeBrush}" Margin="0,0,12,0" VerticalAlignment="Center"/><TextBlock Text="{Binding SuiteName}" FontWeight="SemiBold"/></StackPanel><DataTemplate.Triggers><DataTrigger Binding="{Binding IsAllPassed}" Value="True"><Setter TargetName="RunDot" Property="Fill" Value="{StaticResource PassBrush}"/></DataTrigger></DataTemplate.Triggers></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+         <DataGridTextColumn Binding="{Binding StartedAtText}" Width="140" ElementStyle="{StaticResource NumberCell}"/>
+         <DataGridTextColumn Binding="{Binding CountText}" Width="90" ElementStyle="{StaticResource NumberCell}"/>
+        </DataGrid.Columns></DataGrid>
+        <TextBlock x:Name="HistoryEmptyText" Text="아직 실행한 시험이 없어요. 위의 ‘빠른 점검’부터 시작해 보세요." Style="{StaticResource HintText}" FontSize="13" Margin="20,8,20,8"/>
+       </StackPanel>
+      </Border>
+     </StackPanel>
+    </ScrollViewer>
+
+    <!-- ===== 시험: 진행 상태와 결과 ===== -->
+    <ScrollViewer x:Name="ExecutionScroll" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+     <Grid x:Name="ExecutionPage" Margin="32,24,32,32">
+      <StackPanel x:Name="TestMain">
+       <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+         <ui:Button Click="OpenSheet_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" local:UsageHelp.Key="change-conditions"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="Options24" FontSize="15"/><TextBlock Text="조건 바꾸기" Margin="8,0,0,0"/></StackPanel></ui:Button>
+         <ui:Button x:Name="OpenDashboardButton" Content="전체 추이" IsEnabled="False" Click="OpenDashboardButton_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="dashboard" Margin="0,0,8,0"/>
+         <ui:Button x:Name="OpenReportButton" Content="보고서 열기" IsEnabled="False" Click="OpenReportButton_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="open-report"/>
+        </StackPanel>
+        <StackPanel Margin="0,0,16,0"><TextBlock Text="시험 결과" Style="{StaticResource PageTitle}"/><TextBlock x:Name="RunInfoText" Text="홈에서 시험 카드를 고르거나 ‘조건 바꾸기’를 눌러 주세요." Style="{StaticResource PageSubtitle}"/></StackPanel>
+       </DockPanel>
+       <ProgressBar x:Name="RunProgress" Visibility="Collapsed" Height="4" IsIndeterminate="True" Foreground="{StaticResource AccentBrush}" Margin="0,16,0,0"/>
+       <ui:InfoBar x:Name="ExecutionError" Style="{StaticResource NoticeBar}" Severity="Error" IsOpen="False" Margin="0,16,0,0" AutomationProperties.LiveSetting="Assertive"/>
+       <!-- 결과가 없을 때 -->
+       <Border MinHeight="320" Margin="0,20,0,0" Padding="32">
+        <Border.Style><Style TargetType="Border" BasedOn="{StaticResource SoftCard}"><Style.Triggers><DataTrigger Binding="{Binding Visibility, ElementName=ResultsSection}" Value="Visible"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+         <Border Width="64" Height="64" CornerRadius="32" Background="{StaticResource AccentBackgroundBrush}" HorizontalAlignment="Center"><ui:SymbolIcon Symbol="Play24" FontSize="26" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+         <TextBlock Text="아직 결과가 없어요" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+         <TextBlock Text="시험을 고르면 오른쪽에서 조건을 확인하고 바로 시작할 수 있어요." Style="{StaticResource HintText}" FontSize="13" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+         <ui:Button Content="시험 고르기" Click="OpenSheet_Click" Style="{StaticResource PrimaryButton}" CornerRadius="20" MinHeight="40" Padding="22,6" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+        </StackPanel>
+       </Border>
+       <StackPanel x:Name="ResultsSection" Visibility="Collapsed" Margin="0,20,0,0">
+        <TextBlock x:Name="ResultSummaryTitle" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+        <TextBlock x:Name="ResultSummaryHint" Style="{StaticResource PageSubtitle}" Margin="0,4,0,12"/>
         <ui:InfoBar x:Name="FakeTargetNotice" Style="{StaticResource NoticeBar}" Severity="Warning" IsOpen="False"/>
-        <UniformGrid Columns="4" Margin="-4">
-         <Border Style="{StaticResource StatCard}" CornerRadius="12" Margin="4"><StackPanel><TextBlock Text="확인한 항목" Style="{StaticResource HintText}"/><TextBlock x:Name="TotalCountText" Text="—" Style="{StaticResource TileValue}"/></StackPanel></Border>
-         <Border Style="{StaticResource StatCard}" CornerRadius="12" Margin="4"><StackPanel><TextBlock Text="통과" Style="{StaticResource HintText}"/><TextBlock x:Name="PassedCountText" Text="—" Style="{StaticResource TileValue}" Foreground="{StaticResource PassBrush}"/></StackPanel></Border>
-         <Border Style="{StaticResource StatCard}" CornerRadius="12" Margin="4"><StackPanel><TextBlock Text="다시 볼 항목" Style="{StaticResource HintText}"/><TextBlock x:Name="FailedCountText" Text="—" Style="{StaticResource TileValue}" Foreground="{StaticResource FailBrush}"/></StackPanel></Border>
-         <Border Style="{StaticResource StatCard}" CornerRadius="12" Margin="4"><StackPanel><TextBlock Text="통과율" Style="{StaticResource HintText}"/><TextBlock x:Name="PassRateText" Text="—" Style="{StaticResource TileValue}"/><ProgressBar x:Name="PassRateBar" Height="4" Maximum="100" Margin="0,8,0,0" Foreground="{StaticResource AccentBrush}" Background="{StaticResource HoverBrush}" BorderThickness="0"/></StackPanel></Border>
+        <UniformGrid Columns="4" Margin="-6">
+         <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="확인한 항목" Style="{StaticResource HintText}"/><TextBlock x:Name="TotalCountText" Text="—" Style="{StaticResource TileValue}"/></StackPanel></Border>
+         <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="통과" Style="{StaticResource HintText}"/><TextBlock x:Name="PassedCountText" Text="—" Style="{StaticResource TileValue}" Foreground="{StaticResource PassBrush}"/></StackPanel></Border>
+         <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="다시 볼 항목" Style="{StaticResource HintText}"/><TextBlock x:Name="FailedCountText" Text="—" Style="{StaticResource TileValue}" Foreground="{StaticResource FailBrush}"/></StackPanel></Border>
+         <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="통과율" Style="{StaticResource HintText}"/><TextBlock x:Name="PassRateText" Text="—" Style="{StaticResource TileValue}"/><ProgressBar x:Name="PassRateBar" Height="6" Maximum="100" Margin="0,8,0,0" Foreground="{StaticResource AccentBrush}" Background="{StaticResource AccentBackgroundBrush}" BorderThickness="0"/></StackPanel></Border>
         </UniformGrid>
         <DockPanel Margin="0,24,0,0"><ui:Button DockPanel.Dock="Right" Content="같은 조건으로 다시 실행" IsEnabled="{Binding IsEnabled, ElementName=RunButton}" Click="RunButton_Click" Style="{StaticResource TextButton}" local:UsageHelp.Key="run" Margin="0,-6,-8,0" MinHeight="28"/><TextBlock Text="항목별 결과" Style="{StaticResource FirstSectionTitle}"/></DockPanel>
-        <Border Style="{StaticResource Panel}" Padding="0" CornerRadius="12" ClipToBounds="True">
-         <DataGrid x:Name="ResultsGrid" MaxHeight="300" Margin="0,4,0,4" SelectionChanged="Result_Selected"><DataGrid.Columns><DataGridTextColumn Header="사례" Binding="{Binding CaseId}" Width="100" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="확인 항목" Binding="{Binding CheckName}" Width="130" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="예상 → 실제" Binding="{Binding ComparisonText}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTemplateColumn Header="결과" Width="96"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border x:Name="ResultBadge" Background="{StaticResource PassBackgroundBrush}" CornerRadius="10" Padding="8,1" HorizontalAlignment="Left"><TextBlock x:Name="ResultBadgeText" Text="{Binding ResultLabel}" Foreground="{StaticResource PassBrush}" FontSize="12" FontWeight="SemiBold"/></Border><DataTemplate.Triggers><DataTrigger Binding="{Binding IsPassed}" Value="False"><Setter TargetName="ResultBadge" Property="Background" Value="{StaticResource FailBackgroundBrush}"/><Setter TargetName="ResultBadgeText" Property="Foreground" Value="{StaticResource FailBrush}"/></DataTrigger></DataTemplate.Triggers></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn></DataGrid.Columns></DataGrid>
+        <Border Style="{StaticResource SoftCard}" Padding="0,6" ClipToBounds="True">
+         <DataGrid x:Name="ResultsGrid" MaxHeight="300" SelectionChanged="Result_Selected"><DataGrid.Columns><DataGridTextColumn Header="사례" Binding="{Binding CaseId}" Width="100" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="확인 항목" Binding="{Binding CheckName}" Width="130" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="예상 → 실제" Binding="{Binding ComparisonText}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTemplateColumn Header="결과" Width="96"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border x:Name="ResultBadge" Background="{StaticResource PassBackgroundBrush}" CornerRadius="10" Padding="8,1" HorizontalAlignment="Left"><TextBlock x:Name="ResultBadgeText" Text="{Binding ResultLabel}" Foreground="{StaticResource PassBrush}" FontSize="12" FontWeight="SemiBold"/></Border><DataTemplate.Triggers><DataTrigger Binding="{Binding IsPassed}" Value="False"><Setter TargetName="ResultBadge" Property="Background" Value="{StaticResource FailBackgroundBrush}"/><Setter TargetName="ResultBadgeText" Property="Foreground" Value="{StaticResource FailBrush}"/></DataTrigger></DataTemplate.Triggers></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn></DataGrid.Columns></DataGrid>
         </Border>
         <DockPanel Margin="0,24,0,0"><TextBlock x:Name="DetailCaseText" DockPanel.Dock="Right" Text="위에서 항목을 골라 주세요." Style="{StaticResource HintText}" Margin="0,0,0,8"/><TextBlock Text="선택한 항목" Style="{StaticResource FirstSectionTitle}"/></DockPanel>
-        <Border Style="{StaticResource Panel}" CornerRadius="12"><StackPanel>
+        <Border Style="{StaticResource SoftCard}"><StackPanel>
          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
           <StackPanel><TextBlock Text="예상 정답·기준" Style="{StaticResource HintText}"/><TextBlock x:Name="DetailExpectedText" Text="—" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/></StackPanel>
           <StackPanel Grid.Column="2"><TextBlock Text="실제 결과" Style="{StaticResource HintText}"/><TextBlock x:Name="DetailActualText" Text="—" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/></StackPanel>
          </Grid>
          <TextBlock Text="입력 내용" Style="{StaticResource HintText}" Margin="0,16,0,4"/>
          <TextBlock x:Name="DetailInputText" Text="—" TextWrapping="Wrap" LineHeight="22"/>
-         <Border Background="{StaticResource AccentBackgroundBrush}" Padding="12,10" CornerRadius="10" Margin="0,16,0,0"><TextBlock x:Name="DetailExplanationText" TextWrapping="Wrap" LineHeight="20" FontSize="13" Foreground="{StaticResource CalloutInkBrush}"/></Border>
+         <Border Background="{StaticResource AccentBackgroundBrush}" Padding="14,10" CornerRadius="14" Margin="0,16,0,0"><TextBlock x:Name="DetailExplanationText" TextWrapping="Wrap" LineHeight="20" FontSize="13" Foreground="{StaticResource CalloutInkBrush}"/></Border>
         </StackPanel></Border>
        </StackPanel>
       </StackPanel>
-      <!-- 오른쪽: 처음 사용하는 순서 (접을 수 있음) -->
-      <Grid Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Top">
-       <Border x:Name="ChecklistPanel" Width="260" Background="{StaticResource AccentBackgroundBrush}" CornerRadius="16" Padding="16" local:UsageHelp.Key="checklist">
-        <StackPanel>
-         <DockPanel><ui:Button DockPanel.Dock="Right" Content="접기" Click="ToggleChecklist_Click" Style="{StaticResource TextButton}" MinHeight="24" Padding="6,2" Margin="0,-4,-6,0"/><TextBlock Text="처음 사용하는 순서" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"/></DockPanel>
-         <DockPanel Margin="0,8,0,12"><TextBlock x:Name="ChecklistProgressText" DockPanel.Dock="Right" Text="0 / 4" FontSize="12" Foreground="{StaticResource AccentBrush}" Margin="8,0,0,0"/><ProgressBar x:Name="ChecklistProgress" Height="4" Maximum="4" Foreground="{StaticResource AccentBrush}" Background="White" BorderThickness="0" VerticalAlignment="Center"/></DockPanel>
-         <ItemsControl x:Name="ChecklistItems" ItemTemplate="{StaticResource ChecklistStepTemplate}"/>
-        </StackPanel>
-       </Border>
-       <ui:Button x:Name="ChecklistCollapsed" Visibility="Collapsed" Click="ToggleChecklist_Click" Style="{StaticResource SecondaryButton}" CornerRadius="16" VerticalAlignment="Top" local:UsageHelp.Key="checklist"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="TaskListLtr24" FontSize="16" Foreground="{StaticResource AccentBrush}"/><TextBlock x:Name="ChecklistCollapsedText" Text="순서 0/4" Margin="8,0,0,0"/></StackPanel></ui:Button>
-      </Grid>
      </Grid>
     </ScrollViewer>
 
     <local:CollaborationView x:Name="CollaborationPage" Grid.Row="1" Visibility="Collapsed"/>
 
     <!-- ===== 기록 › 내 기록 ===== -->
-    <Grid x:Name="ReportsPage" Grid.Row="1" Visibility="Collapsed" Margin="24,12,32,24"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <Grid x:Name="ReportsPage" Grid.Row="1" Visibility="Collapsed" Margin="32,12,32,24"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
      <DockPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top"><ui:Button Content="새로고침" Click="RefreshHistory_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/><ui:Button Content="전체 추이" Click="OpenDashboardButton_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="dashboard"/></StackPanel><TextBlock Text="이 PC에 저장한 기록이에요. 하나를 고르면 시험 화면에서 다시 열어요." Style="{StaticResource PageSubtitle}" VerticalAlignment="Center"/></DockPanel>
-     <UniformGrid Grid.Row="1" Columns="3" Margin="-4,12,-4,0">
-      <Border Style="{StaticResource StatCard}" CornerRadius="12" Margin="4"><StackPanel><TextBlock Text="저장한 기록" Style="{StaticResource HintText}"/><TextBlock x:Name="HistoryCountText" Text="0" Style="{StaticResource TileValue}"/></StackPanel></Border>
-      <Border Style="{StaticResource StatCard}" CornerRadius="12" Margin="4"><StackPanel><TextBlock Text="평균 통과율" Style="{StaticResource HintText}"/><TextBlock x:Name="HistoryAverageText" Text="—" Style="{StaticResource TileValue}"/></StackPanel></Border>
-      <Border Style="{StaticResource StatCard}" CornerRadius="12" Margin="4"><StackPanel><TextBlock Text="마지막 실행" Style="{StaticResource HintText}"/><TextBlock x:Name="HistoryLatestText" Text="—" Style="{StaticResource TileValue}"/></StackPanel></Border>
+     <UniformGrid Grid.Row="1" Columns="3" Margin="-6,12,-6,0">
+      <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="저장한 기록" Style="{StaticResource HintText}"/><TextBlock x:Name="HistoryCountText" Text="0" Style="{StaticResource TileValue}"/></StackPanel></Border>
+      <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="평균 통과율" Style="{StaticResource HintText}"/><TextBlock x:Name="HistoryAverageText" Text="—" Style="{StaticResource TileValue}"/></StackPanel></Border>
+      <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="마지막 실행" Style="{StaticResource HintText}"/><TextBlock x:Name="HistoryLatestText" Text="—" Style="{StaticResource TileValue}"/></StackPanel></Border>
      </UniformGrid>
      <TextBlock Grid.Row="2" Text="실행 목록" Style="{StaticResource SectionTitle}"/>
-     <Border Grid.Row="3" Style="{StaticResource Panel}" Padding="0" CornerRadius="12" VerticalAlignment="Top"><Grid>
-      <DataGrid x:Name="HistoryGrid" Margin="0,4" SelectionChanged="RecentRun_Selected"><DataGrid.Columns><DataGridTextColumn Header="실행 번호" Binding="{Binding RunId}" Width="*" MinWidth="200" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="시험" Binding="{Binding SuiteName}" Width="136"/><DataGridTextColumn Header="시작한 시간" Binding="{Binding StartedAtText}" Width="130" ElementStyle="{StaticResource NumberCell}" HeaderStyle="{StaticResource NumberHeader}"/><DataGridTextColumn Header="통과 / 전체" Binding="{Binding CountText}" Width="100" ElementStyle="{StaticResource NumberCell}" HeaderStyle="{StaticResource NumberHeader}"/><DataGridTextColumn Header="시험 대상" Binding="{Binding TargetText}" Width="110"/><DataGridTextColumn Header="정답 상태" Binding="{Binding LabelText}" Width="130"/></DataGrid.Columns></DataGrid>
-      <TextBlock Text="아직 저장한 실행 기록이 없어요. 시험 메뉴에서 카드를 하나 눌러 보세요." IsHitTestVisible="False"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource EmptyListText}"><Style.Triggers><DataTrigger Binding="{Binding HasItems, ElementName=HistoryGrid}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+     <Border Grid.Row="3" Style="{StaticResource SoftCard}" Padding="0,6" VerticalAlignment="Top"><Grid>
+      <DataGrid x:Name="HistoryGrid" SelectionChanged="RecentRun_Selected"><DataGrid.Columns><DataGridTextColumn Header="실행 번호" Binding="{Binding RunId}" Width="*" MinWidth="200" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="시험" Binding="{Binding SuiteName}" Width="136"/><DataGridTextColumn Header="시작한 시간" Binding="{Binding StartedAtText}" Width="130" ElementStyle="{StaticResource NumberCell}" HeaderStyle="{StaticResource NumberHeader}"/><DataGridTextColumn Header="통과 / 전체" Binding="{Binding CountText}" Width="100" ElementStyle="{StaticResource NumberCell}" HeaderStyle="{StaticResource NumberHeader}"/><DataGridTextColumn Header="시험 대상" Binding="{Binding TargetText}" Width="110"/><DataGridTextColumn Header="정답 상태" Binding="{Binding LabelText}" Width="130"/></DataGrid.Columns></DataGrid>
+      <TextBlock Text="아직 저장한 실행 기록이 없어요. 홈에서 ‘빠른 점검’을 눌러 보세요." IsHitTestVisible="False"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource EmptyListText}"><Style.Triggers><DataTrigger Binding="{Binding HasItems, ElementName=HistoryGrid}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
      </Grid></Border>
     </Grid>
 
     <!-- ===== 관리 › 설정 ===== -->
-    <ScrollViewer x:Name="SettingsPage" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,12,32,24" MaxWidth="1000" HorizontalAlignment="Stretch">
+    <ScrollViewer x:Name="SettingsPage" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel Margin="32,12,32,24" MaxWidth="1000" HorizontalAlignment="Stretch">
      <TextBlock Text="시험 대상" Style="{StaticResource FirstSectionTitle}"/>
      <StackPanel x:Name="SettingsFields">
       <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="DocumentText24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="시험 문자 파일" Style="{StaticResource SettingName}"/><TextBlock x:Name="HeaderCasesText" Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/></StackPanel></ui:CardControl.Header><ui:Button x:Name="CasesSelectorButton" Content="파일 고르기" Click="ChooseCases_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="cases"/></ui:CardControl>
@@ -221,11 +242,59 @@
      <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="Bot24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="AI 문자 생성 (Runpod)" Style="{StaticResource SettingName}"/><TextBlock Text="모델과 생성 정책을 정하면 연결해요" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><StackPanel Orientation="Horizontal"><Ellipse Style="{StaticResource StateDot}"/><TextBlock Text="준비 중" Style="{StaticResource HintText}" FontSize="13"/></StackPanel></ui:CardControl>
      <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="Server24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="Kafka · MongoDB · Spark" Style="{StaticResource SettingName}"/><TextBlock Text="연결 코드는 들어 있어요. 수업에서 구성한 뒤 연결해요" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><StackPanel Orientation="Horizontal"><Ellipse Style="{StaticResource StateDot}"/><TextBlock Text="연결 전" Style="{StaticResource HintText}" FontSize="13"/></StackPanel></ui:CardControl>
      <TextBlock Text="처음 사용하는 순서" Style="{StaticResource SectionTitle}"/>
-     <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="TaskListLtr24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="안내 다시 보기" Style="{StaticResource SettingName}"/><TextBlock Text="시험 화면의 순서 목록과 말풍선을 처음 상태로 되돌려요" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><ui:Button Content="처음부터 다시" Click="ResetChecklist_Click" Style="{StaticResource SecondaryButton}"/></ui:CardControl>
+     <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="TaskListLtr24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="안내 다시 보기" Style="{StaticResource SettingName}"/><TextBlock Text="홈의 여정 지도와 ‘다음 할 일’을 처음 상태로 되돌려요" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><ui:Button Content="처음부터 다시" Click="ResetChecklist_Click" Style="{StaticResource SecondaryButton}"/></ui:CardControl>
     </StackPanel></ScrollViewer>
+
+    <!-- ===== 오른쪽 조건 시트: 시험 카드·조건 바꾸기를 누르면 열린다 ===== -->
+    <Grid x:Name="SheetLayer" Grid.RowSpan="2" Visibility="Collapsed">
+     <Border x:Name="SheetBackdrop" Background="#330F2A27" MouseLeftButtonDown="SheetBackdrop_MouseDown"/>
+     <Border x:Name="ConditionSheet" Width="400" HorizontalAlignment="Right" Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1,0,0,0">
+      <Border.Effect><DropShadowEffect Color="#0F2A27" BlurRadius="30" ShadowDepth="0" Opacity="0.15"/></Border.Effect>
+      <DockPanel>
+       <Border DockPanel.Dock="Bottom" Padding="24,12,24,20" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0">
+        <StackPanel>
+         <TextBlock x:Name="SheetDurationText" Text="약 10초 걸려요" Style="{StaticResource HintText}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+         <ui:Button x:Name="RunButton" Content="시험 시작하기" Style="{StaticResource PrimaryButton}" Click="RunButton_Click" HorizontalAlignment="Stretch" MinHeight="48" CornerRadius="24" FontSize="15" local:UsageHelp.Key="run"/>
+        </StackPanel>
+       </Border>
+       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="24,20,24,16">
+        <DockPanel>
+         <ui:Button x:Name="CloseSheetButton" DockPanel.Dock="Right" Click="CloseSheet_Click" Appearance="Transparent" BorderThickness="0" Padding="6" VerticalAlignment="Top" ToolTip="닫기" AutomationProperties.Name="조건 시트 닫기"><ui:SymbolIcon Symbol="Dismiss24" FontSize="16"/></ui:Button>
+         <Border Width="48" Height="48" CornerRadius="16" Background="{StaticResource AccentBackgroundBrush}" HorizontalAlignment="Left"><ui:SymbolIcon x:Name="SheetIcon" Symbol="Flash24" FontSize="22" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+        </DockPanel>
+        <TextBlock x:Name="SuiteTitleText" Text="문자 판정 시험" FontSize="22" FontWeight="SemiBold" Margin="0,14,0,0"/>
+        <TextBlock x:Name="SuiteDescriptionText" Style="{StaticResource HintText}" FontSize="13" Margin="0,4,0,0"/>
+        <ui:InfoBar x:Name="SheetError" Style="{StaticResource NoticeBar}" Severity="Error" IsOpen="False" Margin="0,14,0,0" AutomationProperties.LiveSetting="Assertive"/>
+        <TextBlock Text="시험 종류" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/>
+        <UniformGrid x:Name="SuitePanel" Columns="2" Margin="-12,0,0,0">
+         <RadioButton x:Name="VerdictSuiteRadio" GroupName="Suite" IsChecked="True" Tag="verdict" Content="문자 판정" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="verdict"/>
+         <RadioButton x:Name="PipelineSuiteRadio" GroupName="Suite" Tag="pipeline" Content="데이터 처리" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="pipeline"/>
+         <RadioButton x:Name="LoadSuiteRadio" GroupName="Suite" Tag="load" Content="부하·응답" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="load"/>
+         <RadioButton x:Name="RecoverySuiteRadio" GroupName="Suite" Tag="recovery" Content="중단 후 복구" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="recovery"/>
+        </UniformGrid>
+        <Border x:Name="ExecutionOptions" Background="Transparent"><StackPanel>
+         <StackPanel x:Name="TargetChoicePanel"><TextBlock Text="시험 대상" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><WrapPanel><RadioButton x:Name="PracticeTargetRadio" GroupName="Target" Content="연습용 대상" IsChecked="True" Checked="Target_Checked" Style="{StaticResource TargetChoice}" Margin="0,0,16,0"/><RadioButton x:Name="ApiTargetRadio" GroupName="Target" Content="내 판정 API" Checked="Target_Checked" Style="{StaticResource TargetChoice}" local:UsageHelp.Key="api"/></WrapPanel></StackPanel>
+         <StackPanel x:Name="ExecutionApiField" Visibility="Collapsed"><TextBlock Text="판정 API 주소" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="ApiUrlBox" PlaceholderText="http://localhost:8000" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="api"/></StackPanel>
+         <TextBlock x:Name="ApiUrlHint" Style="{StaticResource HintText}" Margin="0,6,0,0"/>
+         <StackPanel x:Name="CasesPathField"><TextBlock x:Name="CasesPathLabel" Text="시험 문자와 예상 정답" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="CasesPathBox" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="case-path"/></StackPanel>
+         <StackPanel x:Name="MeasurementPanel" Visibility="Collapsed"><UniformGrid Columns="3">
+          <StackPanel Margin="0,0,6,0"><TextBlock Text="시간 (초)" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="DurationBox" TextChanged="SheetDuration_Changed" local:UsageHelp.Key="duration"/></StackPanel>
+          <StackPanel Margin="3,0"><TextBlock Text="초당 건수" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="RateBox" local:UsageHelp.Key="rate"/></StackPanel>
+          <StackPanel x:Name="StopSecondsField" Margin="6,0,0,0"><TextBlock Text="중단 (초)" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="StopSecondsBox" local:UsageHelp.Key="stop"/></StackPanel>
+         </UniformGrid><TextBlock x:Name="MeasurementHint" Style="{StaticResource HintText}" Margin="0,8,0,0"/></StackPanel>
+         <TextBlock Text="보고서 저장 위치" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/>
+         <ui:TextBox x:Name="ReportDirectoryBox" Text="reports" local:UsageHelp.Key="report-path"/>
+        </StackPanel></Border>
+        <Border x:Name="SheetPracticeNote" Background="{StaticResource AccentBackgroundBrush}" CornerRadius="16" Padding="14,12" Margin="0,20,0,0">
+         <DockPanel><ui:SymbolIcon Symbol="Info24" FontSize="16" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Top" Margin="0,1,10,0"/><TextBlock Text="연습용 대상에는 일부러 틀리는 규칙이 있어요. 어떤 차이를 찾아내는지 살펴보세요." TextWrapping="Wrap" FontSize="13" LineHeight="20" Foreground="{StaticResource CalloutInkBrush}"/></DockPanel>
+        </Border>
+       </StackPanel></ScrollViewer>
+      </DockPanel>
+     </Border>
+    </Grid>
    </Grid>
   </Grid></Grid>
-  <DockPanel Grid.Row="2" Margin="16,0"><TextBlock x:Name="ZoomStatusText" DockPanel.Dock="Right" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="12,0,16,0" local:UsageHelp.Key="zoom"/><TextBlock x:Name="StatusText" Text="카드를 눌러 시험을 시작해 주세요." Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/></DockPanel>
+  <DockPanel Grid.Row="2" Margin="16,0"><TextBlock x:Name="ZoomStatusText" DockPanel.Dock="Right" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="12,0,16,0" local:UsageHelp.Key="zoom"/><TextBlock x:Name="StatusText" Text="홈에서 ‘다음 할 일’을 따라가 보세요." Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/></DockPanel>
   <ResizeGrip Grid.Row="2" Style="{StaticResource WindowResizeGrip}"/>
  </Grid>
 </Window>

@@ -37,20 +37,22 @@ public partial class MainWindow
         Require(Confluent.Kafka.Library.IsLoaded && Confluent.Kafka.Library.Version > 0,
             "Windows용 Kafka 네이티브 라이브러리 로드·버전 조회");
 
-        // 처음 쓰는 사람이 보는 화면(순서 목록·말풍선 펼침)으로 점검한다
-        SetChecklistExpanded(true);
-        CoachHint.Visibility = Visibility.Visible;
+        // 처음 쓰는 사람이 보는 홈(여정 지도 처음 단계)으로 점검한다. 점검용 보고서 폴더는 비어 있다
+        ResetJourney();
+        RefreshHistory();
+        SelectPage("home");
         await Capture("start");
-        Require(((System.Windows.Media.SolidColorBrush)FindResource("AccentBrush")).Color == System.Windows.Media.Color.FromRgb(79, 70, 229)
-            && ((System.Windows.Media.SolidColorBrush)FindResource("AccentBackgroundBrush")).Color == System.Windows.Media.Color.FromRgb(238, 242, 255),
-            "밝은 Slate·Indigo 테마와 남보라 선택 강조 적용");
-        Require(NavigationBar.TranslatePoint(new Point(), WorkspaceRoot).X < TestMain.TranslatePoint(new Point(), WorkspaceRoot).X
-            && NavigationBar.Children.OfType<RadioButton>().Count(item => item.Visibility == Visibility.Visible) == 3
-            && HomeHero.IsVisible && PresetGrid.Columns == 3 && PresetGrid.Children.Count == 6,
-            "왼쪽 메뉴 3개(시험·기록·관리)와 빠른 시작 카드 6개 배치");
-        Require(ExecutionScroll.IsVisible && TestNav.IsChecked == true && ResultsSection.Visibility == Visibility.Collapsed
-            && ChecklistItems.Items.Count == 4 && _checklistSteps[0].IsCurrent && ChecklistPanel.IsVisible && CoachHint.IsVisible,
-            "첫 화면은 시험 메뉴 · 결과 없이 처음 사용하는 순서 4단계 안내");
+        Require(((System.Windows.Media.SolidColorBrush)FindResource("AccentBrush")).Color == System.Windows.Media.Color.FromRgb(13, 148, 136)
+            && ((System.Windows.Media.SolidColorBrush)FindResource("AccentBackgroundBrush")).Color == System.Windows.Media.Color.FromRgb(230, 250, 246),
+            "민트 프레시 테마와 청록 강조 적용");
+        Require(NavigationBar.TranslatePoint(new Point(), WorkspaceRoot).X < HomeMain.TranslatePoint(new Point(), WorkspaceRoot).X
+            && NavigationBar.Children.OfType<RadioButton>().Count(item => item.Visibility == Visibility.Visible) == 4
+            && HomeNav.IsChecked == true && HomePage.IsVisible && HomeHero.IsVisible
+            && HomeSuiteCards.Columns == 4 && HomeSuiteCards.Children.Count == 4,
+            "왼쪽 메뉴 4개(홈·시험·기록·관리)와 홈의 배너·시험 카드 4개");
+        Require(JourneyItems.Items.Count == 4 && _checklistSteps[0].IsCurrent && NextStepTitle.Text.Length > 0
+            && HomeGreetingText.Text.StartsWith("안녕하세요") && !IsSheetOpen && HistoryEmptyText.IsVisible,
+            "홈 첫 화면: 인사 · 여정 지도 · 다음 할 일 · 빈 최근 실행 안내");
         SelectPage("team");
         Require(HistoryNav.IsChecked == true && TeamTab.IsChecked == true && TeamTab.IsVisible && !CasesTab.IsVisible
             && SectionHeader.IsVisible && CollaborationPage.IsVisible, "기록 메뉴 안의 팀 공유 탭");
@@ -61,36 +63,46 @@ public partial class MainWindow
         Require(ManageNav.IsChecked == true && CollaborationPage.IsVisible && !SettingsPage.IsVisible, "안쪽 탭을 눌러 시험 문자 열기");
         HistoryNav.IsChecked = true;
         Require(ReportsPage.IsVisible && ReportsTab.IsChecked == true, "기록 메뉴를 누르면 내 기록부터");
-        SelectPage("run");
+        HomeNav.IsChecked = true;
+        Require(HomePage.IsVisible && !SectionHeader.IsVisible, "홈 버튼으로 홈 돌아가기");
 
         var historyBeforePreparation = ReportHistoryLoaderCount();
+        HomeVerdictCard.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Require(IsSheetOpen && VerdictSuiteRadio.IsChecked == true && PracticeTargetRadio.IsChecked == true
+            && _checklistSteps[0].IsDone && _checklistSteps[1].IsCurrent && ReportHistoryLoaderCount() == historyBeforePreparation,
+            "시험 카드를 누르면 오른쪽 조건 시트만 열리고 여정이 다음 단계로");
+        await Capture("sheet");
+        CloseSheetButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Require(!IsSheetOpen, "닫기 버튼으로 조건 시트 닫기");
         await RunPresetAsync("api");
-        Require(AdvancedOptions.IsExpanded && ApiTargetRadio.IsChecked == true && ExecutionApiField.Visibility == Visibility.Visible
+        Require(IsSheetOpen && ApiTargetRadio.IsChecked == true && ExecutionApiField.Visibility == Visibility.Visible
             && ResultsSection.Visibility == Visibility.Collapsed && ReportHistoryLoaderCount() == historyBeforePreparation,
-            "내 API 판정 카드는 바로 실행하지 않고 주소 입력칸을 열어 줌");
+            "내 API 판정은 바로 실행하지 않고 주소 입력칸이 있는 시트를 열어 줌");
         await RunSelectedSuiteAsync();
-        Require(ExecutionError.IsOpen && $"{ExecutionError.Message}".Contains("주소") && ReportHistoryLoaderCount() == historyBeforePreparation,
-            "API 주소 없이 시작하면 실행하지 않고 안내");
+        Require(IsSheetOpen && SheetError.IsOpen && $"{SheetError.Message}".Contains("주소") && ReportHistoryLoaderCount() == historyBeforePreparation,
+            "API 주소 없이 시작하면 실행하지 않고 시트 안에서 안내");
         ApiUrlBox.Text = "잘못된 주소";
         await RunSelectedSuiteAsync();
-        Require(ExecutionError.IsOpen && $"{ExecutionError.Message}".Contains("http://") && ReportHistoryLoaderCount() == historyBeforePreparation,
+        Require(SheetError.IsOpen && $"{SheetError.Message}".Contains("http://") && ReportHistoryLoaderCount() == historyBeforePreparation,
             "주소를 잘못 입력하면 실행 전에 수정 방법 안내");
         await Capture("api-address-error");
         ApiUrlBox.Text = "http://localhost:8000";
-        Require(HeaderTargetText.Text.Contains("http://localhost:8000"), "시험 화면과 설정의 API 주소 동기화");
+        Require(HeaderTargetText.Text.Contains("http://localhost:8000"), "조건 시트와 설정의 API 주소 동기화");
         await Capture("api-conditions");
         PracticeTargetRadio.IsChecked = true;
-        Require(ApiUrlBox.Text.Length == 0 && ExecutionApiField.Visibility == Visibility.Collapsed,
-            "연습용 대상으로 바꾸면 이전 API를 시험 대상에서 제외");
+        Require(ApiUrlBox.Text.Length == 0 && ExecutionApiField.Visibility == Visibility.Collapsed && SheetPracticeNote.IsVisible,
+            "연습용 대상으로 바꾸면 이전 API를 빼고 연습용 안내 표시");
         SelectSuite(TestSuite.Load);
         Require(MeasurementPanel.Visibility == Visibility.Visible && StopSecondsField.Visibility == Visibility.Collapsed
-            && TargetChoicePanel.Visibility == Visibility.Visible, "부하 시험은 시간·건수만 보이고 중단 입력은 숨김");
+            && TargetChoicePanel.Visibility == Visibility.Visible && SheetDurationText.Text.Contains("초"),
+            "부하 시험은 시간·건수만 보이고 걸리는 시간 안내");
         SelectSuite(TestSuite.Recovery);
         Require(CasesPathField.Visibility == Visibility.Collapsed && StopSecondsField.Visibility == Visibility.Visible
             && TargetChoicePanel.Visibility == Visibility.Collapsed, "복구 시험은 사용하지 않는 파일·API 선택 숨김");
         SelectSuite(TestSuite.Verdict);
-        ExecutionError.IsOpen = false;
+        SheetError.IsOpen = false;
         await Capture("ready");
+        CloseSheet();
         var failedResponse = ResultRow.From(TestResult.SystemFailure("UI-ERR", "응답", "문자", "고위험", "연결 실패"));
         Require(failedResponse.IsSystemFailure && failedResponse.ResultLabel == "응답 없음",
             "응답을 못 받은 경우와 판정 불일치를 다른 말로 구분");
@@ -106,8 +118,7 @@ public partial class MainWindow
         Require(InputBindings.OfType<KeyBinding>().Any(binding => binding.Key == Key.F1)
             && ApplicationCommands.Help.CanExecute(null, this), "F1 사용 안내 명령 연결");
         var tip = (ToolTip)RunButton.ToolTip;
-        SelectPage("run");
-        AdvancedOptions.IsExpanded = true;
+        OpenConditionSheet();
         await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
         tip.PlacementTarget = RunButton;
         tip.Opacity = 0;
@@ -130,8 +141,8 @@ public partial class MainWindow
             SaveWindowScreenshot(guide, Path.Combine(outputDirectory, "usage-guide.png"));
             Require(guide.GuideStartButton.ActualWidth > 100, "처음 사용하는 순서 안내 창 표시");
             guide.GuideStartButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Require(guideClosed && TestNav.IsChecked == true && VerdictSuiteRadio.IsChecked == true,
-                "시작 가이드에서 실제 판정 시험 화면으로 이동");
+            Require(guideClosed && IsSheetOpen && VerdictSuiteRadio.IsChecked == true,
+                "시작 가이드에서 판정 시험 조건 시트 열기");
         }
         finally { if (!guideClosed) guide.Close(); }
         foreach (var dpiFactor in new[] { 1.0, 1.25, 1.5, 2.0 })
@@ -180,8 +191,8 @@ public partial class MainWindow
         var beforeQuick = ReportHistoryLoaderCount();
         await RunPresetAsync("quick");
         Require(ResultsGrid.Items.Count > 0 && VerdictSuiteRadio.IsChecked == true && ReportHistoryLoaderCount() == beforeQuick + 1
-            && _checklistSteps.Take(2).All(step => step.IsDone) && CoachHint.Visibility == Visibility.Collapsed,
-            "빠른 점검 카드 한 번으로 시험·보고서 저장 · 순서 1~2단계 완료");
+            && _checklistSteps.Take(2).All(step => step.IsDone) && _checklistSteps[2].IsCurrent && !IsSheetOpen,
+            "다음 할 일의 빠른 점검 한 번으로 시험·보고서 저장 · 여정 1~2단계 완료");
         await Capture("preset-quick");
 
         SelectPage("ai");
@@ -207,13 +218,14 @@ public partial class MainWindow
         Require(TestNav.IsChecked == true && ResultsGrid.Items.Count > 0 && _checklistSteps[3].IsDone, "저장 이력에서 결과 다시 열기 · 순서 4단계 완료");
         SelectPage("settings");
         await Capture("settings");
-        SelectPage("run");
-        Require(PresetVerdictLast.Text.StartsWith("최근") && PresetLoadLast.Text.StartsWith("최근"),
-            "빠른 시작 카드에 실제 보고서의 최근 결과 표시");
+        SelectPage("home");
+        Require(PresetVerdictLast.Text.StartsWith("최근") && PresetLoadLast.Text.StartsWith("최근")
+            && RecentRunsGrid.Items.Count == 3 && HomeRateText.Text.EndsWith("%") && HomeRateArc.Data != System.Windows.Media.Geometry.Empty,
+            "홈 카드·최근 실행·통과율 원에 실제 보고서 결과 표시");
         await Capture("overview");
         SelectSuite(TestSuite.Load);
         SelectPage("run");
-        AdvancedOptions.IsExpanded = true;
+        OpenConditionSheet();
         Width = 840;
         Height = 520;
         await Capture("minimum-window");
