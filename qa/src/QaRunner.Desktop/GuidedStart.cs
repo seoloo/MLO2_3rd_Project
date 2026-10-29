@@ -295,6 +295,89 @@ public partial class MainWindow
         ResultCoach.Visibility = Visibility.Visible;
     }
 
+    // ---------- 시험 중 진행 카드 ----------
+
+    // 진행 카드의 지난 시간·남은 시간·단계를 0.5초마다 다시 그린다
+    private readonly System.Windows.Threading.DispatcherTimer _runningTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
+    private DateTimeOffset _runStartedAt;
+    // 부하·복구 시험처럼 보내는 시간이 정해진 시험만 남은 시간을 알 수 있다. 나머지는 null
+    private double? _plannedSendSeconds;
+
+    /// <summary>
+    /// 시험을 시작하면 결과 자리에 진행 카드를 띄운다. 무엇을 하는 중인지, 얼마나 지났고 남았는지, 지금 단계를 보여 준다.
+    /// </summary>
+    /// <param name="options">지금 실행하는 시험의 조건 (시험 종류, 보내는 시간·건수)</param>
+    private void StartRunningProgress(CommandLineOptions options)
+    {
+        var measurement = options.Measurement;
+        _runStartedAt = DateTimeOffset.Now;
+        _plannedSendSeconds = measurement?.DurationSeconds;
+        RunningTitleText.Text = $"{options.Suite.ToKoreanName()}을 진행하고 있어요";
+        RunningHintText.Text = options.Suite switch
+        {
+            TestSuite.Pipeline => "중복·순서 변경·지연 조건으로 이벤트를 보내고 Bronze·Silver·Gold 건수를 모으고 있어요.",
+            TestSuite.Load when measurement is not null =>
+                $"약 {measurement.DurationSeconds}초 동안 초당 {measurement.EventsPerSecond:0.##}건씩 보내면서 응답 시간과 반영 시간을 재고 있어요.",
+            TestSuite.Recovery when measurement is not null =>
+                $"{measurement.DurationSeconds}초 동안 보내다가 처리를 {measurement.StopSeconds}초 멈춘 뒤 다시 켜고, 따라잡는 시간을 재고 있어요.",
+            TestSuite.SelfCheck => "답을 이미 아는 입력으로 QA 도구의 채점기·정답 계산·보고서를 확인하고 있어요.",
+            _ => "시험 문자를 하나씩 보내고 돌아온 판정을 받고 있어요.",
+        };
+        RunningProgressBar.IsIndeterminate = _plannedSendSeconds is null;
+        RunningProgressBar.Value = 0;
+        RunningCard.Visibility = Visibility.Visible;
+        _runningTimer.Tick -= RunningTimer_Tick;
+        _runningTimer.Tick += RunningTimer_Tick;
+        UpdateRunningProgress();
+        _runningTimer.Start();
+    }
+
+    private void StopRunningProgress()
+    {
+        _runningTimer.Stop();
+        RunningCard.Visibility = Visibility.Collapsed;
+    }
+
+    private void RunningTimer_Tick(object? sender, EventArgs e) => UpdateRunningProgress();
+
+    // 보내는 시간이 정해진 시험은 지난 시간으로 막대를 채우고, 다 보낸 뒤에는 '결과 모으기' 단계로 넘긴다
+    private void UpdateRunningProgress()
+    {
+        var elapsed = (DateTimeOffset.Now - _runStartedAt).TotalSeconds;
+        RunningElapsedText.Text = $"{elapsed:0}초 지남";
+        if (_plannedSendSeconds is not { } planned)
+        {
+            RunningRemainingText.Text = "곧 끝나요";
+            SetRunningStep(1);
+            return;
+        }
+
+        var sending = elapsed < planned;
+        RunningProgressBar.Value = Math.Min(100, elapsed / planned * 100);
+        RunningRemainingText.Text = sending ? $"보내기 약 {Math.Ceiling(planned - elapsed):0}초 남음" : "보내기 끝 · 반영을 기다리는 중";
+        SetRunningStep(sending ? 1 : 2);
+    }
+
+    /// <summary>진행 카드의 단계 표시에서 지금 단계는 청록, 지난 단계는 체크, 남은 단계는 회색으로 칠한다.</summary>
+    /// <param name="current">지금 단계 번호 (1 입력 보내기 · 2 결과 모으기 · 3 채점·보고서 저장)</param>
+    private void SetRunningStep(int current)
+    {
+        var steps = new[] { (RunStepSend, RunStepSendText, "입력 보내기"), (RunStepCollect, RunStepCollectText, "결과 모으기"),
+            (RunStepReport, RunStepReportText, "채점·보고서 저장") };
+        for (var index = 0; index < steps.Length; index++)
+        {
+            var (pill, label, name) = steps[index];
+            var number = index + 1;
+            var isCurrent = number == current;
+            var isDone = number < current;
+            pill.Background = isCurrent ? (Brush)FindResource("AccentBrush")
+                : isDone ? (Brush)FindResource("AccentBackgroundBrush") : (Brush)FindResource("HoverBrush");
+            label.Foreground = isCurrent ? Brushes.White : isDone ? (Brush)FindResource("CalloutInkBrush") : (Brush)FindResource("MutedBrush");
+            label.FontWeight = isCurrent ? FontWeights.SemiBold : FontWeights.Normal;
+            label.Text = $"{(isDone ? "✓" : number.ToString())} {name}";
+        }
+    }
+
     private void HideCoach() => ResultCoach.Visibility = Visibility.Collapsed;
 
     private void CloseCoach_Click(object sender, RoutedEventArgs e) => HideCoach();

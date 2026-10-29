@@ -208,9 +208,34 @@
        </DockPanel>
        <ProgressBar x:Name="RunProgress" Visibility="Collapsed" Height="4" IsIndeterminate="True" Foreground="{StaticResource AccentBrush}" Margin="0,16,0,0"/>
        <ui:InfoBar x:Name="ExecutionError" Style="{StaticResource NoticeBar}" Severity="Error" IsOpen="False" Margin="0,16,0,0" AutomationProperties.LiveSetting="Assertive"/>
-       <!-- 결과가 없을 때 -->
+       <!-- 시험 중: 무엇을 하고 있는지, 얼마나 지났고 얼마나 남았는지, 지금 단계를 보여 준다 -->
+       <Border x:Name="RunningCard" Style="{StaticResource SoftCard}" MinHeight="320" Margin="0,20,0,0" Padding="40,32" Visibility="Collapsed">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560" AutomationProperties.LiveSetting="Polite">
+         <Grid Width="72" Height="72" HorizontalAlignment="Center">
+          <Ellipse Fill="{StaticResource AccentBackgroundBrush}"/>
+          <ui:ProgressRing IsIndeterminate="True" Width="48" Height="48" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+         </Grid>
+         <TextBlock x:Name="RunningTitleText" Text="시험을 진행하고 있어요" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,18,0,0"/>
+         <TextBlock x:Name="RunningHintText" Style="{StaticResource HintText}" FontSize="13" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
+         <ProgressBar x:Name="RunningProgressBar" Height="8" Maximum="100" Margin="0,22,0,0" Foreground="{StaticResource AccentBrush}" Background="{StaticResource AccentBackgroundBrush}" BorderThickness="0"/>
+         <DockPanel Margin="0,8,0,0">
+          <TextBlock x:Name="RunningRemainingText" DockPanel.Dock="Right" Style="{StaticResource HintText}" FontWeight="SemiBold"/>
+          <TextBlock x:Name="RunningElapsedText" Text="0초 지남" Style="{StaticResource HintText}"/>
+         </DockPanel>
+         <!-- 단계: 입력 보내기 → 결과 모으기 → 보고서 저장. 지금 단계만 청록으로 칠한다 -->
+         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+          <Border x:Name="RunStepSend" CornerRadius="14" Padding="12,4"><TextBlock x:Name="RunStepSendText" Text="① 입력 보내기" FontSize="12"/></Border>
+          <TextBlock Text="›" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
+          <Border x:Name="RunStepCollect" CornerRadius="14" Padding="12,4"><TextBlock x:Name="RunStepCollectText" Text="② 결과 모으기" FontSize="12"/></Border>
+          <TextBlock Text="›" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
+          <Border x:Name="RunStepReport" CornerRadius="14" Padding="12,4"><TextBlock x:Name="RunStepReportText" Text="③ 채점·보고서 저장" FontSize="12"/></Border>
+         </StackPanel>
+         <TextBlock Style="{StaticResource HintText}" HorizontalAlignment="Center" Margin="0,16,0,0" Text="시험이 끝날 때까지 다른 메뉴로는 이동할 수 없어요."/>
+        </StackPanel>
+       </Border>
+       <!-- 결과가 없을 때 (시험 중에는 위의 진행 카드를 대신 보여 준다) -->
        <Border MinHeight="320" Margin="0,20,0,0" Padding="32">
-        <Border.Style><Style TargetType="Border" BasedOn="{StaticResource SoftCard}"><Style.Triggers><DataTrigger Binding="{Binding Visibility, ElementName=ResultsSection}" Value="Visible"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
+        <Border.Style><Style TargetType="Border" BasedOn="{StaticResource SoftCard}"><Style.Triggers><DataTrigger Binding="{Binding Visibility, ElementName=ResultsSection}" Value="Visible"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding Visibility, ElementName=RunningCard}" Value="Visible"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
          <Border Width="64" Height="64" CornerRadius="32" Background="{StaticResource AccentBackgroundBrush}" HorizontalAlignment="Center"><ui:SymbolIcon Symbol="Play24" FontSize="26" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
          <TextBlock Text="아직 결과가 없어요" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
