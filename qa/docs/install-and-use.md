@@ -340,6 +340,7 @@ dotnet run --project src/QaRunner -- --suite recovery --duration 60 --stop-secon
 - 끝나면 종료 코드로 결과를 알려 줘요. `0` 모두 통과, `1` 실패 있음, `2` 시작조차 못 함(옵션·파일·연결 문제)이에요.
 - 토픽 이름(`--kafka-topic`, 기본 `scan-events`), DB 이름(`--mongo-db`, 기본 `jeongbo`), Spark 컨테이너 이름(`--spark-container`, 기본 `spark`)을 바꿀 수 있어요.
 - 다른 데이터가 섞이면 Gold 집계가 틀어지니 **시험 전용 환경**에서 돌려 주세요.
+- EC2에 붙일 때 `--mongo`에 비밀번호가 든 연결 문자열을 넣으면 셸 기록이나 CI 로그에 남아요. 단톡방·이슈에 그대로 붙이지 말고, 먼저 [AWS·EC2 보안 체크리스트](https://github.com/seoloo/MLO2_3rd_Project/blob/main/infra/README.md#awsec2-보안-체크리스트)를 한 번 훑어 주세요.
 - 옵션 전체와 처음 연결할 때 확인 순서는 [QA README의 실제 시스템에 연결하기](https://github.com/seoloo/MLO2_3rd_Project/blob/main/qa/README.md#실제-시스템에-연결하기)를 봐 주세요.
 
 ---

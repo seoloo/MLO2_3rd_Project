@@ -297,7 +297,7 @@ dotnet test
 | `--rate` | 부하·복구 시험에서 1초에 보내는 이벤트 수 | 5 |
 | `--stop-seconds` | 복구 시험에서 처리를 멈춰 두는 시간(초). 전체 시간의 1/4 지점에서 멈춤 | 30 |
 | `--kafka` | 실제 Kafka 주소. `--mongo`와 함께 주면 실제 파이프라인을 대상으로 시험 | 없음 (가짜 파이프라인) |
-| `--mongo` | 실제 MongoDB 연결 문자열 | 없음 |
+| `--mongo` | 실제 MongoDB 연결 문자열. 비밀번호가 들어 있으면 셸 기록·CI 로그에 남으니 CI에서는 Secrets로 넣는다 (보고서에는 기록하지 않음, [AWS·EC2 보안 체크리스트](../infra/README.md#awsec2-보안-체크리스트)) | 없음 |
 | `--kafka-topic` | 이벤트를 넣을 토픽 | `scan-events` |
 | `--mongo-db` | 메달리온 컬렉션이 있는 데이터베이스 | `jeongbo` |
 | `--spark-container` | 복구 시험에서 멈췄다 켤 Spark 컨테이너 | `spark` |

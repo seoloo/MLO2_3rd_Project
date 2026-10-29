@@ -16,3 +16,15 @@ qa/reports/
 
 # 최적화한 Windows 배포 파일
 /qa/dist/
+
+# 비밀 정보(AWS 키, 접속 비밀번호, 인증서)는 절대 올리지 않음. 예시 파일만 .env.example로 둠
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+.aws/
+credentials
+credentials.*
