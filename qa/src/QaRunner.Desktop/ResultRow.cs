@@ -31,6 +31,10 @@ public sealed record ResultRow(
         : CheckName.Contains("Silver") ? "중복을 제외하고 남은 고유 이벤트 건수예요."
         : CheckName.Contains("Bronze") ? "처음 받은 원본 이벤트를 보관한 건수예요."
         : CheckName.Contains("격리") ? "조건에 맞지 않아 정상 집계에서 따로 뺀 이벤트 건수예요."
+        : CheckName == QaRunner.AppMock.MockRequestGrader.RequestCheckName
+            ? "앱이 보낸 요청이 연결 계약 3장(POST /checks, Content-Type: application/json, 본문 { \"message\": \"문자\" })과 같은지 봤어요."
+        : CheckName == QaRunner.AppMock.MockRequestGrader.NoRequestCheckName
+            ? "서버를 켜 둔 동안 앱이 판정을 한 번도 요청하지 않았어요. 앱의 API 주소와 포트를 확인해 주세요."
         : "";
 
     /// <summary>

@@ -48,6 +48,7 @@ public partial class MainWindow : Window
         UserInitialText.Text = userName.Length > 0 ? userName[..1].ToUpperInvariant() : "?";
         HomeGreetingText.Text = $"안녕하세요, {userName}님";
         InitializeChecklist();
+        InitializeMockServerPanel();
         SelectHomeArea(TestArea.Service);
         RefreshHeader();
         RefreshHistory();
@@ -80,6 +81,8 @@ public partial class MainWindow : Window
     /// </summary>
     public void SelectSuite(TestSuite testSuite)
     {
+        // 가짜 판정 서버는 조건 시트가 아니라 홈 › 앱 영역에서 켜므로 시트의 선택을 바꾸지 않는다
+        if (testSuite == TestSuite.MockApi) return;
         VerdictSuiteRadio.IsChecked = testSuite == TestSuite.Verdict;
         PipelineSuiteRadio.IsChecked = testSuite == TestSuite.Pipeline;
         LoadSuiteRadio.IsChecked = testSuite == TestSuite.Load;
@@ -617,7 +620,8 @@ public partial class MainWindow : Window
         HistoryLatestText.Text = rows.Length == 0 ? "—" : $"{rows[0].SuiteName} {rows[0].CountText.Replace(" ", "")}";
         // 시험 종류마다 가장 최근 기록을 카드 아래에 보여 준다
         foreach (var (suite, label) in new[] { (TestSuite.Verdict, PresetVerdictLast), (TestSuite.Pipeline, PresetPipelineLast),
-                     (TestSuite.Load, PresetLoadLast), (TestSuite.Recovery, PresetRecoveryLast), (TestSuite.SelfCheck, PresetSelfCheckLast) })
+                     (TestSuite.Load, PresetLoadLast), (TestSuite.Recovery, PresetRecoveryLast), (TestSuite.SelfCheck, PresetSelfCheckLast),
+                     (TestSuite.MockApi, PresetMockApiLast) })
         {
             var last = rows.FirstOrDefault(row => row.SuiteName == suite.ToKoreanName());
             label.Text = last is null ? "아직 실행 전" : $"최근 {last.CountText.Replace(" ", "")} 통과";

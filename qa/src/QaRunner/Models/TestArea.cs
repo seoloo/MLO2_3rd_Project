@@ -9,7 +9,7 @@ public enum TestArea
     /// <summary>서비스: 판정 API와 Kafka·Spark·MongoDB 파이프라인 (판정·파이프라인·부하·복구 시험)</summary>
     Service,
 
-    /// <summary>앱: React Native 앱 화면. 앱이 나오면 화면 시험을 붙인다 (지금은 준비 중)</summary>
+    /// <summary>앱: React Native 앱. 지금은 가짜 판정 서버로 앱의 요청 형식과 오류·지연 처리를 확인한다</summary>
     App,
 
     /// <summary>QA 도구: 이 QA 러너 자체가 정답을 맞게 계산하고 틀린 결과를 잡아내는지</summary>
@@ -31,12 +31,12 @@ public static class TestAreaExtensions
     public static string Describe(this TestArea testArea) => testArea switch
     {
         TestArea.Service => "판정 API와 데이터 파이프라인이 정확하고 빠르고 멈춰도 회복하는지 확인해요.",
-        TestArea.App => "앱 화면에서 문자를 넣었을 때 판정과 근거가 제대로 보이는지 확인해요. 앱이 나오면 연결할 예정이에요.",
+        TestArea.App => "앱을 가짜 판정 서버에 연결해서, 앱이 계약대로 요청하고 오류·지연 응답에도 화면이 제대로 버티는지 확인해요.",
         TestArea.QaTool => "이 QA 도구가 정답을 맞게 계산하고, 틀린 결과를 빠짐없이 잡아내는지 확인해요.",
         _ => "",
     };
 
-    /// <summary>지금 실행할 수 있는 시험이 있는 영역인지. 앱 영역은 앱이 나오기 전까지 준비 중이다</summary>
+    /// <summary>지금 실행할 수 있는 시험이 있는 영역인지</summary>
     public static bool HasRunnableSuites(this TestArea testArea) =>
         Enum.GetValues<TestSuite>().Any(testSuite => testSuite.Area() == testArea);
 }

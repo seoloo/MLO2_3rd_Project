@@ -120,7 +120,7 @@
       </Grid>
       <!-- 시험 영역과 종류 카드: 영역 탭으로 서비스 · 앱 · QA 도구를 바꾸고, 카드를 누르면 오른쪽 조건 시트 -->
       <DockPanel Margin="0,28,0,2">
-       <TextBlock DockPanel.Dock="Right" Text="카드를 누르면 오른쪽에서 조건을 확인해요" Style="{StaticResource HintText}" VerticalAlignment="Center"/>
+       <TextBlock x:Name="HomeAreaHint" DockPanel.Dock="Right" Text="카드를 누르면 오른쪽에서 조건을 확인해요" Style="{StaticResource HintText}" VerticalAlignment="Center"/>
        <TextBlock Text="무엇을 점검할까요" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0"/>
        <StackPanel x:Name="HomeAreaTabs" Orientation="Horizontal" local:UsageHelp.Key="home-area">
         <RadioButton x:Name="ServiceAreaTab" GroupName="HomeArea" Tag="service" Content="서비스" IsChecked="True" Checked="HomeArea_Checked" Style="{StaticResource SubTabNavigation}"/>
@@ -151,17 +151,51 @@
         <TextBlock x:Name="PresetRecoveryLast" Style="{StaticResource HintText}" FontWeight="SemiBold" Margin="0,6,0,0"/>
        </StackPanel></Button>
       </UniformGrid>
-      <!-- 앱 영역: 앱이 나오기 전까지는 준비 중 안내만 보여 준다 -->
-      <Border x:Name="HomeAppArea" Style="{StaticResource SoftCard}" Padding="24,20" Visibility="Collapsed">
-       <DockPanel>
-        <Border DockPanel.Dock="Left" Style="{StaticResource SuiteIconBox}" Background="#FEF3C7" VerticalAlignment="Top"><ui:SymbolIcon Symbol="Phone24" FontSize="20" Foreground="#B45309" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-        <StackPanel Margin="16,0,0,0">
-         <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource StatusBadge}" Background="{StaticResource NoticeBackgroundBrush}" CornerRadius="10" VerticalAlignment="Top"><TextBlock Text="준비 중" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NoticeBrush}"/></Border><TextBlock Text="앱 화면 시험" FontSize="15" FontWeight="SemiBold"/></DockPanel>
-         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,4,0,0" Text="정보지킴 앱이 나오면 시험 문자를 앱 화면에 넣고, 화면에 나온 판정·근거·대응 안내가 예상 정답과 같은지 확인해요. 서버가 꺼졌을 때 ‘시스템 실패’가 판정과 따로 보이는지도 봐요."/>
-         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,8,0,0" Text="지금은 서비스 영역의 ‘빠른 점검’이 같은 문자로 판정 API를 확인해요."/>
+      <!-- 앱 영역: 가짜 판정 서버를 켜 두고 앱을 붙인다. 왼쪽은 서버 조건과 앱에서 확인할 것, 오른쪽은 받은 요청 목록 -->
+      <Grid x:Name="HomeAppArea" Margin="-6" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="5*"/><ColumnDefinition Width="6*"/></Grid.ColumnDefinitions>
+       <Border Style="{StaticResource SoftCard}" Margin="6" Padding="20,16">
+        <StackPanel>
+         <DockPanel>
+          <Border x:Name="MockStateBadge" DockPanel.Dock="Right" Style="{StaticResource StatusBadge}" CornerRadius="10" VerticalAlignment="Top"><TextBlock x:Name="MockStateText" Text="꺼져 있어요" FontSize="11" FontWeight="SemiBold"/></Border>
+          <Border Style="{StaticResource SuiteIconBox}" Background="#FEF3C7"><ui:SymbolIcon Symbol="Phone24" FontSize="20" Foreground="#B45309" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+          <StackPanel Margin="12,0,0,0" VerticalAlignment="Center"><TextBlock Text="가짜 판정 서버" FontSize="15" FontWeight="SemiBold"/><TextBlock x:Name="PresetMockApiLast" Style="{StaticResource HintText}" FontWeight="SemiBold"/></StackPanel>
+         </DockPanel>
+         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,10,0,0" Text="판정 API 대신 정해 둔 응답을 돌려줘요. 앱의 API 주소를 이 서버로 바꾸면 B의 서버 없이도 정상 판정과 오류·지연 화면을 확인할 수 있어요."/>
+         <Grid Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <StackPanel Margin="0,0,10,0"><TextBlock Text="포트" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="MockPortBox" Text="8000" local:UsageHelp.Key="mock-port"/></StackPanel>
+          <StackPanel Grid.Column="1"><TextBlock Text="응답 방식" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ComboBox x:Name="MockScenarioBox" DisplayMemberPath="Label" SelectionChanged="MockScenario_Changed" local:UsageHelp.Key="mock-scenario"/></StackPanel>
+         </Grid>
+         <CheckBox x:Name="MockAllowLanBox" Content="같은 Wi-Fi의 휴대폰에서도 접속 허용" Margin="0,10,0,0" local:UsageHelp.Key="mock-lan"/>
+         <Border Background="{StaticResource AccentBackgroundBrush}" CornerRadius="12" Padding="14,10" Margin="0,12,0,0">
+          <StackPanel><TextBlock Text="앱에서 확인할 것" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"/><TextBlock x:Name="MockExpectationText" TextWrapping="Wrap" FontSize="13" Margin="0,4,0,0"/><TextBlock x:Name="MockResponseText" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,6,0,0"/></StackPanel>
+         </Border>
+         <StackPanel x:Name="MockAddressPanel" Visibility="Collapsed" Margin="0,12,0,0">
+          <DockPanel><ui:Button DockPanel.Dock="Right" Content="주소 복사" Click="CopyMockAddress_Click" Style="{StaticResource TextButton}" MinHeight="24" Padding="8,2"/><TextBlock Text="앱에 넣을 주소" Style="{StaticResource SectionLabel}" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
+          <TextBox x:Name="MockAddressText" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent" FontFamily="Consolas" FontSize="13" Padding="0,2"/>
+         </StackPanel>
+         <ui:InfoBar x:Name="MockError" Severity="Error" IsClosable="True" Margin="0,10,0,0"/>
+         <UniformGrid Columns="2" Margin="0,14,0,0">
+          <ui:Button x:Name="MockStartButton" Content="서버 켜기" Icon="{ui:SymbolIcon Play24}" Style="{StaticResource PrimaryButton}" Click="MockStart_Click" HorizontalAlignment="Stretch" MinHeight="40" Margin="0,0,6,0" local:UsageHelp.Key="mock-server"/>
+          <ui:Button x:Name="MockStopButton" Content="끄고 결과 보기" Icon="{ui:SymbolIcon Stop24}" Style="{StaticResource SecondaryButton}" Click="MockStop_Click" HorizontalAlignment="Stretch" MinHeight="40" Margin="6,0,0,0" IsEnabled="False"/>
+         </UniformGrid>
         </StackPanel>
-       </DockPanel>
-      </Border>
+       </Border>
+       <Border Grid.Column="1" Style="{StaticResource SoftCard}" Margin="6" Padding="0,16,0,12">
+        <DockPanel>
+         <DockPanel DockPanel.Dock="Top" Margin="20,0,20,6"><TextBlock x:Name="MockRequestCountText" DockPanel.Dock="Right" Style="{StaticResource HintText}" VerticalAlignment="Center"/><TextBlock Text="받은 요청" FontSize="15" FontWeight="SemiBold"/></DockPanel>
+         <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="20,8,20,0" Text="문자 끝에 #500, #slow, #timeout처럼 표시를 붙이면 그 요청만 다른 응답을 받아요. 표시는 응답 방식 목록 오른쪽에 적혀 있어요."/>
+         <Grid MinHeight="220">
+          <DataGrid x:Name="MockRequestsGrid" HeadersVisibility="Column" GridLinesVisibility="None" MaxHeight="320" SelectionChanged="MockRequest_Selected"><DataGrid.Columns>
+           <DataGridTextColumn Header="시각" Binding="{Binding TimeText}" Width="84"/>
+           <DataGridTextColumn Header="문자" Binding="{Binding MessageText}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/>
+           <DataGridTextColumn Header="돌려준 응답" Binding="{Binding ResponseText}" Width="150" ElementStyle="{StaticResource TrimmedCell}"/>
+           <DataGridTemplateColumn Header="요청 형식" Width="110"><DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Ellipse x:Name="FormatDot" Width="8" Height="8" Fill="{StaticResource FailBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="{Binding FormatText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ProblemText}"/></StackPanel><DataTemplate.Triggers><DataTrigger Binding="{Binding MatchesContract}" Value="True"><Setter TargetName="FormatDot" Property="Fill" Value="{StaticResource PassBrush}"/></DataTrigger></DataTemplate.Triggers></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+          </DataGrid.Columns></DataGrid>
+          <TextBlock x:Name="MockEmptyText" Style="{StaticResource EmptyListText}" Text="서버를 켜고 앱에서 판정을 요청하면 여기에 바로 보여요."/>
+         </Grid>
+        </DockPanel>
+       </Border>
+      </Grid>
       <!-- QA 도구 영역: 이 QA 도구 자체를 점검하는 카드와, CI에서 함께 도는 개발자용 점검 안내 -->
       <Grid x:Name="HomeQaToolCards" Margin="-6" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
        <Button x:Name="HomeSelfCheckCard" Tag="selfcheck" Click="SuiteCard_Click" Style="{StaticResource SuiteCard}" local:UsageHelp.Key="selfcheck"><StackPanel>
@@ -259,7 +293,7 @@
           </StackPanel>
           <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
            <ui:Button x:Name="HeroReportButton" Content="보고서 열기" Click="OpenReportButton_Click" Style="{StaticResource PillButton}" IsEnabled="{Binding IsEnabled, ElementName=OpenReportButton}" Margin="0,0,8,0" local:UsageHelp.Key="open-report"/>
-           <ui:Button Content="다시 실행" Click="RunButton_Click" Style="{StaticResource PillButton}" IsEnabled="{Binding IsEnabled, ElementName=RunButton}" local:UsageHelp.Key="run"/>
+           <ui:Button Content="다시 실행" Click="RerunDisplayed_Click" Style="{StaticResource PillButton}" IsEnabled="{Binding IsEnabled, ElementName=RunButton}" local:UsageHelp.Key="run"/>
           </StackPanel>
          </Grid>
         </Border>
@@ -271,7 +305,7 @@
          <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="다시 볼 항목" Style="{StaticResource HintText}"/><TextBlock x:Name="FailedCountText" Text="—" Style="{StaticResource TileValue}" Foreground="{StaticResource FailBrush}"/></StackPanel></Border>
          <Border Style="{StaticResource SoftCard}" Padding="18,14" Margin="6"><StackPanel><TextBlock Text="통과율" Style="{StaticResource HintText}"/><TextBlock x:Name="PassRateText" Text="—" Style="{StaticResource TileValue}"/><ProgressBar x:Name="PassRateBar" Height="6" Maximum="100" Margin="0,8,0,0" Foreground="{StaticResource AccentBrush}" Background="{StaticResource AccentBackgroundBrush}" BorderThickness="0"/></StackPanel></Border>
         </UniformGrid>
-        <DockPanel Margin="0,24,0,0"><ui:Button DockPanel.Dock="Right" Content="같은 조건으로 다시 실행" IsEnabled="{Binding IsEnabled, ElementName=RunButton}" Click="RunButton_Click" Style="{StaticResource TextButton}" local:UsageHelp.Key="run" Margin="0,-6,-8,0" MinHeight="28"/><TextBlock Text="항목별 결과" Style="{StaticResource FirstSectionTitle}"/></DockPanel>
+        <DockPanel Margin="0,24,0,0"><ui:Button DockPanel.Dock="Right" Content="같은 조건으로 다시 실행" IsEnabled="{Binding IsEnabled, ElementName=RunButton}" Click="RerunDisplayed_Click" Style="{StaticResource TextButton}" local:UsageHelp.Key="run" Margin="0,-6,-8,0" MinHeight="28"/><TextBlock Text="항목별 결과" Style="{StaticResource FirstSectionTitle}"/></DockPanel>
         <Grid Panel.ZIndex="1">
         <Border Style="{StaticResource SoftCard}" Padding="0,6" ClipToBounds="True">
          <DataGrid x:Name="ResultsGrid" MaxHeight="300" SelectionChanged="Result_Selected" PreviewMouseLeftButtonDown="ResultsGrid_PreviewMouseLeftButtonDown"><DataGrid.Columns><DataGridTextColumn Header="사례" Binding="{Binding CaseId}" Width="100" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="확인 항목" Binding="{Binding CheckName}" Width="130" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTextColumn Header="예상 → 실제" Binding="{Binding ComparisonText}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/><DataGridTemplateColumn Header="결과" Width="96"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border x:Name="ResultBadge" Background="{StaticResource PassBackgroundBrush}" CornerRadius="10" Padding="8,1" HorizontalAlignment="Left"><TextBlock x:Name="ResultBadgeText" Text="{Binding ResultLabel}" Foreground="{StaticResource PassBrush}" FontSize="12" FontWeight="SemiBold"/></Border><DataTemplate.Triggers><DataTrigger Binding="{Binding IsPassed}" Value="False"><Setter TargetName="ResultBadge" Property="Background" Value="{StaticResource FailBackgroundBrush}"/><Setter TargetName="ResultBadgeText" Property="Foreground" Value="{StaticResource FailBrush}"/></DataTrigger></DataTemplate.Triggers></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn></DataGrid.Columns></DataGrid>

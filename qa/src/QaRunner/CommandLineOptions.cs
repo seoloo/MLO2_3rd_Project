@@ -1,4 +1,5 @@
 using System.Globalization;
+using QaRunner.AppMock;
 using QaRunner.Measurement;
 using QaRunner.Models;
 using QaRunner.Pipeline;
@@ -18,13 +19,15 @@ namespace QaRunner;
 /// 실제 파이프라인 연결 설정 (--kafka, --mongo). 주면 파이프라인·부하·복구 시험이 실제 Kafka·MongoDB를 대상으로 돌고,
 /// 안 주면(null) 가짜 파이프라인으로 돈다.
 /// </param>
+/// <param name="MockServer">가짜 판정 서버 조건 (--port, --scenario, --allow-lan, --duration). 다른 시험에서는 null</param>
 public sealed record CommandLineOptions(
     TestSuite Suite,
     string CasesPath,
     string ReportDirectory,
     string? ApiBaseUrl,
     MeasurementSettings? Measurement = null,
-    PipelineConnectionSettings? PipelineConnection = null)
+    PipelineConnectionSettings? PipelineConnection = null,
+    MockServerSettings? MockServer = null)
 {
     public const string DefaultVerdictCasesPath = "cases/rules.json";
     public const string DefaultPipelineCasesPath = "cases/pipeline";
@@ -47,7 +50,23 @@ public sealed record CommandLineOptions(
             ReportDirectory: FindOptionValue(args, "--reports") ?? DefaultReportDirectory,
             ApiBaseUrl: FindOptionValue(args, "--api-url"),
             Measurement: suite.IsMeasurementSuite() ? ParseMeasurement(args, suite) : null,
-            PipelineConnection: ParsePipelineConnection(args));
+            PipelineConnection: ParsePipelineConnection(args),
+            MockServer: suite == TestSuite.MockApi ? ParseMockServer(args) : null);
+    }
+
+    // --port, --scenario, --allow-lan, --duration을 읽는다. 주지 않은 값은 8000번 포트·자동 판정·이 PC만·직접 끌 때까지
+    private static MockServerSettings ParseMockServer(string[] args)
+    {
+        var defaults = MockServerSettings.Default;
+        var settings = defaults with
+        {
+            Port = ParseInt(args, "--port") ?? defaults.Port,
+            Scenario = MockScenarioExtensions.ParseOptionValue(FindOptionValue(args, "--scenario")),
+            AllowLan = args.Contains("--allow-lan"),
+            DurationSeconds = ParseInt(args, "--duration"),
+        };
+        settings.Validate();
+        return settings;
     }
 
     // --kafka, --mongo와 이름 옵션들을 읽는다. 둘 다 없으면 가짜 파이프라인(null)
@@ -77,7 +96,7 @@ public sealed record CommandLineOptions(
     public static string DefaultCasesPathFor(TestSuite testSuite) => testSuite switch
     {
         TestSuite.Pipeline => DefaultPipelineCasesPath,
-        TestSuite.Recovery or TestSuite.SelfCheck => NoCasesPath,
+        TestSuite.Recovery or TestSuite.SelfCheck or TestSuite.MockApi => NoCasesPath,
         _ => DefaultVerdictCasesPath,
     };
 
