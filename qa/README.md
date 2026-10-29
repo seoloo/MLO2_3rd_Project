@@ -174,7 +174,7 @@ dotnet run --project src/QaRunner.Desktop -- --capture C:/Temp/screen.png --suit
 
 `--page`에는 `home`, `run`, `reports`, `team`, `cases`, `ai`, `settings`를 쓸 수 있습니다(생략하면 `run`).
 
-`--ui-smoke`는 실제 화면 컨트롤을 눌러 보며 95가지를 점검하고, 단계별 PNG와 `ui-smoke.json`을 저장합니다. 메뉴·탭 이동, 홈 영역 카드(서비스·앱·QA 도구), 홈 카드 → 조건 시트, 주소 오류 안내, 다섯 종류 시험(QA 도구 점검 포함) 실행·보고서 저장, 가짜 판정 서버 켜기·실제 HTTP 요청·받은 요청 목록·끄고 채점, 시험 중 진행 카드, 완료 카드·상태 표시줄 색 띠·다음 행동 말풍선, 중복 실행 차단, 여정 단계 체크, 팀 공유, 기록 다시 열기, 최소 창 크기, Windows용 Kafka 라이브러리 로드까지 확인합니다. 보고서는 지정한 폴더 안의 `reports/`에만 남깁니다.
+`--ui-smoke`는 실제 화면 컨트롤을 눌러 보며 97가지를 점검하고, 단계별 PNG와 `ui-smoke.json`을 저장합니다. 메뉴·탭 이동, 홈 영역 카드(서비스·앱·QA 도구), 홈 카드 → 조건 시트, 주소 오류 안내(`/checks`까지 넣은 주소 포함), 다섯 종류 시험(QA 도구 점검 포함) 실행·보고서 저장, 가짜 판정 서버 켜기·실제 HTTP 요청·받은 요청 목록·끄고 채점, 시험 중 진행 카드, 완료 카드·상태 표시줄 색 띠·다음 행동 말풍선, 중복 실행 차단, 여정 단계 체크, 팀 공유, 기록 다시 열기, 최소 창 크기, Windows용 Kafka 라이브러리 로드까지 확인합니다. 보고서는 지정한 폴더 안의 `reports/`에만 남깁니다.
 
 ```bash
 dotnet run --project src/QaRunner.Desktop -- --ui-smoke C:/Temp/qa-ui-review

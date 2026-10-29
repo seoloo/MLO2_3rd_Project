@@ -178,6 +178,17 @@ public partial class MainWindow
     private static bool IsHttpAddress(string address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) && !string.IsNullOrWhiteSpace(uri.Host);
 
+    // QA가 주소 끝에 /checks를 붙여 보내므로, 이미 /checks까지 넣은 주소는 /checks/checks로 잘못 간다
+    private static bool EndsWithCheckPath(string address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
+        && uri.AbsolutePath.TrimEnd('/').EndsWith("/checks", StringComparison.OrdinalIgnoreCase);
+
+    // 입력칸 아래 안내: 비었으면 무엇을 넣는 칸인지, 틀렸으면 고치는 법, 맞으면 실제로 요청을 보낼 주소를 보여 준다
+    private static string DescribeApiAddress(string address) =>
+        address.Length == 0 ? "B가 만든 판정 API(FastAPI)의 주소예요. 예: http://localhost:8000 · 끝에 /checks는 빼요. 아직 API가 없으면 ‘연습용 대상’을 골라 주세요."
+        : !IsHttpAddress(address) ? "http:// 또는 https://로 시작하는 주소를 넣어 주세요. 예: http://localhost:8000"
+        : EndsWithCheckPath(address) ? "주소 끝의 /checks는 빼 주세요. QA가 자동으로 붙여서 보내요."
+        : $"시험 문자를 {address.TrimEnd('/')}/checks 로 보내요. 예상 정답은 API에 보내지 않고 QA 안에서만 비교해요.";
+
     private void RefreshExecutionTarget()
     {
         if (TargetChoicePanel is null || ApiTargetRadio is null || ExecutionApiField is null || ApiUrlHint is null) return;
@@ -186,7 +197,7 @@ public partial class MainWindow
         TargetChoicePanel.Visibility = usesApi ? Visibility.Visible : Visibility.Collapsed;
         ExecutionApiField.Visibility = apiChosen ? Visibility.Visible : Visibility.Collapsed;
         ApiUrlHint.Text = apiChosen
-            ? ApiUrlBox.Text.Trim().Length > 0 ? "입력한 주소의 API를 시험해요. 예상 정답은 QA 안에서만 비교해요." : "시험할 API 주소를 넣어 주세요."
+            ? DescribeApiAddress(ApiUrlBox.Text.Trim())
             : usesApi ? "연습용 판정기로 시험해요. 서버가 없어도 돼요." : "연습용 파이프라인으로 시험해요.";
     }
 

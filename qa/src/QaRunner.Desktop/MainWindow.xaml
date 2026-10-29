@@ -418,7 +418,7 @@
         <Border x:Name="ExecutionOptions" Background="Transparent"><StackPanel>
          <StackPanel x:Name="TargetChoicePanel"><TextBlock Text="시험 대상" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><WrapPanel><RadioButton x:Name="PracticeTargetRadio" GroupName="Target" Content="연습용 대상" IsChecked="True" Checked="Target_Checked" Style="{StaticResource TargetChoice}" Margin="0,0,16,0"/><RadioButton x:Name="ApiTargetRadio" GroupName="Target" Content="내 판정 API" Checked="Target_Checked" Style="{StaticResource TargetChoice}" local:UsageHelp.Key="api"/></WrapPanel></StackPanel>
          <StackPanel x:Name="ExecutionApiField" Visibility="Collapsed"><TextBlock Text="판정 API 주소" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="ApiUrlBox" PlaceholderText="http://localhost:8000" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="api"/></StackPanel>
-         <TextBlock x:Name="ApiUrlHint" Style="{StaticResource HintText}" Margin="0,6,0,0"/>
+         <TextBlock x:Name="ApiUrlHint" Style="{StaticResource HintText}" Margin="0,6,0,0" TextWrapping="Wrap"/>
          <StackPanel x:Name="CasesPathField"><TextBlock x:Name="CasesPathLabel" Text="시험 문자와 예상 정답" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="CasesPathBox" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="case-path"/></StackPanel>
          <StackPanel x:Name="MeasurementPanel" Visibility="Collapsed"><UniformGrid Columns="3">
           <StackPanel Margin="0,0,6,0"><TextBlock Text="시간 (초)" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="DurationBox" TextChanged="SheetDuration_Changed" local:UsageHelp.Key="duration"/></StackPanel>
