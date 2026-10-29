@@ -191,6 +191,12 @@ public partial class MainWindow
             {
                 Require(!RunButton.IsEnabled && !SuitePanel.IsEnabled && !SettingsFields.IsEnabled,
                     "실행 중 다른 화면의 설정과 중복 실행 차단");
+                await Task.Delay(1200);
+                Require(RunningCard.IsVisible && RunningTitleText.Text.Contains("부하") && !RunningProgressBar.IsIndeterminate
+                    && RunningProgressBar.Value > 0 && RunningElapsedText.Text.EndsWith("초 지남") && RunningRemainingText.Text.Contains("남음")
+                    && StatusIconBadge.IsVisible && StatusActions.Visibility == Visibility.Collapsed,
+                    "시험 중에는 진행 카드(지난·남은 시간, 단계)와 민트 상태 표시줄");
+                await Capture("running");
                 await RunSelectedSuiteAsync();
             }
             await pending;
@@ -219,7 +225,7 @@ public partial class MainWindow
                     "다른 화면으로 가면 상태 표시줄이 평소 모양으로 돌아옴");
                 SelectPage("run");
             }
-            Require(RunButton.IsEnabled && !RunProgress.IsVisible, $"{suite} 실행 종료 후 조작 복구");
+            Require(RunButton.IsEnabled && !RunProgress.IsVisible && !RunningCard.IsVisible, $"{suite} 실행 종료 후 조작 복구와 진행 카드 닫기");
             await Capture(suite.ToString().ToLowerInvariant());
         }
 

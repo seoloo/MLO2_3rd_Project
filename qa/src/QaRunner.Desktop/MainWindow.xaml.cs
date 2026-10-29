@@ -346,12 +346,16 @@ public partial class MainWindow : Window
         RunButton.Content = isRunning ? "시험 중이에요…" : "시험 시작하기";
         RunProgress.Visibility = isRunning ? Visibility.Visible : Visibility.Collapsed;
         if (!isRunning)
+        {
+            StopRunningProgress();
             return;
+        }
 
         var runningMessage = options?.Measurement is { } measurement
             ? $"시험 중이에요. 약 {measurement.DurationSeconds}초 동안 입력을 보낸 뒤 결과를 정리해요."
             : "시험 중이에요. 잠시만 기다려 주세요.";
-        ShowStatus(runningMessage, isError: false);
+        ShowStatus(runningMessage, StatusTone.Running);
+        if (options is not null) StartRunningProgress(options);
     }
 
     // 실행 기록을 요약 숫자와 결과 표로 보여 준다
@@ -636,7 +640,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>상태 표시줄의 색. 평소에는 바탕 없이 회색 글자, 시험이 끝나거나 오류가 나면 색 띠로 바뀐다.</summary>
-    private enum StatusTone { Normal, Pass, Notice, Fail }
+    private enum StatusTone { Normal, Running, Pass, Notice, Fail }
 
     private void ShowStatus(string message, bool isError) => ShowStatus(message, isError ? StatusTone.Fail : StatusTone.Normal);
 
@@ -644,13 +648,14 @@ public partial class MainWindow : Window
     /// 상태 표시줄에 안내를 쓰고 색을 바꾼다.
     /// </summary>
     /// <param name="message">보여 줄 안내 문장</param>
-    /// <param name="tone">띠 색: 통과(초록) · 다시 볼 항목 있음(주황) · 오류(빨강)</param>
+    /// <param name="tone">띠 색: 시험 중(민트) · 통과(초록) · 다시 볼 항목 있음(주황) · 오류(빨강)</param>
     /// <param name="showReportActions">보고서 열기·폴더 열기 버튼을 함께 보여 줄지</param>
     private void ShowStatus(string message, StatusTone tone, bool showReportActions = false)
     {
         StatusText.Text = message;
         var (inkKey, backgroundKey, symbol) = tone switch
         {
+            StatusTone.Running => ("AccentBrush", "AccentBackgroundBrush", Wpf.Ui.Controls.SymbolRegular.Timer24),
             StatusTone.Pass => ("PassBrush", "PassBackgroundBrush", Wpf.Ui.Controls.SymbolRegular.Checkmark24),
             StatusTone.Notice => ("NoticeBrush", "NoticeBackgroundBrush", Wpf.Ui.Controls.SymbolRegular.Checkmark24),
             StatusTone.Fail => ("FailBrush", "FailBackgroundBrush", Wpf.Ui.Controls.SymbolRegular.ErrorCircle24),
