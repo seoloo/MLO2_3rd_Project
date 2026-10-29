@@ -312,6 +312,8 @@ public partial class MainWindow : Window
             throw new ArgumentException("판정 API 주소를 넣어 주세요. 예: http://localhost:8000. 서버 없이 해 보려면 ‘연습용 대상’을 골라 주세요.");
         if (usesApi && apiUrl.Length > 0 && !IsHttpAddress(apiUrl))
             throw new ArgumentException("API 주소를 확인해 주세요. http://localhost:8000처럼 http:// 또는 https://로 시작해야 해요.");
+        if (usesApi && apiUrl.Length > 0 && EndsWithCheckPath(apiUrl))
+            throw new ArgumentException("API 주소 끝의 /checks는 빼 주세요. QA가 주소 뒤에 /checks를 붙여서 보내요. 예: http://localhost:8000");
 
         MeasurementSettings? measurement = null;
         if (suite.IsMeasurementSuite())
@@ -539,6 +541,8 @@ public partial class MainWindow : Window
         if (!_isReady) return;
         if (!_applyingSuiteDefaults && SelectedSuite == TestSuite.Verdict) _verdictCasesPath = CasesPathBox.Text.Trim();
         if (ReferenceEquals(sender, ApiUrlBox) && ApiUrlBox.Text.Trim().Length > 0) ApiTargetRadio.IsChecked = true;
+        // 오류를 보고 칸을 고치기 시작하면 지난 오류 상자는 닫는다. 아직 틀렸으면 입력칸 아래 안내와 다음 실행이 다시 알려 준다
+        if (!_applyingSuiteDefaults) SheetError.IsOpen = false;
         RefreshHeader();
     }
 

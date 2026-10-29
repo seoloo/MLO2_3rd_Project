@@ -104,8 +104,14 @@ public partial class MainWindow
         Require(SheetError.IsOpen && $"{SheetError.Message}".Contains("http://") && ReportHistoryLoaderCount() == historyBeforePreparation,
             "주소를 잘못 입력하면 실행 전에 수정 방법 안내");
         await Capture("api-address-error");
+        ApiUrlBox.Text = "http://localhost:8000/checks";
+        Require(ApiUrlHint.Text.Contains("/checks는 빼") , "주소에 /checks까지 넣으면 입력칸 아래에서 바로 안내");
+        await RunSelectedSuiteAsync();
+        Require(SheetError.IsOpen && $"{SheetError.Message}".Contains("/checks") && ReportHistoryLoaderCount() == historyBeforePreparation,
+            "/checks까지 넣은 주소는 실행하지 않고 빼는 방법 안내");
         ApiUrlBox.Text = "http://localhost:8000";
-        Require(HeaderTargetText.Text.Contains("http://localhost:8000"), "조건 시트와 설정의 API 주소 동기화");
+        Require(HeaderTargetText.Text.Contains("http://localhost:8000") && ApiUrlHint.Text.Contains("http://localhost:8000/checks") && !SheetError.IsOpen,
+            "조건 시트와 설정의 API 주소 동기화 · 실제로 보낼 주소 안내 · 주소를 고치면 지난 오류 상자 닫기");
         await Capture("api-conditions");
         PracticeTargetRadio.IsChecked = true;
         Require(ApiUrlBox.Text.Length == 0 && ExecutionApiField.Visibility == Visibility.Collapsed && SheetPracticeNote.IsVisible,
