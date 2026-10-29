@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA 실행 결과 2026-10-29-123254</title>
+<style>
+  body { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; color: #1d3436; background: #fff; margin: 0; padding: 32px 16px; }
+  main { max-width: 960px; margin: 0 auto; }
+  .eyebrow { color: #0f7a73; font-weight: 700; font-size: 13px; }
+  h1 { font-size: 28px; margin: 4px 0 6px; }
+  .meta { color: #5f7173; font-size: 14px; margin: 0 0 16px; }
+  .notice { background: #fdf4e7; color: #8a5a12; border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0 20px; }
+  .tile { border: 1px solid #d6e4e1; border-radius: 10px; padding: 10px 14px; }
+  .tile .label { color: #5f7173; font-size: 12px; font-weight: 700; }
+  .tile .value { font-size: 24px; font-weight: 800; }
+  .tile.passed .value { color: #0f7a73; }
+  .tile.failed .value { color: #b4232a; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: #5f7173; font-size: 12px; padding: 8px; border-bottom: 1px solid #d6e4e1; }
+  td { padding: 8px; border-bottom: 1px solid #edf2f1; vertical-align: top; }
+  td.case-id { white-space: nowrap; font-weight: 700; }
+  td.check-name { white-space: nowrap; }
+  td.input { color: #33494b; }
+  tr.fail { background: #fff8f8; }
+  .error { color: #b4232a; font-size: 12px; margin-top: 2px; }
+  .badge { font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+  tr.pass .badge { background: #e2f3ee; color: #0f7a73; }
+  tr.fail .badge { background: #fdecec; color: #b4232a; }
+  @media (max-width: 640px) { .summary { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">JEONGBO JIKIM / QA RUNNER</div>
+  <h1>QA 실행 결과 · 서비스 › 부하 시험</h1>
+  <p class="meta">
+    실행 번호 2026-10-29-123254 · 시작 2026-10-29 12:32:54 · 걸린 시간 11.13초<br>
+    입력 cases/rules.json · 시험 대상 FakeVerdictService + FakeStreamingPipeline
+  </p>
+  <p class="notice">가짜 시험 대상으로 실행한 결과입니다. 실제 시스템의 성능이 아닙니다.</p>
+  <section class="summary">
+    <div class="tile"><div class="label">전체</div><div class="value">4</div></div>
+    <div class="tile passed"><div class="label">통과</div><div class="value">4</div></div>
+    <div class="tile failed"><div class="label">실패</div><div class="value">0</div></div>
+    <div class="tile"><div class="label">통과율</div><div class="value">100.0%</div></div>
+  </section>
+  <table>
+    <thead><tr><th>케이스</th><th>확인 항목</th><th>입력</th><th>정답</th><th>실제</th><th>결과</th></tr></thead>
+    <tbody>
+<tr class="pass">
+  <td class="case-id">LOAD-API</td>
+  <td class="check-name">API 응답 시간 p95</td>
+  <td class="input">가상 사용자 5명 &#183; 10초 &#183; 요청 250건</td>
+  <td>3초 이하</td>
+  <td>0.00초</td>
+  <td><span class="badge">통과</span></td>
+</tr>
+<tr class="pass">
+  <td class="case-id">LOAD-API</td>
+  <td class="check-name">API 오류율</td>
+  <td class="input">가상 사용자 5명 &#183; 10초 &#183; 요청 250건</td>
+  <td>0%</td>
+  <td>0.0%</td>
+  <td><span class="badge">통과</span></td>
+</tr>
+<tr class="pass">
+  <td class="case-id">LOAD-STREAM</td>
+  <td class="check-name">Gold 반영 시간 p95</td>
+  <td class="input">초당 5건 &#183; 10초 &#183; 이벤트 50건</td>
+  <td>10초 이하</td>
+  <td>1.55초</td>
+  <td><span class="badge">통과</span></td>
+</tr>
+<tr class="pass">
+  <td class="case-id">LOAD-STREAM</td>
+  <td class="check-name">Gold 반영 건수 (적체 없음)</td>
+  <td class="input">초당 5건 &#183; 10초 &#183; 이벤트 50건</td>
+  <td>50</td>
+  <td>50</td>
+  <td><span class="badge">통과</span></td>
+</tr>
+
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

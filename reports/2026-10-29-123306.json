@@ -1,0 +1,41 @@
+{
+  "runId": "2026-10-29-123306",
+  "suiteName": "복구 시험",
+  "startedAt": "2026-10-29T12:33:06.5574067+09:00",
+  "finishedAt": "2026-10-29T12:33:27.7076178+09:00",
+  "casesPath": "(입력 파일 없음)",
+  "targetName": "FakeStreamingPipeline",
+  "results": [
+    {
+      "caseId": "RECOVERY",
+      "checkName": "재가동 후 회복 시간",
+      "input": "초당 5건 · 20초 발행 · 5초 지점에서 5초 중단 · 이벤트 100건",
+      "expected": "60초 이하",
+      "actual": "2.05초",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "RECOVERY",
+      "checkName": "최종 Gold 반영 건수 (집계 일치)",
+      "input": "초당 5건 · 20초 발행 · 5초 지점에서 5초 중단 · 이벤트 100건",
+      "expected": "100",
+      "actual": "100",
+      "errorMessage": null,
+      "meetsTarget": null,
+      "isPassed": true,
+      "isSystemFailure": false
+    }
+  ],
+  "hasProvisionalLabels": false,
+  "areaName": "서비스",
+  "totalCount": 2,
+  "passedCount": 2,
+  "failedCount": 0,
+  "systemFailureCount": 0,
+  "passRate": 100,
+  "duration": "00:00:21.1502111",
+  "usedFakeTarget": true
+}
