@@ -288,7 +288,7 @@ flowchart LR
 | [`app/`](app/README.md) | React Native 앱 | A | 준비됨 (작업 전) |
 | [`api/`](api/README.md) | FastAPI · 판정 규칙 · 발행기 | B | 준비됨 (작업 전) |
 | [`pipeline/`](pipeline/README.md) | Kafka · Spark · 메달리온 | C | 준비됨 (작업 전) |
-| [`infra/`](infra/README.md) | docker-compose, EC2 배포 | B · C | 준비됨 (작업 전) |
+| [`infra/`](infra/README.md) | docker-compose, EC2 배포, [AWS·EC2 보안 체크리스트](infra/README.md#awsec2-보안-체크리스트) | B · C | 준비됨 (작업 전) |
 | [`qa/`](qa/README.md) | 자동 QA 러너 | QA | 가짜 대상으로 완료, 실제 연결 코드 준비 |
 
 각 폴더의 README에 **여기에 둘 것, 지켜야 할 계약, QA로 확인하는 법, 작업 브랜치 이름**이 적혀 있습니다. 작업을 시작하기 전에 자기 폴더의 README와 연결 계약을 먼저 읽어 주세요.
