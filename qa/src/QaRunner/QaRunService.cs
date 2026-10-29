@@ -3,6 +3,7 @@ using QaRunner.Measurement;
 using QaRunner.Models;
 using QaRunner.Pipeline;
 using QaRunner.Reports;
+using QaRunner.SelfCheck;
 using QaRunner.Verdicts;
 
 namespace QaRunner;
@@ -47,6 +48,7 @@ public static class QaRunService
         TestSuite.Pipeline => PreparePipelineSuite(options),
         TestSuite.Load => PrepareLoadSuite(options),
         TestSuite.Recovery => PrepareRecoverySuite(options),
+        TestSuite.SelfCheck => PrepareSelfCheckSuite(options),
         _ => throw new ArgumentException($"알 수 없는 시험 종류입니다: {options.Suite}"),
     };
 
@@ -130,6 +132,13 @@ public static class QaRunService
             ResourceToDispose: streamTarget.Sender as IDisposable);
     }
 
+    // QA 도구 점검: 답을 이미 아는 입력으로 QA 러너 자신의 채점기·정답 계산기·보고서를 확인한다 (입력 파일·외부 연결 없음)
+    private static PreparedRun PrepareSelfCheckSuite(CommandLineOptions options) => new(
+        options.Suite,
+        CommandLineOptions.NoCasesPath,
+        TargetName: QaToolSelfChecker.TargetName,
+        RunAllChecks: _ => QaToolSelfChecker.CheckAllAsync());
+
     /// <summary>실제 파이프라인을 대상으로 돌렸을 때 보고서에 남기는 시험 대상 이름</summary>
     public const string RealPipelineTargetName = "Kafka + MongoDB";
 
@@ -188,7 +197,10 @@ public static class QaRunService
                 FinishedAt: finishedAt,
                 CasesPath: preparedRun.CasesPath,
                 TargetName: preparedRun.TargetName,
-                Results: testResults);
+                Results: testResults)
+            {
+                AreaName = preparedRun.Suite.Area().ToKoreanName(),
+            };
         }
         finally
         {

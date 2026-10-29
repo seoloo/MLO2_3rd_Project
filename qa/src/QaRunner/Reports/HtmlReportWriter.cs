@@ -102,7 +102,7 @@ public static class HtmlReportWriter
             <body>
             <main>
               <div class="eyebrow">JEONGBO JIKIM / QA RUNNER</div>
-              <h1>QA 실행 결과 · {{Encode(testRun.SuiteName)}}</h1>
+              <h1>QA 실행 결과 · {{Encode(testRun.AreaName)}} › {{Encode(testRun.SuiteName)}}</h1>
               <p class="meta">
                 실행 번호 {{testRun.RunId}} · 시작 {{testRun.StartedAt:yyyy-MM-dd HH:mm:ss}} · 걸린 시간 {{testRun.Duration.TotalSeconds:0.00}}초<br>
                 입력 {{Encode(testRun.CasesPath)}} · 시험 대상 {{Encode(testRun.TargetName)}}

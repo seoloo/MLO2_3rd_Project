@@ -22,6 +22,12 @@ public sealed record TestRun(
     /// <summary>AI 제안 라벨이 섞인 탐색 시험인지. 기존 입력값 파일을 쓰는 실행은 false다.</summary>
     public bool HasProvisionalLabels { get; init; }
 
+    /// <summary>
+    /// 시험 영역의 한글 이름. 예: 서비스, QA 도구.
+    /// 영역을 나누기 전에 만든 보고서에는 이 값이 없으므로 서비스 영역으로 읽는다.
+    /// </summary>
+    public string AreaName { get; init; } = TestArea.Service.ToKoreanName();
+
     /// <summary>채점한 확인 항목 수</summary>
     public int TotalCount => Results.Count;
 

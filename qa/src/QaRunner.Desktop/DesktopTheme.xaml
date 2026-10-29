@@ -203,6 +203,7 @@
                 <Trigger Property="Tag" Value="pipeline"><Setter TargetName="SuiteIcon" Property="Symbol" Value="DataTrending24"/></Trigger>
                 <Trigger Property="Tag" Value="load"><Setter TargetName="SuiteIcon" Property="Symbol" Value="Gauge24"/></Trigger>
                 <Trigger Property="Tag" Value="recovery"><Setter TargetName="SuiteIcon" Property="Symbol" Value="ArrowClockwise24"/></Trigger>
+                <Trigger Property="Tag" Value="selfcheck"><Setter TargetName="SuiteIcon" Property="Symbol" Value="ShieldCheckmark24"/></Trigger>
                 <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Item" Property="Background" Value="{StaticResource HoverBrush}"/></Trigger>
                 <Trigger Property="IsChecked" Value="True"><Setter TargetName="Indicator" Property="Visibility" Value="Visible"/><Setter Property="Foreground" Value="{StaticResource InkBrush}"/><Setter Property="FontWeight" Value="SemiBold"/><Setter TargetName="SuiteIcon" Property="Foreground" Value="{StaticResource AccentBrush}"/><Setter TargetName="SuiteIcon" Property="Filled" Value="True"/></Trigger>
                 <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Item" Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Setter TargetName="Item" Property="BorderThickness" Value="1"/></Trigger>

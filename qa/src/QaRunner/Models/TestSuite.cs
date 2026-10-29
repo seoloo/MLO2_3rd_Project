@@ -16,6 +16,9 @@ public enum TestSuite
 
     /// <summary>복구 시험: 보내는 도중 처리를 멈췄다 재가동하고, 다시 따라잡기까지 걸린 시간을 잼</summary>
     Recovery,
+
+    /// <summary>QA 도구 점검: 답을 이미 아는 입력으로 QA 러너의 채점기·정답 계산기·보고서가 맞게 동작하는지 확인</summary>
+    SelfCheck,
 }
 
 public static class TestSuiteExtensions
@@ -27,7 +30,15 @@ public static class TestSuiteExtensions
         TestSuite.Pipeline => "파이프라인 시험",
         TestSuite.Load => "부하 시험",
         TestSuite.Recovery => "복구 시험",
+        TestSuite.SelfCheck => "QA 도구 점검",
         _ => testSuite.ToString(),
+    };
+
+    /// <summary>이 시험이 속한 영역. QA 도구 점검만 QA 도구 영역이고 나머지는 서비스 영역이다</summary>
+    public static TestArea Area(this TestSuite testSuite) => testSuite switch
+    {
+        TestSuite.SelfCheck => TestArea.QaTool,
+        _ => TestArea.Service,
     };
 
     /// <summary>
@@ -40,10 +51,15 @@ public static class TestSuiteExtensions
         "pipeline" => TestSuite.Pipeline,
         "load" => TestSuite.Load,
         "recovery" => TestSuite.Recovery,
-        _ => throw new ArgumentException($"--suite 값은 verdict, pipeline, load, recovery 중 하나여야 합니다: {suiteValue}"),
+        "selfcheck" => TestSuite.SelfCheck,
+        _ => throw new ArgumentException($"--suite 값은 verdict, pipeline, load, recovery, selfcheck 중 하나여야 합니다: {suiteValue}"),
     };
 
     /// <summary>부하·복구처럼 시간을 재는 시험인지</summary>
     public static bool IsMeasurementSuite(this TestSuite testSuite) =>
         testSuite is TestSuite.Load or TestSuite.Recovery;
+
+    /// <summary>입력값 파일이나 시나리오 폴더를 쓰지 않는 시험인지 (복구 시험, QA 도구 점검)</summary>
+    public static bool UsesNoCasesPath(this TestSuite testSuite) =>
+        testSuite is TestSuite.Recovery or TestSuite.SelfCheck;
 }
