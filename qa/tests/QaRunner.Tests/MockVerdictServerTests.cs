@@ -214,6 +214,43 @@ public class MockVerdictServerTests : IDisposable
     }
 
     [Fact]
+    public void Port_opened_on_all_addresses_by_another_server_is_also_in_use()
+    {
+        // uvicorn --host 0.0.0.0처럼 다른 서버가 모든 주소로 먼저 열었으면, 127.0.0.1로 함께 켜지지 않고 알려 준다
+        using var apiOnAllAddresses = new TcpListener(IPAddress.Any, 0);
+        apiOnAllAddresses.Start();
+        var port = ((IPEndPoint)apiOnAllAddresses.LocalEndpoint).Port;
+
+        Assert.Throws<MockServerStartException>(() => MockVerdictServer.Start(MockServerSettings.Default with { Port = port }));
+    }
+
+    [Fact]
+    public void Another_server_cannot_open_the_same_port_while_mock_server_runs()
+    {
+        int port;
+        using (var probe = new TcpListener(IPAddress.Loopback, 0))
+        {
+            probe.Start();
+            port = ((IPEndPoint)probe.LocalEndpoint).Port;
+        }
+
+        using var server = MockVerdictServer.Start(MockServerSettings.Default with { Port = port });
+
+        // 나중에 켠 판정 API는 127.0.0.1로든 0.0.0.0으로든 같은 포트를 열지 못한다
+        foreach (var address in new[] { IPAddress.Loopback, IPAddress.Any })
+        {
+            using var lateApi = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            Assert.Throws<SocketException>(() => lateApi.Bind(new IPEndPoint(address, port)));
+        }
+
+        // 서버를 끄면 포트를 돌려준다
+        server.Stop();
+        using var afterStop = new TcpListener(IPAddress.Any, port);
+        afterStop.Start();
+        afterStop.Stop();
+    }
+
+    [Fact]
     public void Addresses_include_emulator_address_and_lan_only_when_allowed()
     {
         using var server = MockVerdictServer.Start(MockServerSettings.Default with { Port = 0 });

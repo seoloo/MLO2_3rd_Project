@@ -79,6 +79,13 @@ public sealed class MockVerdictServer : IDisposable
     public static MockVerdictServer Start(MockServerSettings settings)
     {
         settings.Validate();
+
+        // Windows는 다른 프로그램이 0.0.0.0(모든 주소)으로 연 포트를 127.0.0.1로 또 열 수 있게 둔다.
+        // 그러면 uvicorn --host 0.0.0.0으로 켠 판정 API와 이 서버가 함께 켜져서, 앱 요청이 어느 쪽으로 갈지 헷갈린다.
+        // 그래서 켜기 전에 모든 주소로 잠깐 열어 보고, 누군가 이미 쓰고 있으면 켜지 않는다
+        if (settings.Port != 0 && !settings.AllowLan && !IsPortFreeOnAllAddresses(settings.Port))
+            throw PortInUse(settings.Port, SocketError.AddressAlreadyInUse);
+
         var listener = new TcpListener(settings.AllowLan ? IPAddress.Any : IPAddress.Loopback, settings.Port);
         // Windows에서는 같은 포트를 다른 프로그램이 함께 열어 요청을 가로채지 못하게 한다 (맥·리눅스는 원래 막혀 있다)
         if (OperatingSystem.IsWindows())
@@ -90,13 +97,54 @@ public sealed class MockVerdictServer : IDisposable
         }
         catch (SocketException exception)
         {
-            throw new MockServerStartException(
-                $"{settings.Port}번 포트를 열지 못했어요. 판정 API 같은 다른 프로그램이 이미 쓰고 있을 수 있어요. 다른 포트를 골라 주세요. ({exception.SocketErrorCode})");
+            throw PortInUse(settings.Port, exception.SocketErrorCode);
         }
 
         var server = new MockVerdictServer(listener, settings);
+        if (!settings.AllowLan)
+            server._allAddressGuard = ReserveAllAddresses(server.Port);
         _ = server.AcceptLoopAsync();
         return server;
+    }
+
+    // 이 서버가 켜져 있는 동안 다른 프로그램이 같은 포트를 0.0.0.0으로 열지 못하게 잡아 두는 소켓.
+    // 연결을 받지는 않는다(Listen하지 않음). 같은 Wi-Fi 허용이면 이미 모든 주소로 열었으므로 필요 없다
+    private Socket? _allAddressGuard;
+
+    private static MockServerStartException PortInUse(int port, SocketError socketError) => new(
+        $"{port}번 포트를 열지 못했어요. 판정 API 같은 다른 프로그램이 이미 쓰고 있을 수 있어요. 다른 포트를 골라 주세요. ({socketError})");
+
+    // 모든 주소(0.0.0.0)로 이 포트를 혼자 열 수 있는지. 127.0.0.1이든 0.0.0.0이든 누가 쓰고 있으면 false
+    private static bool IsPortFreeOnAllAddresses(int port)
+    {
+        using var probe = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        if (OperatingSystem.IsWindows())
+            probe.ExclusiveAddressUse = true;
+        try
+        {
+            probe.Bind(new IPEndPoint(IPAddress.Any, port));
+            return true;
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
+    }
+
+    // 0.0.0.0의 같은 포트를 묶어만 둔다. 운영체제가 허락하지 않으면(맥·리눅스) 원래 막혀 있는 것이라 그냥 넘어간다
+    private static Socket? ReserveAllAddresses(int port)
+    {
+        var guard = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        try
+        {
+            guard.Bind(new IPEndPoint(IPAddress.Any, port));
+            return guard;
+        }
+        catch (SocketException)
+        {
+            guard.Dispose();
+            return null;
+        }
     }
 
     /// <summary>
@@ -140,6 +188,7 @@ public sealed class MockVerdictServer : IDisposable
 
         _stopping.Cancel();
         _listener.Stop();
+        _allAddressGuard?.Dispose();
         _stopped.TrySetResult();
     }
 
