@@ -45,6 +45,8 @@ public partial class MainWindow
         Require(((System.Windows.Media.SolidColorBrush)FindResource("AccentBrush")).Color == System.Windows.Media.Color.FromRgb(13, 148, 136)
             && ((System.Windows.Media.SolidColorBrush)FindResource("AccentBackgroundBrush")).Color == System.Windows.Media.Color.FromRgb(230, 250, 246),
             "민트 프레시 테마와 청록 강조 적용");
+        Require(Icon is System.Windows.Media.Imaging.BitmapFrame { PixelWidth: > 0 } && BrandLogo.Source is System.Windows.Media.Imaging.BitmapSource { PixelWidth: 128 },
+            "창·작업 표시줄 아이콘과 왼쪽 메뉴 로고에 앱 아이콘(방패 돋보기) 적용");
         Require(NavigationBar.TranslatePoint(new Point(), WorkspaceRoot).X < HomeMain.TranslatePoint(new Point(), WorkspaceRoot).X
             && NavigationBar.Children.OfType<RadioButton>().Count(item => item.Visibility == Visibility.Visible) == 4
             && HomeNav.IsChecked == true && HomePage.IsVisible && HomeHero.IsVisible

@@ -7,6 +7,7 @@ https://github.com/lepoco/wpfui/blob/2.0.3/src/Wpf.Ui.Demo/Views/Pages/Dashboard
 
 Assets/Backgrounds: 20 backgrounds generated for this project and encoded as JPEG quality 90.
 The upstream hero image is no longer included.
+Assets/AppIcon.svg, AppIcon.ico, AppIcon.png: app icon drawn for this project (no third-party artwork).
 
 MIT License
 

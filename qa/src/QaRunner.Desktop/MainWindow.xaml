@@ -44,7 +44,7 @@
    <!-- 왼쪽 메뉴: 홈 · 시험 · 기록 · 관리 -->
    <Border Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0"><DockPanel>
     <DockPanel DockPanel.Dock="Top" Margin="20,16,12,16">
-     <Border Width="36" Height="36" CornerRadius="12" Background="{StaticResource AccentBrush}" Margin="0,0,12,0"><ui:SymbolIcon Symbol="Shield24" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+     <Image x:Name="BrandLogo" Source="/Assets/AppIcon.png" Width="36" Height="36" Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality"/>
      <StackPanel VerticalAlignment="Center"><TextBlock Text="정보지킴 QA" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="자동화 점검 도구" Style="{StaticResource HintText}" FontSize="11"/></StackPanel>
     </DockPanel>
     <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,12">

@@ -52,6 +52,8 @@
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style x:Key="DesktopWindow" TargetType="Window">
+        <!-- 작업 표시줄·Alt+Tab에 보이는 앱 아이콘 -->
+        <Setter Property="Icon" Value="pack://application:,,,/Assets/AppIcon.ico"/>
         <Setter Property="WindowStyle" Value="SingleBorderWindow"/>
         <Setter Property="ResizeMode" Value="CanResize"/>
         <Setter Property="BorderBrush" Value="#C9DDD9"/>

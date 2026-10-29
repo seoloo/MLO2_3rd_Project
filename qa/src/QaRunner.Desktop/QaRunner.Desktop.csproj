@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <Resource Include="Assets\Backgrounds\*.jpg" />
+    <!-- 앱 아이콘: 창·작업 표시줄(ico)과 왼쪽 메뉴 로고(png). 원본 그림은 Assets\AppIcon.svg -->
+    <Resource Include="Assets\AppIcon.ico;Assets\AppIcon.png" />
     <None Update="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
     <!-- 기본 사례는 사용자가 고칠 수 있도록 실행 파일 밖에 둔다. -->
     <Content Include="..\..\cases\**\*.json" Link="cases\%(RecursiveDir)%(Filename)%(Extension)"
@@ -20,6 +22,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- exe 파일·바탕 화면 바로 가기에 보이는 아이콘 -->
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>
