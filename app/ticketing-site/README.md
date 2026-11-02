@@ -16,7 +16,17 @@
 
 두 계정에 사용할 비밀번호를 숨김 입력으로 직접 정합니다. 비밀번호를 소스·명령행 인자·Git에 기록하지 않습니다. 이 명령은 DEBUG=True인 로컬 환경에서만 동작하며, 쉬운 로컬 비밀번호도 입력할 수 있습니다. 기존 계정과 비밀번호는 기본적으로 유지하고, 명시적으로 변경하려면 `--reset-password`를 추가합니다. 기존 이름의 권한이 다르면 덮어쓰지 않고 실패합니다. DB에 저장된 실제 계정은 Git 커밋으로 전달되지 않습니다.
 
-배포 환경의 관리자 계정은 `python manage.py createsuperuser`로 별도 생성하고, 일반 계정은 회원가입 화면을 이용합니다.
+관리자 아이디는 로컬·Docker·AWS 모두 **admin01**입니다. 아래 공통 명령에서 팀이 정한 동일한 비밀번호를 입력하면 됩니다. DB는 환경별로 분리되어 있어 비밀번호가 자동 동기화되는 것은 아닙니다.
+
+```powershell
+.\.venv\Scripts\python.exe manage.py setup_admin --reset-password
+```
+
+Docker: `docker compose exec web python manage.py setup_admin --reset-password`
+
+AWS: `docker compose --env-file .env.aws -f compose.aws.yaml exec web python manage.py setup_admin --reset-password`
+
+이 명령은 DEBUG=False에서도 동작합니다. 계정이 없으면 생성하고, 있으면 명시한 비밀번호만 변경합니다. 기존 일반 계정을 관리자 권한으로 승격하지 않으며 다른 계정을 삭제하지 않습니다. 비밀번호는 소스·Docker 설정에 하드코딩하지 않습니다. 일반 계정은 회원가입으로 만들거나 로컬에서 setup_local_accounts를 사용합니다.
 
 - 고객 사이트: http://127.0.0.1:8000/
 - Django 관리: http://127.0.0.1:8000/admin/
@@ -40,7 +50,7 @@
 
 - `docker compose config --quiet`: 설정 검증
 - `docker compose up --build -d`: Gunicorn + PostgreSQL 실행
-- `docker compose exec web python manage.py createsuperuser`: 관리자 생성
+- `docker compose exec web python manage.py setup_admin --reset-password`: 관리자 생성
 - `docker compose exec web python manage.py test booking`: 컨테이너 기능 검증
 - `docker compose logs -f web`: 서버 출력 확인
 - `docker compose stop` / `docker compose start`: 데이터 유지 중지·재시작

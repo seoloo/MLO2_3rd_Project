@@ -100,3 +100,26 @@ class LocalAccountCommandTests(TestCase):
   with override_settings(DEBUG=True), self.assertRaises(CommandError):self.run_setup()
   self.assertFalse(User.objects.get(username='admin01').is_staff)
   self.assertFalse(User.objects.filter(username='member01').exists())
+
+
+class SharedAdminCommandTests(TestCase):
+ def setup_admin(self,password='Shared-sample-47!',**options):
+  from io import StringIO
+  from unittest.mock import patch
+  with patch('sys.stdin',StringIO(password+'\n')):
+   call_command('setup_admin',password_stdin=True,stdout=StringIO(),**options)
+
+ def test_same_administrator_in_deployment_and_local(self):
+  from django.test import override_settings
+  with override_settings(DEBUG=False):self.setup_admin()
+  u=User.objects.get(username='admin01');self.assertTrue(u.is_staff and u.is_superuser and u.is_active)
+  self.assertTrue(u.check_password('Shared-sample-47!'))
+  self.setup_admin(password='Different-sample-47!');u.refresh_from_db();self.assertTrue(u.check_password('Shared-sample-47!'))
+  self.setup_admin(password='Different-sample-47!',reset_password=True);u.refresh_from_db();self.assertTrue(u.check_password('Different-sample-47!'))
+  self.assertEqual(User.objects.filter(username='admin01').count(),1)
+
+ def test_refuses_to_promote_existing_member(self):
+  from django.core.management.base import CommandError
+  User.objects.create_user('admin01',password='Existing-sample-47!')
+  with self.assertRaises(CommandError):self.setup_admin(reset_password=True)
+  self.assertFalse(User.objects.get(username='admin01').is_staff)

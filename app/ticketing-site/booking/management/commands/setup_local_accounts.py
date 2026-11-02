@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from booking.accounts import ADMIN_USERNAME
 
 
 class Command(BaseCommand):
@@ -15,9 +16,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not settings.DEBUG:
-            raise CommandError('이 명령은 DEBUG=True인 로컬 개발 환경에서만 사용할 수 있습니다. 배포 환경은 createsuperuser를 사용하세요.')
+            raise CommandError('이 명령은 DEBUG=True인 로컬 개발 환경에서만 사용할 수 있습니다. 관리자는 setup_admin을 사용하세요.')
         User = get_user_model()
-        accounts = [('member01', False), ('admin01', True)]
+        accounts = [('member01', False), (ADMIN_USERNAME, True)]
         # 사용자 입력 전에 이름이 다른 권한의 계정과 충돌하는지 검사합니다.
         for username, is_admin in accounts:
             user = User.objects.filter(username=username).first()

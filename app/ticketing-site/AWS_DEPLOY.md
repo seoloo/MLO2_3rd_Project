@@ -17,7 +17,7 @@
 3. `DJANGO_ALLOWED_HOSTS`에는 실제 공인 IP/도메인(스킴·포트 제외), `DJANGO_CSRF_TRUSTED_ORIGINS`에는 실제 `http://공인주소`를 넣습니다. 임의의 전체 호스트 허용은 사용하지 않습니다.
 4. `docker compose --env-file .env.aws -f compose.aws.yaml config --quiet`
 5. `docker compose --env-file .env.aws -f compose.aws.yaml up --build -d`
-6. `docker compose --env-file .env.aws -f compose.aws.yaml exec web python manage.py createsuperuser`
+6. `docker compose --env-file .env.aws -f compose.aws.yaml exec web python manage.py setup_admin --reset-password`로 공통 관리자 `admin01`을 준비하고 팀 공통 비밀번호를 숨김 입력합니다.
 7. EC2 보안 그룹 HTTP 80의 수신 출처에 팀원/QA의 실제 공인 IP 범위를 허용합니다. SSH 22는 관리 출처로 제한합니다. Django 8000과 PostgreSQL 5432는 외부에 열지 않습니다.
 8. 팀원은 `http://공인주소/`에 접속해 가입·예매합니다. `/healthz/`가 200이고, 다른 계정의 동시 좌석 요청이 충돌하는지 확인합니다.
 
