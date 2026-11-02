@@ -34,3 +34,14 @@
 ## 작업 브랜치
 
 `main`에서 `feature/app-...` 브랜치를 만들어 작업하고 PR로 합칩니다. 예: `feature/app-seat-select`
+
+
+## Django 공용 예매 대상 사이트
+
+`ticketing-site/`에 브라우저 기반 예매 대상 사이트를 추가했습니다. 회원가입·로그인·공연·좌석·5분 점유·승인 시뮬레이션·취소와 관리자 전용 기록을 제공합니다. Windows Python 가상환경과 EC2용 Docker/Nginx/Gunicorn/PostgreSQL 구성을 포함합니다.
+
+- [로컬 실행·현재 기능](ticketing-site/README.md)
+- [AWS 배포 안내](ticketing-site/AWS_DEPLOY.md)
+- [현재 대상 사이트 이벤트 규격](ticketing-site/EVENT_CONTRACT.md)
+
+이 사이트는 QA 입력을 발생시키는 별도 Django 대상 서비스입니다. 위 React Native/Expo 앱이나 FastAPI·Redis·Kafka·Spark 판정 계층이 완성된 것을 의미하지 않습니다. 현재 경로·이벤트는 `docs/contract.md`와 동일하지 않으므로 기존 QA 계약에 직접 호환된다고 가정하지 말고 연결 어댑터를 합의해야 합니다. 실제 PG 결제·추가 인증·매크로 판정은 연결하지 않았습니다.
