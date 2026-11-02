@@ -15,11 +15,11 @@ internal static class SampleTestRuns
         SuiteName: TestSuite.Verdict.ToKoreanName(),
         StartedAt: StartedAt,
         FinishedAt: StartedAt.AddSeconds(1.5),
-        CasesPath: "cases/rules.json",
+        CasesPath: "cases/sessions.json",
         TargetName: targetName,
         Results:
         [
-            new TestResult("R-001", "판정", "인증번호를 알려주세요", Expected: "고위험", Actual: "고위험"),
-            new TestResult("R-002", "판정", "앱을 설치하세요", Expected: "고위험", Actual: "신호 미발견"),
+            new TestResult("S-001", "판정", "봇 A · 오픈 0.03초 뒤 진입", Expected: "추가 확인", Actual: "추가 확인"),
+            new TestResult("S-002", "판정", "봇 D · 한 기기 세션 20개", Expected: "추가 확인", Actual: "정상"),
         ]);
 }

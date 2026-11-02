@@ -14,8 +14,11 @@ public sealed record StreamSendResult(int SentCount, string? SendError);
 /// </summary>
 public static class EventStreamSender
 {
-    // 보내는 이벤트의 판정 값을 돌아가며 섞는다 (집계에 여러 판정이 고르게 들어가도록)
-    private static readonly string[] VerdictsInRotation = ["고위험", "주의", "신호 미발견", "판단 보류"];
+    // 보내는 이벤트의 종류를 돌아가며 섞는다 (예매 오픈 때처럼 여러 행동이 고르게 들어가도록)
+    private static readonly string[] EventTypesInRotation = ["queue_enter", "page_view", "seat_click", "seat_click", "seat_hold"];
+
+    // 한 세션이 이 건수만큼 행동한 뒤 다음 세션으로 넘어간다
+    private const int EventsPerSession = 5;
 
     /// <summary>
     /// 정해진 속도로 이벤트를 보내고, 보낼 때마다 반영 추적기에 기록한다.
@@ -55,9 +58,9 @@ public static class EventStreamSender
                 RunId: runId,
                 CaseId: caseId,
                 EventId: $"{caseId}-{runId}-{sentCount + 1:000000}",
-                ScanId: $"{caseId}-scan-{sentCount + 1:000000}",
+                SessionHash: $"{caseId}-{runId}-session-{sentCount / EventsPerSession + 1:00000}",
                 EventTime: sentAt,
-                Verdict: VerdictsInRotation[sentCount % VerdictsInRotation.Length]);
+                EventType: EventTypesInRotation[sentCount % EventTypesInRotation.Length]);
 
             try
             {

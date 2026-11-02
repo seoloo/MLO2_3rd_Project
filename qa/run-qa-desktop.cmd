@@ -3,7 +3,7 @@ chcp 65001 > nul
 setlocal
 
 rem ============================================================
-rem  정보지킴 QA 러너 실행 (팀원용)
+rem  티켓가드 QA 러너 실행 (팀원용)
 rem  더블클릭하면 최신 코드를 받고, 빌드한 뒤, 데스크탑 앱을 켠다.
 rem  처음 한 번만 .NET 10 SDK를 설치하면 된다:
 rem    winget install Microsoft.DotNet.SDK.10

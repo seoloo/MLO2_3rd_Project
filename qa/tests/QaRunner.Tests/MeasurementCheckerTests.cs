@@ -15,10 +15,11 @@ public class MeasurementCheckerTests
     /// </summary>
     private sealed class AlwaysFailingVerdictService : IVerdictService
     {
-        public Task<string> GetVerdictAsync(string message) => throw new HttpRequestException("연결할 수 없습니다");
+        public Task<string> GetVerdictAsync(SessionCase session, string runId, string sessionKey) =>
+            throw new HttpRequestException("연결할 수 없습니다");
     }
 
-    private static readonly TestCase[] SampleCases = [new("R-001", "인증번호를 알려주세요", "고위험")];
+    private static readonly SessionCase[] SampleCases = [SampleSessions.Bot("S-001")];
 
     [Fact]
     public async Task Load_check_measures_api_and_gold_latency_within_targets()

@@ -37,9 +37,9 @@ public static class SendPlanner
                 RunId: runId,
                 CaseId: scenario.CaseId,
                 EventId: $"{runId}-{scenarioEvent.EventId}",
-                ScanId: $"{runId}-{scenarioEvent.ScanId}",
+                SessionHash: $"{runId}-{scenarioEvent.SessionHash}",
                 EventTime: firstEventTime.AddSeconds(scenarioEvent.OffsetSeconds),
-                Verdict: scenarioEvent.Verdict))
+                EventType: scenarioEvent.Type))
             .ToList();
 
         if (events.Count == 0)

@@ -178,16 +178,17 @@ public partial class MainWindow
     private static bool IsHttpAddress(string address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) && !string.IsNullOrWhiteSpace(uri.Host);
 
-    // QA가 주소 끝에 /checks를 붙여 보내므로, 이미 /checks까지 넣은 주소는 /checks/checks로 잘못 간다
+    // QA가 주소 끝에 /events·/verdicts를 붙여 보내므로, 이미 그 경로까지 넣은 주소는 /events/events처럼 잘못 간다
     private static bool EndsWithCheckPath(string address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
-        && uri.AbsolutePath.TrimEnd('/').EndsWith("/checks", StringComparison.OrdinalIgnoreCase);
+        && uri.AbsolutePath.TrimEnd('/') is var path
+        && (path.EndsWith("/events", StringComparison.OrdinalIgnoreCase) || path.EndsWith("/verdicts", StringComparison.OrdinalIgnoreCase));
 
     // 입력칸 아래 안내: 비었으면 무엇을 넣는 칸인지, 틀렸으면 고치는 법, 맞으면 실제로 요청을 보낼 주소를 보여 준다
     private static string DescribeApiAddress(string address) =>
-        address.Length == 0 ? "B가 만든 판정 API(FastAPI)의 주소예요. 예: http://localhost:8000 · 끝에 /checks는 빼요. 아직 API가 없으면 ‘연습용 대상’을 골라 주세요."
+        address.Length == 0 ? "B가 만든 백엔드 API(FastAPI)의 주소예요. 예: http://localhost:8000 · 끝에 /events는 빼요. 아직 API가 없으면 ‘연습용 대상’을 골라 주세요."
         : !IsHttpAddress(address) ? "http:// 또는 https://로 시작하는 주소를 넣어 주세요. 예: http://localhost:8000"
-        : EndsWithCheckPath(address) ? "주소 끝의 /checks는 빼 주세요. QA가 자동으로 붙여서 보내요."
-        : $"시험 문자를 {address.TrimEnd('/')}/checks 로 보내요. 예상 정답은 API에 보내지 않고 QA 안에서만 비교해요.";
+        : EndsWithCheckPath(address) ? "주소 끝의 /events·/verdicts는 빼 주세요. QA가 자동으로 붙여서 보내요."
+        : $"세션 행동을 {address.TrimEnd('/')}/events 로 보내고 /verdicts/세션 에서 판정을 받아요. 정답은 API에 보내지 않아요.";
 
     private void RefreshExecutionTarget()
     {
@@ -261,8 +262,8 @@ public partial class MainWindow
         JourneyProgressText.Text = $"{done}/{_checklistSteps.Count} 완료";
         (NextStepTitle.Text, NextStepHint.Text, NextStepButtonText.Text) = current?.Kind switch
         {
-            ChecklistStepKind.PickTest => ("빠른 점검을 골라 볼까요?", "서버 없이 기본 문자 4건으로 10초면 끝나요.", "빠른 점검 고르기"),
-            ChecklistStepKind.RunTest => ("빠른 점검을 실행해 볼까요?", "연습용 대상으로 기본 문자 4건을 보내요. 약 10초 걸려요.", "지금 실행하기"),
+            ChecklistStepKind.PickTest => ("빠른 점검을 골라 볼까요?", "서버 없이 사람·봇 세션 7개로 10초면 끝나요.", "빠른 점검 고르기"),
+            ChecklistStepKind.RunTest => ("빠른 점검을 실행해 볼까요?", "연습용 판정기로 사람·봇 세션 7개를 판정해요. 약 10초 걸려요.", "지금 실행하기"),
             ChecklistStepKind.OpenReport => ("보고서를 열어 볼까요?", "브라우저에서 항목별 결과와 설명을 자세히 볼 수 있어요.", "보고서 열기"),
             ChecklistStepKind.ReopenHistory => ("지난 결과를 다시 열어 볼까요?", "기록에서 실행 하나를 고르면 그때 결과를 다시 보여 줘요.", "기록 보기"),
             _ => ("오늘도 빠른 점검 한 번 해 볼까요?", "처음 사용하는 순서를 모두 마쳤어요. 원하는 시험을 골라 보세요.", "빠른 점검 고르기"),
@@ -333,7 +334,7 @@ public partial class MainWindow
             TestSuite.Recovery when measurement is not null =>
                 $"{measurement.DurationSeconds}초 동안 보내다가 처리를 {measurement.StopSeconds}초 멈춘 뒤 다시 켜고, 따라잡는 시간을 재고 있어요.",
             TestSuite.SelfCheck => "답을 이미 아는 입력으로 QA 도구의 채점기·정답 계산·보고서를 확인하고 있어요.",
-            _ => "시험 문자를 하나씩 보내고 돌아온 판정을 받고 있어요.",
+            _ => "사람·봇 세션의 행동을 하나씩 보내고 돌아온 판정을 받고 있어요.",
         };
         RunningProgressBar.IsIndeterminate = _plannedSendSeconds is null;
         RunningProgressBar.Value = 0;
@@ -504,7 +505,7 @@ public partial class MainWindow
     private void ExplainResult(ResultRow row)
     {
         DetailExplanationText.Text = row.IsSystemFailure ? "판정이 틀린 경우와 달라요. 시험 대상이 결과를 돌려주지 못했어요. 주소와 서버 상태, 응답 시간을 확인해 주세요."
-            : _displayedRun?.HasProvisionalLabels == true ? "아직 검토하지 않은 정답과 비교했어요. 먼저 시험 문자의 예상 정답과 근거가 맞는지 확인해 주세요."
+            : _displayedRun?.HasProvisionalLabels == true ? "아직 검토하지 않은 정답과 비교했어요. 먼저 시험 세션의 예상 정답과 근거가 맞는지 확인해 주세요."
             : row.IsPassed ? "미리 정한 정답이나 기준을 통과했어요. 다른 입력과 실행 조건에서도 같은지 함께 살펴보세요."
             : _displayedRun?.UsedFakeTarget == true ? "연습용 대상에는 일부러 틀리는 규칙이 들어 있어요. 미리 정한 값과 실제 값이 어떻게 다른지 비교해 보세요."
             : row.HasThreshold ? "실제로 측정한 값이 정해 둔 기준을 넘었어요. 같은 조건으로 다시 확인하고 응답 속도나 처리 지연을 살펴보세요."
@@ -514,7 +515,7 @@ public partial class MainWindow
 
     private static string DescribeTarget(TestRun run) => run.TargetName == QaRunner.SelfCheck.QaToolSelfChecker.TargetName
         ? "QA 러너 자체"
-        : run.TargetName == QaRunner.AppMock.MockVerdictServer.TargetName ? "앱 → 가짜 판정 서버"
+        : run.TargetName == QaRunner.AppMock.MockTicketServer.TargetName ? "앱 → 가짜 예매·판정 서버"
         : run.UsedFakeTarget
         ? run.TargetName.Contains("ApiVerdictService", StringComparison.Ordinal)
             ? "연결한 API + 연습용 파이프라인" : "연습용 대상"

@@ -1,10 +1,10 @@
 {
   "caseId": "ORDER-001",
-  "description": "이벤트가 역순으로 도착해도 모두 집계된다",
+  "description": "대기열 진입 → 좌석 클릭 → 점유가 역순으로 도착해도 모두 집계된다",
   "events": [
-    { "eventId": "order-001-e1", "scanId": "order-001-s1", "offsetSeconds": 0, "verdict": "주의" },
-    { "eventId": "order-001-e2", "scanId": "order-001-s2", "offsetSeconds": 1, "verdict": "고위험" },
-    { "eventId": "order-001-e3", "scanId": "order-001-s3", "offsetSeconds": 2, "verdict": "신호 미발견" }
+    { "eventId": "order-001-e1", "sessionHash": "order-001-s1", "offsetSeconds": 0, "type": "queue_enter" },
+    { "eventId": "order-001-e2", "sessionHash": "order-001-s1", "offsetSeconds": 1, "type": "seat_click" },
+    { "eventId": "order-001-e3", "sessionHash": "order-001-s1", "offsetSeconds": 2, "type": "seat_hold" }
   ],
   "injection": { "sendInReverseOrder": true }
 }

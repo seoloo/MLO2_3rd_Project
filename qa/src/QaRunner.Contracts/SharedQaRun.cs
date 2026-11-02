@@ -6,10 +6,13 @@ namespace QaRunner.Contracts;
 [JsonConverter(typeof(JsonStringEnumConverter<SharedRunState>))]
 public enum SharedRunState { Running, Completed, Error }
 
-/// <summary>팀 화면에 보여 줄 확인 항목. 실제 값이 없는 시스템 실패는 Error에 이유를 남긴다.</summary>
-public sealed record SharedCheckResult(string CaseId, string Expected, string Actual, string? Error = null)
+/// <summary>
+/// 팀 화면에 보여 줄 확인 항목. 실제 값이 없는 시스템 실패는 Error에 이유를 남긴다.
+/// 판정은 묶음(정상 처리 / 추가 확인 이상)으로 채점하므로 정답과 실제 글자가 달라도 통과일 수 있어 Passed에 결과를 담는다.
+/// </summary>
+public sealed record SharedCheckResult(string CaseId, string Expected, string Actual, string? Error = null, bool? Passed = null)
 {
-    public bool IsPassed => Error is null && Expected == Actual;
+    public bool IsPassed => Error is null && (Passed ?? Expected == Actual);
 }
 
 /// <summary>여러 PC가 공유하는 실행 스냅샷. RunId는 PC·시각에 관계없이 고유한 UUID다.</summary>

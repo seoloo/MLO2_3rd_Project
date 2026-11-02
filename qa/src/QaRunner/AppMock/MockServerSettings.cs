@@ -1,7 +1,7 @@
 namespace QaRunner.AppMock;
 
 /// <summary>
-/// 가짜 판정 서버를 켤 때의 조건 (--port, --scenario, --allow-lan, --duration).
+/// 가짜 예매·판정 서버를 켤 때의 조건 (--port, --scenario, --allow-lan, --duration).
 /// </summary>
 /// <param name="Port">열 포트. 0이면 비어 있는 포트를 운영체제가 골라 준다 (단위 시험용)</param>
 /// <param name="Scenario">처음에 고를 응답 방식</param>

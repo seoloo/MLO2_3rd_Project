@@ -1,0 +1,108 @@
+[
+  {
+    "caseId": "S-001",
+    "actor": "사람",
+    "description": "오픈 1.4초 뒤 진입 · 좌석을 둘러보고 결제",
+    "expectedVerdict": "정상",
+    "steps": [
+      { "type": "page_view", "atMs": 0, "screen": "show" },
+      { "type": "queue_enter", "atMs": 1400 },
+      { "type": "page_view", "atMs": 8600, "screen": "seat" },
+      { "type": "seat_click", "atMs": 11200, "x": 212, "y": 344 },
+      { "type": "seat_click", "atMs": 14700, "x": 236, "y": 344 },
+      { "type": "seat_hold", "atMs": 15300 },
+      { "type": "page_view", "atMs": 16100, "screen": "payment" },
+      { "type": "payment_request", "atMs": 29800 }
+    ]
+  },
+  {
+    "caseId": "S-002",
+    "actor": "사람",
+    "description": "오픈 2.1초 뒤 진입 · 좌석을 고민하다 되돌아감",
+    "expectedVerdict": "정상",
+    "steps": [
+      { "type": "page_view", "atMs": 0, "screen": "show" },
+      { "type": "queue_enter", "atMs": 2100 },
+      { "type": "page_view", "atMs": 12400, "screen": "seat" },
+      { "type": "seat_click", "atMs": 17900, "x": 120, "y": 290 },
+      { "type": "back_navigation", "atMs": 21300 },
+      { "type": "seat_click", "atMs": 26800, "x": 310, "y": 402 },
+      { "type": "seat_hold", "atMs": 27500 },
+      { "type": "page_view", "atMs": 28400, "screen": "payment" },
+      { "type": "payment_request", "atMs": 47100 }
+    ]
+  },
+  {
+    "caseId": "S-003",
+    "actor": "사람",
+    "description": "빠른 숙련자 · 오픈 0.6초 뒤 진입, 간격은 고르지 않음",
+    "expectedVerdict": "정상",
+    "steps": [
+      { "type": "page_view", "atMs": 0, "screen": "show" },
+      { "type": "queue_enter", "atMs": 600 },
+      { "type": "page_view", "atMs": 5900, "screen": "seat" },
+      { "type": "seat_click", "atMs": 6800, "x": 280, "y": 300 },
+      { "type": "seat_hold", "atMs": 7300 },
+      { "type": "page_view", "atMs": 7900, "screen": "payment" },
+      { "type": "payment_request", "atMs": 15200 }
+    ]
+  },
+  {
+    "caseId": "S-004",
+    "actor": "봇 A",
+    "description": "오픈 0.03초 뒤 진입 · 0.1초 간격으로 일정하게 클릭 · 화면 기록 없음",
+    "expectedVerdict": "추가 확인",
+    "steps": [
+      { "type": "queue_enter", "atMs": 30 },
+      { "type": "seat_click", "atMs": 130, "x": 200, "y": 300 },
+      { "type": "seat_click", "atMs": 230, "x": 200, "y": 300 },
+      { "type": "seat_hold", "atMs": 330 },
+      { "type": "payment_request", "atMs": 430 }
+    ]
+  },
+  {
+    "caseId": "S-005",
+    "actor": "봇 B",
+    "description": "오픈 0.05초 뒤 진입 · 0.08~0.16초 무작위 간격",
+    "expectedVerdict": "추가 확인",
+    "steps": [
+      { "type": "queue_enter", "atMs": 50 },
+      { "type": "page_view", "atMs": 140, "screen": "seat" },
+      { "type": "seat_click", "atMs": 230, "x": 214, "y": 318 },
+      { "type": "seat_click", "atMs": 390, "x": 226, "y": 318 },
+      { "type": "seat_hold", "atMs": 470 },
+      { "type": "payment_request", "atMs": 610 }
+    ]
+  },
+  {
+    "caseId": "S-006",
+    "actor": "봇 C",
+    "description": "브라우저를 띄워 화면을 직접 누름 · 사람 속도지만 0.4초 간격이 지나치게 일정",
+    "expectedVerdict": "추가 확인",
+    "steps": [
+      { "type": "page_view", "atMs": 800, "screen": "show" },
+      { "type": "queue_enter", "atMs": 1200 },
+      { "type": "page_view", "atMs": 1600, "screen": "seat" },
+      { "type": "seat_click", "atMs": 2000, "x": 240, "y": 320 },
+      { "type": "seat_click", "atMs": 2400, "x": 240, "y": 320 },
+      { "type": "seat_hold", "atMs": 2800 },
+      { "type": "page_view", "atMs": 3200, "screen": "payment" },
+      { "type": "payment_request", "atMs": 3600 }
+    ]
+  },
+  {
+    "caseId": "S-007",
+    "actor": "봇 D",
+    "description": "한 기기에서 세션 20개로 대기열에 동시 진입 · 각 세션은 사람 속도",
+    "expectedVerdict": "추가 확인",
+    "parallelSessions": 20,
+    "steps": [
+      { "type": "page_view", "atMs": 900, "screen": "show" },
+      { "type": "queue_enter", "atMs": 1500 },
+      { "type": "page_view", "atMs": 7200, "screen": "seat" },
+      { "type": "seat_click", "atMs": 9800, "x": 190, "y": 360 },
+      { "type": "seat_hold", "atMs": 10400 },
+      { "type": "payment_request", "atMs": 18900 }
+    ]
+  }
+]

@@ -7,7 +7,7 @@ namespace QaRunner.Desktop;
 /// </summary>
 /// <param name="CaseId">케이스 번호</param>
 /// <param name="CheckName">확인 항목</param>
-/// <param name="Input">넣은 것 (문자 또는 시나리오 설명)</param>
+/// <param name="Input">넣은 것 (세션 또는 시나리오 설명)</param>
 /// <param name="Expected">정답</param>
 /// <param name="ActualDisplay">실제 값. 시스템 실패면 이유를 다음 줄에 붙인다</param>
 /// <param name="IsPassed">통과 여부. 실패한 줄을 붉게 칠하는 데 쓴다</param>
@@ -32,9 +32,11 @@ public sealed record ResultRow(
         : CheckName.Contains("Bronze") ? "처음 받은 원본 이벤트를 보관한 건수예요."
         : CheckName.Contains("격리") ? "조건에 맞지 않아 정상 집계에서 따로 뺀 이벤트 건수예요."
         : CheckName == QaRunner.AppMock.MockRequestGrader.RequestCheckName
-            ? "앱이 보낸 요청이 연결 계약 3장(POST /checks, Content-Type: application/json, 본문 { \"message\": \"문자\" })과 같은지 봤어요."
+            ? "앱이 보낸 요청이 연결 계약 3~5장(경로·요청 방식·Content-Type: application/json·필수 필드)과 같은지 봤어요."
         : CheckName == QaRunner.AppMock.MockRequestGrader.NoRequestCheckName
-            ? "서버를 켜 둔 동안 앱이 판정을 한 번도 요청하지 않았어요. 앱의 API 주소와 포트를 확인해 주세요."
+            ? "서버를 켜 둔 동안 앱이 요청을 한 번도 보내지 않았어요. 앱의 API 주소와 포트를 확인해 주세요."
+        : CheckName.Contains("탐지율") ? "봇 세션 중 추가 확인 이상(추가 확인·보류)으로 판정된 비율이에요. 높을수록 좋아요."
+        : CheckName.Contains("오탐률") ? "사람 세션을 추가 확인 이상으로 잘못 판정한 비율이에요. 이 시스템에서 가장 피해야 할 실수라 낮을수록 좋아요."
         : "";
 
     /// <summary>
@@ -53,6 +55,10 @@ public sealed record ResultRow(
             testResult.Expected,
             actualDisplay,
             testResult.IsPassed)
-        { IsSystemFailure = testResult.IsSystemFailure, HasThreshold = testResult.MeetsTarget is not null };
+        {
+            IsSystemFailure = testResult.IsSystemFailure,
+            // 판정은 묶음으로 채점하려고 MeetsTarget을 쓰지만 "기준 미달"이 아니라 "불일치"로 보여 준다
+            HasThreshold = testResult.MeetsTarget is not null && testResult.CheckName != VerdictChecker.CheckName,
+        };
     }
 }

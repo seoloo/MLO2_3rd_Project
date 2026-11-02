@@ -45,11 +45,11 @@ public static class QaToolSelfChecker
     private static IEnumerable<SelfCheckItem> BuildItems() =>
     [
         new("SC-01", "판정 채점기 분류",
-            "맞는 판정 1건 · 틀린 판정 1건 · 응답 오류 1건",
-            "통과 1 · 불일치 1 · 응답 없음 1",
+            "같은 판정 · 같은 묶음 다른 단계(정상↔관찰) · 다른 묶음 · 응답 오류 각 1건",
+            "통과 2 · 불일치 1 · 응답 없음 1",
             CheckVerdictGradingAsync),
         new("SC-02", "결함 잡아내기 · 판정",
-            "‘인증번호’만 보는 연습용 판정기에 앱 설치 요구 문자",
+            "진입 속도만 보는 연습용 판정기에 사람처럼 늦게 들어온 봇 D(한 기기 세션 20개)",
             "불일치로 잡아냄",
             CheckFakeVerdictDefectAsync),
         new("SC-03", "결함 잡아내기 · 파이프라인",
@@ -59,15 +59,15 @@ public static class QaToolSelfChecker
         new("SC-04", "정답 계산 · 중복",
             "같은 이벤트를 3번 보냄",
             "Bronze 3 · Silver 1 · 격리 0",
-            () => Task.FromResult(DescribeCounts(Calculate(Event("e1", "고위험"), Event("e1", "고위험"), Event("e1", "고위험"))))),
+            () => Task.FromResult(DescribeCounts(Calculate(Event("e1", "seat_click"), Event("e1", "seat_click"), Event("e1", "seat_click"))))),
         new("SC-05", "정답 계산 · 늦은 도착",
             "이벤트 시각보다 6분 늦게 도착",
             "Bronze 1 · Silver 0 · 격리 1",
-            () => Task.FromResult(DescribeCounts(Calculate(Event("e1", "고위험", arrivalDelay: TimeSpan.FromMinutes(6)))))),
+            () => Task.FromResult(DescribeCounts(Calculate(Event("e1", "seat_click", arrivalDelay: TimeSpan.FromMinutes(6)))))),
         new("SC-06", "정답 계산 · 같은 ID 상충",
-            "같은 event_id가 다른 판정으로 두 번 도착",
+            "같은 eventId가 다른 종류(seat_click·seat_hold)로 두 번 도착",
             "Bronze 2 · Silver 1 · 격리 1",
-            () => Task.FromResult(DescribeCounts(Calculate(Event("e1", "고위험"), Event("e1", "주의"))))),
+            () => Task.FromResult(DescribeCounts(Calculate(Event("e1", "seat_click"), Event("e1", "seat_hold"))))),
         new("SC-07", "정답 계산 · Gold 60초 구간",
             "00:10 · 00:50 · 01:10에 일어난 이벤트 3건",
             "2개 구간 · 2건 / 1건",
@@ -78,10 +78,9 @@ public static class QaToolSelfChecker
             () => Task.FromResult(LatencyStatistics.FormatSeconds(
                 LatencyStatistics.Percentile(Enumerable.Range(1, 100).Select(seconds => TimeSpan.FromSeconds(seconds)), 95)))),
         new("SC-09", "판정 코드 변환",
-            "HIGH_RISK · CAUTION · NO_SIGNAL · UNDECIDED",
-            "고위험 · 주의 · 신호 미발견 · 판단 보류",
-            () => Task.FromResult(string.Join(" · ",
-                new[] { "HIGH_RISK", "CAUTION", "NO_SIGNAL", "UNDECIDED" }.Select(VerdictCodes.ToKorean)))),
+            "NORMAL · WATCH · VERIFY · HOLD",
+            "정상 · 관찰 · 추가 확인 · 보류",
+            () => Task.FromResult(string.Join(" · ", VerdictCodes.AllCodes.Select(VerdictCodes.ToKorean)))),
         new("SC-10", "보고서 저장 후 다시 읽기",
             "3건 중 1건 실패한 실행 기록을 임시 폴더에 저장",
             "1건 · 2/3 통과 · QA 도구 영역 · HTML에 사례 번호",
@@ -90,29 +89,40 @@ public static class QaToolSelfChecker
             "같은 초에 만든 보고서가 이미 있는 폴더",
             "뒤에 -2를 붙임",
             CheckRunIdCollision),
+        new("SC-12", "탐지율·오탐률 계산",
+            "봇 A 2건 중 1건 추가 확인 · 사람 2건 중 1건 관찰 · 봇 C 1건 응답 없음",
+            "봇 A·B·D 50% · 사람 오탐 0% · 응답 없는 봇 C는 세지 않음",
+            CheckDetectionSummary),
     ];
 
     // ---- 판정 채점기 ----
 
-    // 정해 둔 답을 돌려주거나 오류를 내는 판정 대상. 채점기가 세 경우를 각각 맞게 분류하는지 본다
-    private sealed class ScriptedVerdictService : IVerdictService
+    // 사례 번호마다 정해 둔 판정을 돌려주거나 오류를 내는 판정 대상. 채점기가 각 경우를 맞게 분류하는지 본다
+    private sealed class ScriptedVerdictService(IReadOnlyDictionary<string, string> verdictByCaseId) : IVerdictService
     {
-        public Task<string> GetVerdictAsync(string message) => message switch
-        {
-            "맞는 문자" => Task.FromResult("고위험"),
-            "틀린 문자" => Task.FromResult("신호 미발견"),
-            _ => throw new VerdictServiceException("점검용 응답 오류"),
-        };
+        public Task<string> GetVerdictAsync(SessionCase session, string runId, string sessionKey) =>
+            verdictByCaseId.TryGetValue(session.CaseId, out var verdict)
+                ? Task.FromResult(verdict)
+                : throw new VerdictServiceException("점검용 응답 오류");
     }
+
+    // 점검용 세션: 행동 하나만 있는 짧은 세션
+    private static SessionCase Session(string caseId, string actor, string expectedVerdict, int firstStepAtMs = 1000, int parallelSessions = 1) =>
+        new(caseId, actor, "점검용 세션", expectedVerdict, [new SessionStep("queue_enter", firstStepAtMs)])
+        {
+            ParallelSessions = parallelSessions,
+        };
 
     private static async Task<string> CheckVerdictGradingAsync()
     {
-        var results = await new VerdictChecker(new ScriptedVerdictService()).CheckAllAsync(
+        var verdicts = new Dictionary<string, string> { ["A"] = "추가 확인", ["B"] = "관찰", ["C"] = "정상" };
+        var results = await new VerdictChecker(new ScriptedVerdictService(verdicts)).CheckAllAsync(
         [
-            new TestCase("A", "맞는 문자", "고위험"),
-            new TestCase("B", "틀린 문자", "고위험"),
-            new TestCase("C", "오류 문자", "고위험"),
-        ]);
+            Session("A", "봇 A", "추가 확인"),
+            Session("B", "사람", "정상"),
+            Session("C", "봇 B", "추가 확인"),
+            Session("D", "봇 A", "추가 확인"),
+        ], "selfcheck");
         var mismatched = results.Count(result => !result.IsPassed && !result.IsSystemFailure);
         return $"통과 {results.Count(result => result.IsPassed)} · 불일치 {mismatched} · 응답 없음 {results.Count(result => result.IsSystemFailure)}";
     }
@@ -120,8 +130,27 @@ public static class QaToolSelfChecker
     private static async Task<string> CheckFakeVerdictDefectAsync()
     {
         var results = await new VerdictChecker(new FakeVerdictService()).CheckAllAsync(
-            [new TestCase("A", "보안 앱을 설치해야 환불됩니다. 링크: https://refund.test/app", "고위험")]);
+            [Session("D", "봇 D", "추가 확인", firstStepAtMs: 900, parallelSessions: 20)], "selfcheck");
         return results is [{ IsPassed: false, IsSystemFailure: false }] ? "불일치로 잡아냄" : "놓침";
+    }
+
+    private static async Task<string> CheckDetectionSummary()
+    {
+        SessionCase[] sessions =
+        [
+            Session("A1", "봇 A", "추가 확인"), Session("A2", "봇 A", "추가 확인"),
+            Session("H1", "사람", "정상"), Session("H2", "사람", "정상"),
+            Session("C1", "봇 C", "추가 확인"),
+        ];
+        var verdicts = new Dictionary<string, string> { ["A1"] = "추가 확인", ["A2"] = "정상", ["H1"] = "정상", ["H2"] = "관찰" };
+        var caseResults = await new VerdictChecker(new ScriptedVerdictService(verdicts)).CheckAllAsync(sessions, "selfcheck");
+        var summary = DetectionSummary.Build(sessions, caseResults).ToDictionary(result => result.CheckName, result => result.Actual);
+
+        var regularBot = summary.GetValueOrDefault(DetectionSummary.RegularBotDetectionCheckName, "없음");
+        var human = summary.GetValueOrDefault(DetectionSummary.HumanFalsePositiveCheckName, "없음");
+        var browserBotCounted = summary.ContainsKey(DetectionSummary.BrowserBotDetectionCheckName);
+        return $"봇 A·B·D {regularBot.Split(' ')[0]} · 사람 오탐 {human.Split(' ')[0]} · "
+            + (browserBotCounted ? "응답 없는 봇 C를 셈" : "응답 없는 봇 C는 세지 않음");
     }
 
     // ---- 파이프라인 채점기 ----
@@ -132,7 +161,7 @@ public static class QaToolSelfChecker
         {
             CaseId = "LATE-SELF",
             Description = "6분 늦게 도착한 이벤트는 격리돼야 한다",
-            Events = [new ScenarioEvent { EventId = "late-self-e1", ScanId = "late-self-s1", OffsetSeconds = 0, Verdict = "고위험" }],
+            Events = [new ScenarioEvent { EventId = "late-self-e1", SessionHash = "late-self-s1", OffsetSeconds = 0, Type = "seat_click" }],
             Injection = new FaultInjection { DelaySeconds = 360 },
         };
         var fakePipeline = new FakePipeline();
@@ -149,10 +178,10 @@ public static class QaToolSelfChecker
     // 이벤트 시각과 도착 시각. 도착 지연을 주지 않으면 1초 뒤에 도착한 것으로 본다
     private sealed record TimedEvent(PipelineEvent Event, DateTimeOffset ArrivedAt);
 
-    private static TimedEvent Event(string eventId, string verdict, TimeSpan? arrivalDelay = null, int offsetSeconds = 0)
+    private static TimedEvent Event(string eventId, string eventType, TimeSpan? arrivalDelay = null, int offsetSeconds = 0)
     {
         var eventTime = BaseTime.AddSeconds(offsetSeconds);
-        return new TimedEvent(new PipelineEvent("selfcheck", "SC", eventId, $"scan-{eventId}", eventTime, verdict),
+        return new TimedEvent(new PipelineEvent("selfcheck", "SC", eventId, $"session-{eventId}", eventTime, eventType),
             eventTime + (arrivalDelay ?? TimeSpan.FromSeconds(1)));
     }
 
@@ -168,8 +197,8 @@ public static class QaToolSelfChecker
 
     private static Task<string> CheckGoldWindows()
     {
-        var calculator = Calculate(Event("e1", "고위험", offsetSeconds: 10), Event("e2", "주의", offsetSeconds: 50),
-            Event("e3", "고위험", offsetSeconds: 70));
+        var calculator = Calculate(Event("e1", "seat_click", offsetSeconds: 10), Event("e2", "queue_enter", offsetSeconds: 50),
+            Event("e3", "seat_click", offsetSeconds: 70));
         var counts = calculator.GoldCountsByWindow.OrderBy(window => window.Key).Select(window => $"{window.Value}건");
         return Task.FromResult($"{calculator.GoldCountsByWindow.Count}개 구간 · {string.Join(" / ", counts)}");
     }
@@ -184,9 +213,9 @@ public static class QaToolSelfChecker
             var sampleRun = new TestRun("2026-01-01-090000", TestSuite.SelfCheck.ToKoreanName(), BaseTime, BaseTime.AddSeconds(1),
                 CommandLineOptions.NoCasesPath, TargetName,
                 [
-                    new TestResult("RT-1", "판정", "문자 1", "고위험", "고위험"),
-                    new TestResult("RT-2", "판정", "문자 2", "주의", "주의"),
-                    new TestResult("RT-3", "판정", "문자 3", "고위험", "신호 미발견"),
+                    new TestResult("RT-1", "판정", "세션 1", "추가 확인", "추가 확인"),
+                    new TestResult("RT-2", "판정", "세션 2", "정상", "정상"),
+                    new TestResult("RT-3", "판정", "세션 3", "추가 확인", "정상"),
                 ])
             {
                 AreaName = TestArea.QaTool.ToKoreanName(),

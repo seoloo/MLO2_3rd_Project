@@ -20,7 +20,7 @@ public enum TestSuite
     /// <summary>QA 도구 점검: 답을 이미 아는 입력으로 QA 러너의 채점기·정답 계산기·보고서가 맞게 동작하는지 확인</summary>
     SelfCheck,
 
-    /// <summary>가짜 판정 서버: 앱(A)이 붙을 가짜 판정 API를 켜 두고, 앱이 보낸 요청이 계약대로인지 기록</summary>
+    /// <summary>가짜 예매·판정 서버: 앱(A)이 붙을 가짜 예매·판정 API를 켜 두고, 앱이 보낸 요청이 계약대로인지 기록</summary>
     MockApi,
 }
 
@@ -34,11 +34,11 @@ public static class TestSuiteExtensions
         TestSuite.Load => "부하 시험",
         TestSuite.Recovery => "복구 시험",
         TestSuite.SelfCheck => "QA 도구 점검",
-        TestSuite.MockApi => "가짜 판정 서버",
+        TestSuite.MockApi => "가짜 예매·판정 서버",
         _ => testSuite.ToString(),
     };
 
-    /// <summary>이 시험이 속한 영역. QA 도구 점검은 QA 도구, 가짜 판정 서버는 앱, 나머지는 서비스 영역이다</summary>
+    /// <summary>이 시험이 속한 영역. QA 도구 점검은 QA 도구, 가짜 예매·판정 서버는 앱, 나머지는 서비스 영역이다</summary>
     public static TestArea Area(this TestSuite testSuite) => testSuite switch
     {
         TestSuite.SelfCheck => TestArea.QaTool,
@@ -65,7 +65,7 @@ public static class TestSuiteExtensions
     public static bool IsMeasurementSuite(this TestSuite testSuite) =>
         testSuite is TestSuite.Load or TestSuite.Recovery;
 
-    /// <summary>입력값 파일이나 시나리오 폴더를 쓰지 않는 시험인지 (복구 시험, QA 도구 점검, 가짜 판정 서버)</summary>
+    /// <summary>입력값 파일이나 시나리오 폴더를 쓰지 않는 시험인지 (복구 시험, QA 도구 점검, 가짜 예매·판정 서버)</summary>
     public static bool UsesNoCasesPath(this TestSuite testSuite) =>
         testSuite is TestSuite.Recovery or TestSuite.SelfCheck or TestSuite.MockApi;
 }

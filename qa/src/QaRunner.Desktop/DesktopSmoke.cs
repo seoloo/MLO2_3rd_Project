@@ -62,19 +62,19 @@ public partial class MainWindow
         Require(ManageNav.IsChecked == true && SettingsTab.IsChecked == true && SettingsPage.IsVisible && !ReportsTab.IsVisible,
             "관리 메뉴 안의 설정 탭");
         CasesTab.IsChecked = true;
-        Require(ManageNav.IsChecked == true && CollaborationPage.IsVisible && !SettingsPage.IsVisible, "안쪽 탭을 눌러 시험 문자 열기");
+        Require(ManageNav.IsChecked == true && CollaborationPage.IsVisible && !SettingsPage.IsVisible, "안쪽 탭을 눌러 시험 세션 열기");
         HistoryNav.IsChecked = true;
         Require(ReportsPage.IsVisible && ReportsTab.IsChecked == true, "기록 메뉴를 누르면 내 기록부터");
         HomeNav.IsChecked = true;
         Require(HomePage.IsVisible && !SectionHeader.IsVisible, "홈 버튼으로 홈 돌아가기");
 
-        // 홈의 영역 카드: 서비스 · 앱(가짜 판정 서버) · QA 도구
+        // 홈의 영역 카드: 서비스 · 앱(가짜 예매·판정 서버) · QA 도구
         Require(ServiceAreaTab.IsChecked == true && HomeAreaTabs.Columns == 3 && ServiceAreaTab.ActualHeight > 60 && HomeSuiteCards.IsVisible && !HomeAppArea.IsVisible && !HomeQaToolCards.IsVisible
             && HomeAreaDescription.Text.Length > 0, "홈은 서비스 영역의 시험 카드 4개부터");
         AppAreaTab.IsChecked = true;
         Require(HomeAppArea.IsVisible && !HomeSuiteCards.IsVisible && !IsMockServerRunning && MockStartButton.IsEnabled && !MockStopButton.IsEnabled
             && MockScenarioBox.Items.Count == Enum.GetValues<QaRunner.AppMock.MockScenario>().Length && MockExpectationText.Text.Length > 0 && MockEmptyText.IsVisible,
-            "앱 영역은 꺼진 가짜 판정 서버와 응답 방식·앱에서 확인할 것");
+            "앱 영역은 꺼진 가짜 예매·판정 서버와 응답 방식·앱에서 확인할 것");
         QaToolAreaTab.IsChecked = true;
         Require(HomeQaToolCards.IsVisible && HomeSelfCheckCard.IsVisible && !HomeAppArea.IsVisible, "QA 도구 영역의 QA 도구 점검 카드");
         await Capture("home-qatool");
@@ -106,13 +106,13 @@ public partial class MainWindow
         Require(SheetError.IsOpen && $"{SheetError.Message}".Contains("http://") && ReportHistoryLoaderCount() == historyBeforePreparation,
             "주소를 잘못 입력하면 실행 전에 수정 방법 안내");
         await Capture("api-address-error");
-        ApiUrlBox.Text = "http://localhost:8000/checks";
-        Require(ApiUrlHint.Text.Contains("/checks는 빼") , "주소에 /checks까지 넣으면 입력칸 아래에서 바로 안내");
+        ApiUrlBox.Text = "http://localhost:8000/events";
+        Require(ApiUrlHint.Text.Contains("/verdicts는 빼"), "주소에 /events까지 넣으면 입력칸 아래에서 바로 안내");
         await RunSelectedSuiteAsync();
-        Require(SheetError.IsOpen && $"{SheetError.Message}".Contains("/checks") && ReportHistoryLoaderCount() == historyBeforePreparation,
-            "/checks까지 넣은 주소는 실행하지 않고 빼는 방법 안내");
+        Require(SheetError.IsOpen && $"{SheetError.Message}".Contains("/events") && ReportHistoryLoaderCount() == historyBeforePreparation,
+            "/events까지 넣은 주소는 실행하지 않고 빼는 방법 안내");
         ApiUrlBox.Text = "http://localhost:8000";
-        Require(HeaderTargetText.Text.Contains("http://localhost:8000") && ApiUrlHint.Text.Contains("http://localhost:8000/checks") && !SheetError.IsOpen,
+        Require(HeaderTargetText.Text.Contains("http://localhost:8000") && ApiUrlHint.Text.Contains("http://localhost:8000/events") && !SheetError.IsOpen,
             "조건 시트와 설정의 API 주소 동기화 · 실제로 보낼 주소 안내 · 주소를 고치면 지난 오류 상자 닫기");
         await Capture("api-conditions");
         PracticeTargetRadio.IsChecked = true;
@@ -129,7 +129,7 @@ public partial class MainWindow
         SheetError.IsOpen = false;
         await Capture("ready");
         CloseSheet();
-        var failedResponse = ResultRow.From(TestResult.SystemFailure("UI-ERR", "응답", "문자", "고위험", "연결 실패"));
+        var failedResponse = ResultRow.From(TestResult.SystemFailure("UI-ERR", "응답", "세션", "추가 확인", "연결 실패"));
         Require(failedResponse.IsSystemFailure && failedResponse.ResultLabel == "응답 없음",
             "응답을 못 받은 경우와 판정 불일치를 다른 말로 구분");
 
@@ -186,7 +186,7 @@ public partial class MainWindow
         SelectPage("run");
         await Capture("invalid-input");
 
-        // 조건 시트에서 돌리는 시험만 차례로 돌린다. 가짜 판정 서버는 아래에서 앱 영역 화면으로 따로 점검한다
+        // 조건 시트에서 돌리는 시험만 차례로 돌린다. 가짜 예매·판정 서버는 아래에서 앱 영역 화면으로 따로 점검한다
         foreach (var suite in Enum.GetValues<TestSuite>().Where(suite => suite != TestSuite.MockApi))
         {
             SelectSuite(suite);
@@ -251,11 +251,11 @@ public partial class MainWindow
         await Capture("ai");
         await CollaborationPage.LoadDemoCasesAsync();
         Require(ManageNav.IsChecked == true && CasesTab.IsChecked == true && CollaborationPage.CasesGrid.Items.Count == 4,
-            "예제 생성 후 사례 관리로 이동·4건 표시");
+            "예제 생성 후 사례 관리로 이동·4개 표시");
         Require(HeaderCasesText.Text.Contains(CollaborationPage.DatasetDisplay), "선택한 사례 집합 표시 동기화");
         await Capture("cases");
         SelectPage("review");
-        Require(CollaborationPage.ReviewMessage.Text.Length > 0, "검수 화면의 선택 문자·근거 연결");
+        Require(CollaborationPage.ReviewMessage.Text.Length > 0, "검수 화면의 선택 세션·근거 연결");
         await Capture("review");
         await CollaborationPage.RunDemoAsync();
         Require(HistoryNav.IsChecked == true && TeamTab.IsChecked == true && CollaborationPage.TeamRunsGrid.Items.Count > 0,
@@ -276,11 +276,11 @@ public partial class MainWindow
             "홈 카드·최근 실행·통과율 원에 실제 보고서 결과 표시");
         await Capture("overview");
 
-        // 앱 영역의 가짜 판정 서버: 켜기 → 실제 HTTP 요청 → 받은 요청 목록 → 끄면 결과 화면과 보고서
+        // 앱 영역의 가짜 예매·판정 서버: 켜기 → 실제 HTTP 요청 → 받은 요청 목록 → 끄면 결과 화면과 보고서
         SelectHomeArea(TestArea.App);
         MockPortBox.Text = "abc";
         StartMockServer();
-        Require(MockError.IsOpen && !IsMockServerRunning && MockStartButton.IsEnabled, "가짜 판정 서버의 잘못된 포트는 카드 안에서 이유를 알려 줌");
+        Require(MockError.IsOpen && !IsMockServerRunning && MockStartButton.IsEnabled, "가짜 예매·판정 서버의 잘못된 포트는 카드 안에서 이유를 알려 줌");
         int freePort;
         using (var probeListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0))
         {
@@ -291,14 +291,16 @@ public partial class MainWindow
         StartMockServer();
         Require(IsMockServerRunning && !MockError.IsOpen && MockAddressPanel.IsVisible && MockAddressText.Text.Contains($"10.0.2.2:{freePort}")
             && !MockStartButton.IsEnabled && MockStopButton.IsEnabled && !MockPortBox.IsEnabled && MockStateText.Text.StartsWith("켜져"),
-            "가짜 판정 서버 켜기 · 에뮬레이터 주소 안내 · 켜 둔 동안 포트 잠금");
+            "가짜 예매·판정 서버 켜기 · 에뮬레이터 주소 안내 · 켜 둔 동안 포트 잠금");
         using (var appClient = new System.Net.Http.HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{freePort}/") })
         {
-            using var verdict = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(appClient, "checks", new { message = "[택배] 상담원에게 인증번호를 알려주세요" });
-            Require(verdict.IsSuccessStatusCode && (await verdict.Content.ReadAsStringAsync()).Contains("HIGH_RISK"), "앱 대신 보낸 판정 요청에 고위험 응답");
-            using var wrongPath = await appClient.PostAsync("check", new System.Net.Http.StringContent("hello"));
+            using var enter = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(appClient, "queue/enter",
+                new { showId = "p-smoke", sessionHash = "s-smoke", deviceHash = "d-smoke" });
+            Require(enter.IsSuccessStatusCode && (await enter.Content.ReadAsStringAsync()).Contains("queueToken"), "앱 대신 보낸 대기열 진입에 대기 번호 응답");
+            using var wrongPath = await appClient.PostAsync("checks", new System.Net.Http.StringContent("hello"));
             MockScenarioBox.SelectedItem = MockScenarioBox.Items.OfType<MockScenarioItem>().First(item => item.Scenario == QaRunner.AppMock.MockScenario.ServerError);
-            using var serverError = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(appClient, "checks", new { message = "오늘 저녁 같이 먹을래요?" });
+            using var serverError = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(appClient, "seats/hold",
+                new { showId = "p-smoke", seatId = "A-1", sessionHash = "s-smoke" });
             Require((int)serverError.StatusCode == 500 && (int)wrongPath.StatusCode == 404, "켜 둔 채 응답 방식을 바꾸면 다음 요청부터 적용");
         }
         var mockDeadline = DateTime.UtcNow.AddSeconds(3);
@@ -314,13 +316,13 @@ public partial class MainWindow
         await StopMockServerAsync();
         Require(!IsMockServerRunning && MockStartButton.IsEnabled && !MockAddressPanel.IsVisible && ExecutionScroll.IsVisible
             && ResultsGrid.Items.Count == 3 && _displayedRun?.AreaName == "앱" && _displayedRun.FailedCount == 1
-            && ReportHistoryLoaderCount() == beforeMock + 1 && RunInfoText.Text.StartsWith("앱 → 가짜 판정 서버"),
+            && ReportHistoryLoaderCount() == beforeMock + 1 && RunInfoText.Text.StartsWith("앱 → 가짜 예매·판정 서버"),
             "서버를 끄면 받은 요청을 계약과 비교한 결과·보고서를 앱 영역 기록으로 저장");
         await Capture("mock-result");
         RerunDisplayed_Click(this, new RoutedEventArgs());
         Require(HomePage.IsVisible && AppAreaTab.IsChecked == true && HomeAppArea.IsVisible && !IsMockServerRunning
             && HomeAreaHint.Text.Contains("서버를 켜고") && PresetMockApiLast.Text.StartsWith("최근"),
-            "가짜 판정 서버 결과의 다시 실행은 앱 영역으로 돌아가고 최근 결과를 보여 줌");
+            "가짜 예매·판정 서버 결과의 다시 실행은 앱 영역으로 돌아가고 최근 결과를 보여 줌");
         SelectHomeArea(TestArea.Service);
         SelectSuite(TestSuite.Load);
         SelectPage("run");

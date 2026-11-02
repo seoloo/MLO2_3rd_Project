@@ -18,9 +18,9 @@ namespace QaRunner;
 /// <param name="RunAllChecks">실행 번호를 받아 채점하고 결과를 돌려주는 작업</param>
 /// <param name="ResourceToDispose">실행이 끝나면 정리할 연결 (Kafka 연결 등). 없으면 null</param>
 /// <param name="RequestStop">
-/// 사용자가 끌 때까지 도는 시험(가짜 판정 서버)을 멈추는 방법. Enter·Ctrl+C나 화면의 끄기 버튼에서 부른다. 정해진 시간에 끝나는 시험은 null
+/// 사용자가 끌 때까지 도는 시험(가짜 예매·판정 서버)을 멈추는 방법. Enter·Ctrl+C나 화면의 끄기 버튼에서 부른다. 정해진 시간에 끝나는 시험은 null
 /// </param>
-/// <param name="Announcement">채점을 시작하기 전에 사용자에게 알려 줄 말 (가짜 판정 서버 주소 등). 없으면 null</param>
+/// <param name="Announcement">채점을 시작하기 전에 사용자에게 알려 줄 말 (가짜 예매·판정 서버 주소 등). 없으면 null</param>
 public sealed record PreparedRun(
     TestSuite Suite,
     string CasesPath,
@@ -60,10 +60,10 @@ public static class QaRunService
         _ => throw new ArgumentException($"알 수 없는 시험 종류입니다: {options.Suite}"),
     };
 
-    // 판정 시험: 입력값 파일을 읽고, API 주소가 있으면 실제 API, 없으면 가짜 판정 대상으로 채점
+    // 판정 시험: 세션 사례 파일을 읽고, API 주소가 있으면 실제 API, 없으면 연습용 판정기로 채점한 뒤 탐지율·오탐률을 덧붙인다
     private static PreparedRun PrepareVerdictSuite(CommandLineOptions options)
     {
-        var testCases = TestCaseLoader.LoadFromFile(options.CasesPath);
+        var sessionCases = SessionCaseLoader.LoadFromFile(options.CasesPath);
         var verdictService = CreateVerdictService(options);
         var verdictChecker = new VerdictChecker(verdictService);
 
@@ -71,7 +71,11 @@ public static class QaRunService
             options.Suite,
             options.CasesPath,
             TargetName: verdictService.GetType().Name,
-            RunAllChecks: _ => verdictChecker.CheckAllAsync(testCases));
+            RunAllChecks: async runId =>
+            {
+                var caseResults = await verdictChecker.CheckAllAsync(sessionCases, runId);
+                return [.. caseResults, .. DetectionSummary.Build(sessionCases, caseResults)];
+            });
     }
 
     // 파이프라인 시험: 시나리오 폴더를 읽고, 연결 설정이 있으면 실제 파이프라인, 없으면 가짜 파이프라인으로 채점
@@ -108,14 +112,14 @@ public static class QaRunService
     // 부하 시험: API 부하는 판정 대상(가짜 또는 실제 API)에, 스트림 부하는 파이프라인(가짜 또는 실제)에 준다
     private static PreparedRun PrepareLoadSuite(CommandLineOptions options)
     {
-        var testCases = TestCaseLoader.LoadFromFile(options.CasesPath);
-        if (testCases.Count == 0)
-            throw new ArgumentException($"부하 시험에 쓸 문자가 입력값 파일에 없습니다: {options.CasesPath}");
+        var sessionCases = SessionCaseLoader.LoadFromFile(options.CasesPath);
+        if (sessionCases.Count == 0)
+            throw new ArgumentException($"부하 시험에 쓸 세션이 사례 파일에 없습니다: {options.CasesPath}");
 
         var settings = GetMeasurementSettings(options);
         var verdictService = CreateVerdictService(options);
         var streamTarget = CreateStreamTarget(options.PipelineConnection);
-        var loadChecker = new LoadChecker(verdictService, testCases, streamTarget.Sender, streamTarget.Reader, settings);
+        var loadChecker = new LoadChecker(verdictService, sessionCases, streamTarget.Sender, streamTarget.Reader, settings);
 
         return new PreparedRun(
             options.Suite,
@@ -147,28 +151,28 @@ public static class QaRunService
         TargetName: QaToolSelfChecker.TargetName,
         RunAllChecks: _ => QaToolSelfChecker.CheckAllAsync());
 
-    // 가짜 판정 서버: 지금 서버를 켜고(포트가 막혀 있으면 준비 오류), 끌 때까지 받은 요청을 계약과 비교한다
+    // 가짜 예매·판정 서버: 지금 서버를 켜고(포트가 막혀 있으면 준비 오류), 끌 때까지 받은 요청을 계약과 비교한다
     private static PreparedRun PrepareMockApiSuite(CommandLineOptions options)
     {
         var settings = options.MockServer ?? MockServerSettings.Default;
-        var server = MockVerdictServer.Start(settings);
+        var server = MockTicketServer.Start(settings);
         var duration = settings.DurationSeconds is { } seconds ? TimeSpan.FromSeconds(seconds) : (TimeSpan?)null;
         return CreateMockApiRun(server, duration);
     }
 
     /// <summary>
-    /// 이미 켠 가짜 판정 서버로 실행을 준비한다. 데스크탑 앱은 받은 요청을 바로 보여 주려고 서버를 직접 켠 뒤 이것을 부른다.
+    /// 이미 켠 가짜 예매·판정 서버로 실행을 준비한다. 데스크탑 앱은 받은 요청을 바로 보여 주려고 서버를 직접 켠 뒤 이것을 부른다.
     /// 채점은 서버가 꺼질 때(끄기 버튼, Enter·Ctrl+C, 정한 시간 끝) 그때까지 받은 요청으로 한다.
     /// </summary>
-    /// <param name="server">켜 둔 가짜 판정 서버</param>
+    /// <param name="server">켜 둔 가짜 예매·판정 서버</param>
     /// <param name="duration">켜 둘 시간. null이면 직접 끌 때까지</param>
-    public static PreparedRun CreateMockApiRun(MockVerdictServer server, TimeSpan? duration)
+    public static PreparedRun CreateMockApiRun(MockTicketServer server, TimeSpan? duration)
     {
         var addressLines = string.Join(Environment.NewLine, server.Addresses.Select(address => $"  {address.Label}: {address.Url}"));
         return new PreparedRun(
             TestSuite.MockApi,
             CommandLineOptions.NoCasesPath,
-            TargetName: MockVerdictServer.TargetName,
+            TargetName: MockTicketServer.TargetName,
             RunAllChecks: async _ =>
             {
                 await server.WaitUntilStoppedAsync(duration);
@@ -176,7 +180,7 @@ public static class QaRunService
             },
             ResourceToDispose: server,
             RequestStop: server.Stop,
-            Announcement: $"가짜 판정 서버를 켰어요 (응답 방식: {server.Scenario.ToKoreanName()}). 앱의 판정 API 주소를 아래 중 하나로 바꿔 주세요."
+            Announcement: $"가짜 예매·판정 서버를 켰어요 (응답 방식: {server.Scenario.ToKoreanName()}). 앱의 API 주소를 아래 중 하나로 바꿔 주세요."
                 + Environment.NewLine + addressLines);
     }
 
@@ -202,7 +206,7 @@ public static class QaRunService
             Control: new DockerProcessingControl(connection.SparkContainerName));
     }
 
-    // API 주소가 있으면 실제 API, 없으면 가짜 판정 대상
+    // API 주소가 있으면 실제 API, 없으면 연습용 판정기
     private static IVerdictService CreateVerdictService(CommandLineOptions options) => options.ApiBaseUrl is null
         ? new FakeVerdictService()
         : new ApiVerdictService(ApiVerdictService.CreateHttpClient(options.ApiBaseUrl));

@@ -3,7 +3,7 @@ using Confluent.Kafka;
 namespace QaRunner.Pipeline;
 
 /// <summary>
-/// 실제 Kafka에 QA 이벤트를 넣는다 (docs/contract.md 4장: 토픽 scan-events, 키 scanId).
+/// 실제 Kafka에 QA 이벤트를 넣는다 (docs/contract.md 6장: 토픽 ticket-events, 키 sessionHash).
 /// 아직 실제 Kafka로 확인하지 못한 코드다. 인프라가 생기면 pipeline/README.md의 명령으로 확인한다.
 /// </summary>
 public sealed class KafkaEventSender : IEventSender, IDisposable
@@ -37,7 +37,7 @@ public sealed class KafkaEventSender : IEventSender, IDisposable
     {
         var message = new Message<string, string>
         {
-            Key = pipelineEvent.ScanId,
+            Key = pipelineEvent.SessionHash,
             Value = ContractEventFormat.ToJson(pipelineEvent),
         };
 

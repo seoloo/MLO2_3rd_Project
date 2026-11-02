@@ -36,8 +36,12 @@ public sealed class CollaborationTests : IDisposable
         var caseSet = await CreateCasesAsync();
         var unknownLabel = caseSet with { Cases = [caseSet.Cases[0] with { ExpectedVerdict = "SAFE" }] };
         var duplicateId = caseSet with { Cases = [caseSet.Cases[0], caseSet.Cases[0]] };
+        var noSteps = caseSet with { Cases = [caseSet.Cases[0] with { Steps = [] }] };
+        var noActor = caseSet with { Cases = [caseSet.Cases[0] with { Actor = " " }] };
         Assert.Throws<ArgumentException>(unknownLabel.Validate);
         Assert.Throws<ArgumentException>(duplicateId.Validate);
+        Assert.Throws<ArgumentException>(noSteps.Validate);
+        Assert.Throws<ArgumentException>(noActor.Validate);
     }
 
     [Fact]
@@ -49,9 +53,15 @@ public sealed class CollaborationTests : IDisposable
         var outcome = await new TeamQaWorkflow(client).RunAsync(
             caseSet, "팀원 A", "local-demo", "test-commit", service, "FakeRecordingService", _reportDirectory);
 
-        Assert.Equal(caseSet.Cases.Select(testCase => testCase.Message), service.Messages);
+        // 생성된 세션이 모두 같은 순서로 판정 대상에 전달되고, 행동 수도 그대로다
+        Assert.Equal(caseSet.Cases.Select(testCase => testCase.CaseId), service.CaseIds);
+        Assert.Equal(caseSet.Cases.Select(testCase => testCase.Steps.Count), service.StepCounts);
         Assert.Equal([SharedRunState.Running, SharedRunState.Completed], client.Published.Select(run => run.State));
-        Assert.Equal(1, outcome.Run.PassedCount);
+
+        // 항상 "정상"이라고 답하므로 사람 2개만 통과한다. 팀 화면에는 사례별 결과만 올라간다
+        Assert.Equal(2, outcome.Run.PassedCount);
+        Assert.Equal(caseSet.Cases.Count, outcome.Run.Results.Count);
+        Assert.Contains("사람 오탐률", File.ReadAllText(outcome.Reports.HtmlReportPath));
         Assert.True(outcome.Run.IsProvisional);
         Assert.Null(outcome.SyncError);
         Assert.NotEqual(Guid.Empty, outcome.Run.RunId);
@@ -115,7 +125,7 @@ public sealed class CollaborationTests : IDisposable
     public async Task Runpod_placeholder_fails_explicitly_instead_of_returning_fake_ai_output()
     {
         await Assert.ThrowsAsync<NotSupportedException>(() =>
-            new RunpodCaseGenerator().GenerateAsync(new CaseGenerationRequest("인증번호")));
+            new RunpodCaseGenerator().GenerateAsync(new CaseGenerationRequest("새 유형 봇")));
     }
 
     [Fact]
@@ -125,22 +135,25 @@ public sealed class CollaborationTests : IDisposable
     }
 
     private static Task<GeneratedCaseSet> CreateCasesAsync() =>
-        new DemoCaseGenerator().GenerateAsync(new CaseGenerationRequest("인증번호 전달·외부 앱 설치"));
+        new DemoCaseGenerator().GenerateAsync(new CaseGenerationRequest("새 유형 봇·사람 예매 세션"));
 
-    // 문자만 전달받는 기존 서비스 경계를 확인하기 위한 시험 대상.
+    // 받은 세션을 기록하고 항상 "정상"이라고 답하는 시험 대상.
     private sealed class RecordingVerdictService : IVerdictService
     {
-        public List<string> Messages { get; } = [];
-        public Task<string> GetVerdictAsync(string message)
+        public List<string> CaseIds { get; } = [];
+        public List<int> StepCounts { get; } = [];
+        public Task<string> GetVerdictAsync(Models.SessionCase session, string runId, string sessionKey)
         {
-            Messages.Add(message);
-            return Task.FromResult("신호 미발견");
+            CaseIds.Add(session.CaseId);
+            StepCounts.Add(session.Steps.Count);
+            return Task.FromResult("정상");
         }
     }
 
     private sealed class BrokenVerdictService : IVerdictService
     {
-        public Task<string> GetVerdictAsync(string message) => throw new InvalidOperationException("시험 대상 버그");
+        public Task<string> GetVerdictAsync(Models.SessionCase session, string runId, string sessionKey) =>
+            throw new InvalidOperationException("시험 대상 버그");
     }
 
     private sealed class RecordingTeamClient : ITeamRunClient

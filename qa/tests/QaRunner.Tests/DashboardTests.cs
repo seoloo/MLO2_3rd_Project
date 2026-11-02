@@ -24,7 +24,7 @@ public class DashboardTests : IDisposable
         SuiteName: TestSuite.Load.ToKoreanName(),
         StartedAt: startedAt,
         FinishedAt: startedAt.AddSeconds(30),
-        CasesPath: "cases/rules.json",
+        CasesPath: "cases/sessions.json",
         TargetName: "FakeVerdictService + FakeStreamingPipeline",
         Results:
         [

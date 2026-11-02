@@ -9,20 +9,20 @@ using QaRunner.Models;
 namespace QaRunner.Desktop;
 
 /// <summary>
-/// 홈 › 앱 영역의 가짜 판정 서버 화면. 서버를 켜고 끄고, 앱이 보낸 요청을 받는 즉시 목록에 보여 준다.
+/// 홈 › 앱 영역의 가짜 예매·판정 서버 화면. 서버를 켜고 끄고, 앱이 보낸 요청을 받는 즉시 목록에 보여 준다.
 /// 끄면 그때까지 받은 요청을 계약과 비교한 결과를 다른 시험처럼 보고서로 저장하고 결과 화면에 띄운다.
 /// </summary>
 public partial class MainWindow
 {
-    // 켜 둔 가짜 판정 서버와, 서버가 꺼지면 채점 결과를 돌려주는 실행. 꺼져 있으면 둘 다 null
-    private MockVerdictServer? _mockServer;
+    // 켜 둔 가짜 예매·판정 서버와, 서버가 꺼지면 채점 결과를 돌려주는 실행. 꺼져 있으면 둘 다 null
+    private MockTicketServer? _mockServer;
     private Task<TestRun>? _mockRunTask;
     private string _mockReportDirectory = CommandLineOptions.DefaultReportDirectory;
 
     // 받은 요청 목록 (최근 요청이 위)
     private readonly ObservableCollection<MockRequestRow> _mockRequestRows = [];
 
-    /// <summary>가짜 판정 서버가 켜져 있는지</summary>
+    /// <summary>가짜 예매·판정 서버가 켜져 있는지</summary>
     public bool IsMockServerRunning => _mockServer is not null;
 
     /// <summary>응답 방식 목록을 채우고 꺼진 상태로 보여 준다. 창을 닫으면 켜 둔 서버도 끈다</summary>
@@ -46,11 +46,11 @@ public partial class MainWindow
         MockResponseText.Text = $"서버가 하는 일: {scenario.DescribeResponse()}";
         if (_mockServer is null) return;
         _mockServer.Scenario = scenario;
-        ShowStatus($"가짜 판정 서버의 응답 방식을 ‘{scenario.ToKoreanName()}’으로 바꿨어요. 앱에서 다시 요청해 보세요.", StatusTone.Running);
+        ShowStatus($"가짜 예매·판정 서버의 응답 방식을 ‘{scenario.ToKoreanName()}’으로 바꿨어요. 앱에서 다시 요청해 보세요.", StatusTone.Running);
     }
 
     /// <summary>
-    /// 화면의 포트·응답 방식으로 가짜 판정 서버를 켠다. 포트가 막혀 있으면 카드 안에 이유를 보여 준다.
+    /// 화면의 포트·응답 방식으로 가짜 예매·판정 서버를 켠다. 포트가 막혀 있으면 카드 안에 이유를 보여 준다.
     /// </summary>
     public void StartMockServer()
     {
@@ -63,7 +63,7 @@ public partial class MainWindow
                 throw new ArgumentException("포트 칸에 1~65535 사이 숫자를 넣어 주세요. 보통 8000을 써요.");
 
             var settings = new MockServerSettings(port, SelectedMockScenario, MockAllowLanBox.IsChecked == true, DurationSeconds: null);
-            var server = MockVerdictServer.Start(settings);
+            var server = MockTicketServer.Start(settings);
             _mockServer = server;
             _mockRequestRows.Clear();
             server.RequestReceived += record => Dispatcher.BeginInvoke(() => AddMockRequest(record));
@@ -74,7 +74,7 @@ public partial class MainWindow
 
             ShowMockServerState();
             CompleteStep(ChecklistStepKind.PickTest);
-            ShowStatus($"가짜 판정 서버가 켜져 있어요 · {server.Addresses[0].Url}. 앱의 API 주소를 바꾸고 판정을 요청해 보세요.", StatusTone.Running);
+            ShowStatus($"가짜 예매·판정 서버가 켜져 있어요 · {server.Addresses[0].Url}. 앱의 API 주소를 바꾸고 판정을 요청해 보세요.", StatusTone.Running);
         }
         catch (Exception exception) when (QaRunService.IsPreparationError(exception))
         {
@@ -85,7 +85,7 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// 가짜 판정 서버를 끄고, 받은 요청이 있으면 보고서를 저장해 결과 화면에 보여 준다.
+    /// 가짜 예매·판정 서버를 끄고, 받은 요청이 있으면 보고서를 저장해 결과 화면에 보여 준다.
     /// </summary>
     public async Task StopMockServerAsync()
     {
@@ -116,7 +116,7 @@ public partial class MainWindow
 
     private void MockStart_Click(object sender, RoutedEventArgs e) => StartMockServer();
 
-    // 결과 화면의 다시 실행: 가짜 판정 서버 결과는 앱이 요청을 보내야 하므로 홈 › 앱 영역으로 돌아가고, 나머지는 같은 조건으로 바로 다시 돌린다
+    // 결과 화면의 다시 실행: 가짜 예매·판정 서버 결과는 앱이 요청을 보내야 하므로 홈 › 앱 영역으로 돌아가고, 나머지는 같은 조건으로 바로 다시 돌린다
     private async void RerunDisplayed_Click(object sender, RoutedEventArgs e)
     {
         if (_displayedRun?.SuiteName != TestSuite.MockApi.ToKoreanName())
@@ -185,17 +185,18 @@ public partial class MainWindow
         MockEmptyText.Visibility = _mockRequestRows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    /// <summary>응답 방식 목록의 한 줄. 예: "서버 오류 500   #500"</summary>
+    /// <summary>응답 방식 목록의 한 줄. 예: "서버 오류 500   ?mock=500"</summary>
     private sealed record MockScenarioItem(MockScenario Scenario)
     {
-        public string Label => $"{Scenario.ToKoreanName()}   {Scenario.ToMessageTag()}";
+        public string Label => $"{Scenario.ToKoreanName()}   {Scenario.ToQueryTag()}";
     }
 
     /// <summary>받은 요청 목록의 한 줄</summary>
     private sealed record MockRequestRow(MockRequestRecord Record)
     {
         public string TimeText => Record.ReceivedAt.ToLocalTime().ToString("HH:mm:ss");
-        public string MessageText => Record.MessagePreview.Length > 0 ? Record.MessagePreview : $"(문자 없음) {Record.Method} {Record.Path}";
+        public string RequestText => $"{Record.Endpoint.ToKoreanName()} · {Record.Method} {Record.Path}"
+            + (Record.SessionPreview.Length > 0 ? $" · 세션 {Record.SessionPreview}" : "");
         public string ResponseText => Record.ResponseSummary;
         public bool MatchesContract => Record.MatchesContract;
         public string FormatText => MatchesContract ? MockRequestGrader.MatchesContractValue : $"다른 점 {Record.Problems.Count}개";

@@ -6,12 +6,22 @@ namespace QaRunner.Contracts;
 [JsonConverter(typeof(JsonStringEnumConverter<LabelReviewState>))]
 public enum LabelReviewState { AiSuggested, HumanReviewed }
 
-/// <summary>AI가 생성하거나 검수자가 확정한 시험 문자와 예상 정답. 서비스 API에는 Message만 보낸다.</summary>
-public sealed record GeneratedCase(
-    string CaseId, string Message, string ExpectedVerdict,
-    string Rationale, LabelReviewState ReviewState = LabelReviewState.AiSuggested);
+/// <summary>생성된 세션 안의 행동 하나. 이벤트 종류와 화면은 연결 계약 4-2장을 따른다.</summary>
+public sealed record GeneratedStep(string Type, int AtMs, string? Screen = null, int? X = null, int? Y = null);
 
-/// <summary>생성 결과를 고정해 다시 시험할 수 있도록 묶은 사례 집합. 판정 코드는 연결 계약 2장을 따른다.</summary>
+/// <summary>
+/// AI가 생성하거나 검수자가 확정한 시험 세션과 예상 정답 (예: 새 유형 봇 시나리오).
+/// 서비스 API에는 Steps(행동)만 보내고, 행위자와 정답은 QA 안에서만 쓴다.
+/// </summary>
+public sealed record GeneratedCase(
+    string CaseId, string Actor, string Description, string ExpectedVerdict, IReadOnlyList<GeneratedStep> Steps,
+    string Rationale, LabelReviewState ReviewState = LabelReviewState.AiSuggested)
+{
+    /// <summary>같은 기기에서 동시에 같은 행동을 하는 세션 수 (봇 D 같은 다중 세션)</summary>
+    public int ParallelSessions { get; init; } = 1;
+}
+
+/// <summary>생성 결과를 고정해 다시 시험할 수 있도록 묶은 사례 집합. 판정 코드(NORMAL·WATCH·VERIFY·HOLD)는 연결 계약 2장을 따른다.</summary>
 public sealed record GeneratedCaseSet(
     string DatasetId, string Generator, string PromptVersion, IReadOnlyList<GeneratedCase> Cases)
 {
@@ -29,13 +39,15 @@ public sealed record GeneratedCaseSet(
         foreach (var testCase in Cases)
         {
             if (testCase is null || string.IsNullOrWhiteSpace(testCase.CaseId)
-                || string.IsNullOrWhiteSpace(testCase.Message) || !caseIds.Add(testCase.CaseId)
-                || !Enum.IsDefined(testCase.ReviewState)
-                || testCase.ExpectedVerdict is not ("HIGH_RISK" or "CAUTION" or "NO_SIGNAL" or "UNDECIDED"))
-                throw new ArgumentException("사례 ID는 고유해야 하며 문자·유효한 판정 코드·검수 상태가 필요합니다.");
+                || string.IsNullOrWhiteSpace(testCase.Actor) || testCase.Steps is null || testCase.Steps.Count == 0
+                || testCase.Steps.Any(step => step is null || string.IsNullOrWhiteSpace(step.Type) || step.AtMs < 0)
+                || testCase.ParallelSessions is < 1 or > 100
+                || !caseIds.Add(testCase.CaseId) || !Enum.IsDefined(testCase.ReviewState)
+                || testCase.ExpectedVerdict is not ("NORMAL" or "WATCH" or "VERIFY" or "HOLD"))
+                throw new ArgumentException("사례 ID는 고유해야 하며 행위자·행동·유효한 판정 코드·검수 상태가 필요합니다.");
         }
     }
 }
 
-/// <summary>향후 Runpod에 보낼 생성 조건. 정답 기준은 버전이 있는 프롬프트로 별도 관리한다.</summary>
+/// <summary>향후 Runpod에 보낼 생성 조건 (예: "사람처럼 망설이는 새 유형 봇"). 정답 기준은 버전이 있는 프롬프트로 별도 관리한다.</summary>
 public sealed record CaseGenerationRequest(string Scenario, int Count = 4);

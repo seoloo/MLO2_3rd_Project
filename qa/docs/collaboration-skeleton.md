@@ -6,29 +6,29 @@
 
 ```text
 Runpod 사례 생성 (후속 구현)
-    │ 시험 문자 + 예상 정답 + 생성기/프롬프트 버전
+    │ 새 유형 봇·사람 세션(행동) + 예상 정답 + 생성기/프롬프트 버전
     ▼
 데스크톱 앱의 TeamQaWorkflow
-    ├─ 문자만 → 서비스 판정 API → 실제 판정
-    ├─ 예상 정답과 실제 판정 비교 → 기존 JSON·HTML 보고서
+    ├─ 행동만 → 수집 API(/events) → 판정 조회 API(/verdicts) → 실제 판정
+    ├─ 예상 정답과 실제 판정을 묶음으로 비교 + 탐지율·오탐률 → 기존 JSON·HTML 보고서
     └─ 시작/완료/오류 스냅샷 → 공용 QA 공유 API → 각 팀원의 데스크톱 화면
                               현재: localhost 예제 / 향후: EC2
 ```
 
-AI 생성 사례는 판정 시험에만 사용합니다. 파이프라인 집계 정답은 기존 `ExpectedResultCalculator`가 계속 계산합니다. 서비스 API `/checks`와 QA 공유 API `/qa/runs`는 서로 다른 역할입니다.
+기획서의 "RunPod로 새 유형 봇 시나리오 생성"이 붙을 자리입니다. AI 생성 사례는 판정 시험에만 사용합니다. 파이프라인 집계 정답은 기존 `ExpectedResultCalculator`가 계속 계산합니다. 서비스 API(`/events`, `/verdicts`)와 QA 공유 API `/qa/runs`는 서로 다른 역할입니다.
 
 ## 폴더와 교체 경계
 
 | 위치 | 역할 | 현재 상태 |
 |---|---|---|
 | `src/QaRunner.Contracts/` | 생성 사례·검수 상태·공유 실행·인터페이스 | 공통 DTO와 기본 형식 검증 |
-| `src/QaRunner/Collaboration/DemoCaseGenerator.cs` | 합성 사례 제공 | 고정 예제 4건, 실제 AI 아님 |
+| `src/QaRunner/Collaboration/DemoCaseGenerator.cs` | 합성 사례 제공 | 고정 예제 세션 4개(봇 A·사람 2·새 유형 봇), 실제 AI 아님 |
 | `src/QaRunner/Collaboration/RunpodCaseGenerator.cs` | Runpod 호출 경계 | 명시적으로 미지원 예외 발생, 네트워크 호출 없음 |
 | `src/QaRunner/Collaboration/TeamQaWorkflow.cs` | 사례 → 기존 판정 채점 → 로컬 저장 → 공유 | 예제 흐름 연결 |
 | `src/QaRunner/Collaboration/DemoTeamRunClient.cs` | 앱 내부 결과 보관 | 한 프로세스의 메모리만 사용 |
 | `src/QaRunner/Collaboration/HttpTeamRunClient.cs` | 공유 API HTTP 계약 | 루프백 주소만 허용 |
 | `src/QaRunner.Sharing.Api/` | 공용 QA 서버 뼈대 | localhost·메모리 저장 전용 |
-| `src/QaRunner.Desktop/CollaborationView.xaml(.cs)` | 생성 사례·실행·팀 목록·상세·검수 근거 | 메인 창의 관리(시험 문자·AI 문자)·기록(팀 공유) 탭에서 공통으로 사용 |
+| `src/QaRunner.Desktop/CollaborationView.xaml(.cs)` | 생성 사례·실행·팀 목록·상세·검수 근거 | 메인 창의 관리(시험 세션·AI 세션)·기록(팀 공유) 탭에서 공통으로 사용 |
 | `src/QaRunner.Desktop/CollaborationWindow.xaml(.cs)` | 별도 창 호스트 | 같은 CollaborationView 재사용 |
 | `tests/QaRunner.Tests/CollaborationTests.cs` | 라벨 검증·정보 분리·공유 장애·중복 전송 검사 | 기존 테스트와 함께 실행 |
 
@@ -46,8 +46,8 @@ dotnet run --project src/QaRunner.Desktop
 
 1. 왼쪽 메뉴 **기록 › 팀 공유** 위쪽 한 줄에 실행자·시험 환경·코드 버전을 입력합니다. 코드 버전은 현재 직접 입력하는 값입니다.
 2. 공유 방식은 기본값 **이 앱 안에서만 확인**으로 둡니다.
-3. **관리 › 시험 문자**(또는 **AI 문자**)에서 **예제 4건**을 누릅니다. 시험 문자 목록에 합성 문자 4건이 들어옵니다.
-4. **예제 시험하고 공유**를 누릅니다. 일부 불일치는 결함을 넣은 가짜 판정기의 예상 결과입니다. 끝나면 **기록 › 팀 공유**로 이동합니다.
+3. **관리 › 시험 세션**(또는 **AI 세션**)에서 **예제 4개**를 누릅니다. 세션 목록에 합성 세션 4개가 들어오고, 고르면 행동 흐름이 보입니다.
+4. **예제 시험하고 공유**를 누릅니다. 일부 불일치는 결함을 넣은 연습용 판정기의 예상 결과입니다(사람 속도로 들어온 새 유형 봇을 놓침). 끝나면 **기록 › 팀 공유**로 이동합니다.
 5. 왼쪽 실행 목록에서 하나를 골라 오른쪽에서 예상 정답과 실제 판정을 확인합니다.
 
 같은 앱에서는 공유 모드와 실행자를 바꾸고 실행해 기록의 출처를 확인할 수 있습니다. 앱을 별도로 두 번 실행한 경우 앱 내부 메모리는 서로 공유되지 않습니다.
@@ -74,8 +74,9 @@ Invoke-RestMethod http://127.0.0.1:5085/qa/runs
 ### 생성 사례
 
 - `GeneratedCaseSet`: `datasetId`, `generator`, `promptVersion`, `cases`.
-- 사례: `caseId`, `message`, `expectedVerdict`, `rationale`, `reviewState`.
-- 예상 판정: `HIGH_RISK` / `CAUTION` / `NO_SIGNAL` / `UNDECIDED`.
+- 사례: `caseId`, `actor`, `description`, `expectedVerdict`, `steps`(`type`, `atMs`, `screen`, `x`, `y`), `parallelSessions`, `rationale`, `reviewState`.
+- 예상 판정: `NORMAL` / `WATCH` / `VERIFY` / `HOLD`. 채점은 묶음(정상 처리 / 추가 확인 이상)으로 합니다.
+- 공유 결과(`SharedCheckResult`)에는 사례별 결과와 통과 여부(`passed`)만 올리고, 탐지율·오탐률은 로컬 보고서에 남깁니다.
 - 검수 상태: `AiSuggested` / `HumanReviewed`. 생성기가 스스로 검수 완료로 승격하지 않습니다.
 - 검수 전 라벨이 있으면 `isProvisional`이 true이고, 화면·HTML 보고서·대시보드에 탐색 시험임을 표시합니다.
 
@@ -103,7 +104,7 @@ AI 제안과 시스템 판정이 다르면 검토할 불일치 후보입니다. 
 
 기존 `reports/<UUID>.json`, `.html`, `dashboard.html` 외에 `reports/team-runs/<UUID>.json`을 남깁니다. 이 스냅샷에는 생성 사례·예상 정답·검수 상태·실행자·결과가 들어 있어 재현과 추후 재전송에 사용할 수 있습니다. 파일은 기존 `qa/reports/` 제외 규칙을 따릅니다.
 
-완료 업로드에 실패해도 로컬 보고서와 스냅샷을 보존하고, UI에 **공유 미완료**를 표시합니다. 자동 재전송·업로드 대기열·수동 재전송 버튼은 아직 구현하지 않았습니다. 예제에는 합성 문자만 사용하며, 실제 입력을 공유할 때의 마스킹·보존 정책은 먼저 확정합니다.
+완료 업로드에 실패해도 로컬 보고서와 스냅샷을 보존하고, UI에 **공유 미완료**를 표시합니다. 자동 재전송·업로드 대기열·수동 재전송 버튼은 아직 구현하지 않았습니다. 예제에는 합성 세션만 사용하며, 실제 사람 테스트 기록을 공유할 때의 해시·보존 정책은 먼저 확정합니다.
 
 ## 프로젝트 착수 후 진행 순서
 

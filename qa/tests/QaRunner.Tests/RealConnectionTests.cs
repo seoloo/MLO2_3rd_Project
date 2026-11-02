@@ -12,11 +12,11 @@ namespace QaRunner.Tests;
 public class RealConnectionTests
 {
     [Theory]
-    [InlineData("HIGH_RISK", "고위험")]
-    [InlineData("caution", "주의")]
-    [InlineData("NO_SIGNAL", "신호 미발견")]
-    [InlineData("UNDECIDED", "판단 보류")]
-    [InlineData("고위험", "고위험")]
+    [InlineData("NORMAL", "정상")]
+    [InlineData("watch", "관찰")]
+    [InlineData("VERIFY", "추가 확인")]
+    [InlineData("HOLD", "보류")]
+    [InlineData("추가 확인", "추가 확인")]
     public void Verdict_codes_are_converted_to_korean(string verdict, string expectedKorean)
     {
         Assert.Equal(expectedKorean, VerdictCodes.ToKorean(verdict));
@@ -25,9 +25,20 @@ public class RealConnectionTests
     [Fact]
     public void Korean_verdict_is_converted_to_code_and_unknown_value_is_kept()
     {
-        Assert.Equal("HIGH_RISK", VerdictCodes.ToCode("고위험"));
-        Assert.Equal("NO_SIGNAL", VerdictCodes.ToCode("신호 미발견"));
+        Assert.Equal("VERIFY", VerdictCodes.ToCode("추가 확인"));
+        Assert.Equal("NORMAL", VerdictCodes.ToCode("정상"));
         Assert.Equal("알 수 없음", VerdictCodes.ToCode("알 수 없음"));
+    }
+
+    [Theory]
+    [InlineData("정상", VerdictCodes.PassThroughGroup)]
+    [InlineData("WATCH", VerdictCodes.PassThroughGroup)]
+    [InlineData("추가 확인", VerdictCodes.CheckGroup)]
+    [InlineData("HOLD", VerdictCodes.CheckGroup)]
+    [InlineData("VERY_DANGEROUS", null)]
+    public void Verdicts_are_grouped_for_detection_rates(string verdict, string? expectedGroup)
+    {
+        Assert.Equal(expectedGroup, VerdictCodes.ToGroup(verdict));
     }
 
     [Fact]
@@ -37,18 +48,21 @@ public class RealConnectionTests
             RunId: "run-1",
             CaseId: "DUP-001",
             EventId: "run-1-dup-001-e1",
-            ScanId: "run-1-dup-001-s1",
+            SessionHash: "run-1-dup-001-s1",
             EventTime: new DateTimeOffset(2026, 11, 2, 18, 0, 10, TimeSpan.FromHours(9)),
-            Verdict: "고위험");
+            EventType: "seat_hold");
 
         using var contractEvent = JsonDocument.Parse(ContractEventFormat.ToJson(pipelineEvent));
         var root = contractEvent.RootElement;
 
-        // docs/contract.md 4장의 필드
+        // docs/contract.md 4-1장의 필드
         Assert.Equal("run-1-dup-001-e1", root.GetProperty("eventId").GetString());
-        Assert.Equal("run-1-dup-001-s1", root.GetProperty("scanId").GetString());
-        Assert.Equal("check_completed", root.GetProperty("eventType").GetString());
-        Assert.Equal("HIGH_RISK", root.GetProperty("verdict").GetString());
+        Assert.Equal("run-1-dup-001-s1", root.GetProperty("sessionHash").GetString());
+        Assert.Equal("seat_hold", root.GetProperty("type").GetString());
+        Assert.Equal("server", root.GetProperty("origin").GetString());
+        Assert.Equal("seat", root.GetProperty("screen").GetString());
+        Assert.Equal("qa-device-DUP-001", root.GetProperty("deviceHash").GetString());
+        Assert.Equal("qa-show", root.GetProperty("showId").GetString());
         Assert.Equal("2026-11-02T09:00:10.000Z", root.GetProperty("occurredAt").GetString());
         Assert.Equal("qa", root.GetProperty("source").GetString());
         Assert.Equal("run-1", root.GetProperty("runId").GetString());
@@ -64,8 +78,8 @@ public class RealConnectionTests
         var connection = Assert.IsType<PipelineConnectionSettings>(options.PipelineConnection);
         Assert.Equal("localhost:9092", connection.KafkaBootstrapServers);
         Assert.Equal("mongodb://localhost:27017", connection.MongoConnectionString);
-        Assert.Equal("scan-events", connection.KafkaTopic);
-        Assert.Equal("jeongbo", connection.MongoDatabase);
+        Assert.Equal("ticket-events", connection.KafkaTopic);
+        Assert.Equal("ticketguard", connection.MongoDatabase);
         Assert.Equal("spark", connection.SparkContainerName);
     }
 
@@ -111,7 +125,7 @@ public class RealConnectionTests
     public async Task Mongo_reader_reports_read_failure_when_mongodb_is_unreachable()
     {
         // 아무것도 듣고 있지 않은 포트. 연결 시도는 5초 안에 포기한다
-        var mongoReader = new MongoPipelineReader("mongodb://127.0.0.1:1", "jeongbo");
+        var mongoReader = new MongoPipelineReader("mongodb://127.0.0.1:1", "ticketguard");
 
         await Assert.ThrowsAsync<PipelineReadException>(
             () => mongoReader.ReadCaseCountsAsync("run-1", "DUP-001", CancellationToken.None));

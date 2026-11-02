@@ -17,7 +17,7 @@ public sealed class PipelineReadException(string message, Exception? innerExcept
 
 /// <summary>
 /// 파이프라인에 실제로 쌓인 결과를 읽는 쪽. 지금은 FakePipeline을 쓰고,
-/// C의 파이프라인이 준비되면 MongoDB(bronze_events, silver_events, gold_metrics)를 읽는 구현으로 바꾼다.
+/// 실제 파이프라인이 준비되면 MongoDB(bronze_events, silver_events, gold_live_metrics)를 읽는 구현으로 바꾼다.
 /// </summary>
 public interface IPipelineReader
 {

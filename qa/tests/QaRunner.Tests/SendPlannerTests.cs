@@ -10,7 +10,7 @@ public class SendPlannerTests
     private static readonly DateTimeOffset Now = new(2026, 11, 2, 9, 0, 0, TimeSpan.Zero);
 
     private static ScenarioEvent CreateScenarioEvent(string eventId, int offsetSeconds) =>
-        new() { EventId = eventId, ScanId = $"scan-{eventId}", OffsetSeconds = offsetSeconds };
+        new() { EventId = eventId, SessionHash = $"session-{eventId}", OffsetSeconds = offsetSeconds };
 
     [Fact]
     public void Duplicate_count_repeats_each_event()

@@ -21,13 +21,13 @@ public class PipelineScenarioLoaderTests : IDisposable
     {
         Directory.CreateDirectory(_tempScenarioDirectory);
         File.WriteAllText(Path.Combine(_tempScenarioDirectory, "b.json"), """
-            { "caseId": "B", "events": [ { "eventId": "b1", "scanId": "s1" } ] }
+            { "caseId": "B", "events": [ { "eventId": "b1", "sessionHash": "s1" } ] }
             """);
         File.WriteAllText(Path.Combine(_tempScenarioDirectory, "a.json"), """
             {
               "caseId": "A",
               "description": "중복 시험",
-              "events": [ { "eventId": "a1", "scanId": "s1", "offsetSeconds": 2, "verdict": "주의" } ],
+              "events": [ { "eventId": "a1", "sessionHash": "s1", "offsetSeconds": 2, "type": "queue_enter" } ],
               "injection": { "duplicateCount": 3, "sendInReverseOrder": true, "delaySeconds": 30 }
             }
             """);
@@ -40,7 +40,9 @@ public class PipelineScenarioLoaderTests : IDisposable
         var scenarioA = scenarios[0];
         Assert.Equal("중복 시험", scenarioA.Description);
         Assert.Equal(2, scenarioA.Events.Single().OffsetSeconds);
-        Assert.Equal("주의", scenarioA.Events.Single().Verdict);
+        Assert.Equal("queue_enter", scenarioA.Events.Single().Type);
+        Assert.Equal("s1", scenarioA.Events.Single().SessionHash);
+        Assert.Equal("seat_click", scenarios[1].Events.Single().Type);
         Assert.Equal(3, scenarioA.Injection.DuplicateCount);
         Assert.True(scenarioA.Injection.SendInReverseOrder);
         Assert.Equal(30, scenarioA.Injection.DelaySeconds);

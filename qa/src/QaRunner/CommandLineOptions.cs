@@ -19,7 +19,7 @@ namespace QaRunner;
 /// 실제 파이프라인 연결 설정 (--kafka, --mongo). 주면 파이프라인·부하·복구 시험이 실제 Kafka·MongoDB를 대상으로 돌고,
 /// 안 주면(null) 가짜 파이프라인으로 돈다.
 /// </param>
-/// <param name="MockServer">가짜 판정 서버 조건 (--port, --scenario, --allow-lan, --duration). 다른 시험에서는 null</param>
+/// <param name="MockServer">가짜 예매·판정 서버 조건 (--port, --scenario, --allow-lan, --duration). 다른 시험에서는 null</param>
 public sealed record CommandLineOptions(
     TestSuite Suite,
     string CasesPath,
@@ -29,7 +29,7 @@ public sealed record CommandLineOptions(
     PipelineConnectionSettings? PipelineConnection = null,
     MockServerSettings? MockServer = null)
 {
-    public const string DefaultVerdictCasesPath = "cases/rules.json";
+    public const string DefaultVerdictCasesPath = "cases/sessions.json";
     public const string DefaultPipelineCasesPath = "cases/pipeline";
     public const string DefaultReportDirectory = "reports";
 

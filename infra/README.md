@@ -1,20 +1,24 @@
-# infra — 실행 환경 (공용)
+# infra — 실행 환경 (담당: C)
 
-Kafka, Spark, MongoDB, API를 한 번에 띄우는 docker-compose와 EC2 배포 설정을 둡니다. 파이프라인은 C, 배포는 B가 주로 맡습니다.
+Kafka, Spark, MongoDB, Redis, API를 한 번에 띄우는 docker-compose와 EC2 배포·S3 보관 설정을 둡니다. 무거운 서버는 EC2 한 대에 모으고, 팀원 노트북은 앱과 자기 코드만 실행합니다. GPU는 학습할 때만 RunPod에서 시간 단위로 빌립니다.
 
 ## 여기에 둘 것
 
-- `docker-compose.yml` (Kafka, Spark, MongoDB, API)
-- EC2 배포 스크립트·설정
+- `docker-compose.yml` (Kafka, Spark 작업 3개, MongoDB 서비스 DB·분석 DB, Redis, FastAPI)
+- EC2 배포 스크립트·설정, GitHub Actions 배포
+- Bronze → S3 일별 보관과 Kafka 재생 도구
+- RunPod 학습 환경 (4주 이후)
 
 ## 지켜야 할 것
 
 | 항목 | 값 | 이유 |
 |---|---|---|
-| MongoDB 레플리카셋 | 단일 노드라도 레플리카셋으로 실행 | `checks`와 `outbox`를 한 트랜잭션으로 저장하려면 필요 |
-| Spark 서비스 이름 | `spark` | QA 복구 시험이 `docker stop spark` / `docker start spark`로 멈췄다 켬 ([계약 6장](../docs/contract.md#6-처리-규칙-c)) |
+| DB 분리 | 서비스 DB와 분석 DB(`ticketguard`)를 나눔 | 분석 부하가 예매 처리를 느리게 하지 않게 ([계약 7장](../docs/contract.md#7-mongodb-컬렉션)) |
+| 좌석 점유 | Redis 만료 키 | MongoDB TTL은 약 60초 간격이라 좌석이 늦게 풀릴 수 있음 |
+| Spark 판정 작업 서비스 이름 | `spark` | QA 복구 시험이 `docker stop spark` / `docker start spark`로 멈췄다 켬 ([계약 8장](../docs/contract.md#8-처리-규칙-bc)) |
 | Spark checkpoint·MongoDB 데이터 | 볼륨에 저장 | 재가동 후 이어서 처리하고 최종 집계가 일치해야 함 |
-| Kafka 토픽 | `scan-events` | [계약 4장](../docs/contract.md#4-kafka-이벤트-b-발행기--c) |
+| Kafka 토픽 | `ticket-events`, `ticket-verdicts` | [계약 6장](../docs/contract.md#6-kafka) |
+| 접속 제한 · 비용 | 팀원 IP만 허용, 쓰지 않을 때 EC2 중지, 예산 알림 | 아래 보안 체크리스트 |
 
 ## AWS·EC2 보안 체크리스트
 
