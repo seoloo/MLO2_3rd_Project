@@ -1,15 +1,27 @@
 # 티켓가드 · Django 예매 사이트
 
+## 실행 버전
+
+- **Python 3.15.2** — 2026-11-02 확인한 최신 정식 버전
+- **Django 6.1.2**, Gunicorn 26.2.0
+- Windows 가상환경: `.venv-3.15` (기존 `.venv`와 별도 생성)
+
+이 조합에서 예매·계정 테스트 19개와 `pip check`를 통과했습니다. Django 문서는 Python 3.15 공식 지원을 6.1.3부터로 안내하지만, 현재 배포된 최신 정식 Django는 6.1.2입니다. 개발판은 사용하지 않았으며 실제 AWS/PostgreSQL 통합·부하 검증은 별도입니다.
+
+공식 버전: [Python 3.15.2](https://www.python.org/downloads/release/python-3152/) · [Django 정식 릴리스](https://www.djangoproject.com/download/) · [Django 6.1 Python 지원](https://docs.djangoproject.com/en/dev/releases/6.1/)
+
 ## Windows에서 실행
 
 이 폴더에서 `./start-local.ps1`을 실행합니다. Python 가상환경 생성 → 의존성 설치 → DB 준비 → 임시 관리자 생성 → 공연·좌석 준비 → 서버 실행 순서입니다.
 
-이미 가상환경을 만든 팀원은 이 폴더에서 실행합니다.
+Python 3.15.2를 설치한 뒤 이 폴더에서 아래 명령으로 준비합니다. 기존 `.venv`와 DB 파일은 삭제하지 않습니다.
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py migrate
-.\.venv\Scripts\python.exe manage.py seed_shows
-.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+py -3.15 -m venv .venv-3.15
+.\.venv-3.15\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv-3.15\Scripts\python.exe manage.py migrate
+.\.venv-3.15\Scripts\python.exe manage.py seed_shows
+.\.venv-3.15\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
 
 ## 임시 공통 관리자
@@ -23,7 +35,7 @@
 `migrate`가 처음 적용될 때 자동 생성합니다. 기존 `admin01` 관리자는 ID와 연결된 예매 기록을 보존하면서 `admin / admin`으로 전환합니다. 이미 `admin` 관리자가 있으면 비밀번호를 보존하며, 아래 명령으로 임시 비밀번호로 초기화할 수 있습니다.
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py setup_admin --reset-password
+.\.venv-3.15\Scripts\python.exe manage.py setup_admin --reset-password
 ```
 
 임시 자격 증명은 `booking/accounts.py`와 초기 생성 마이그레이션에 명시되어 있습니다. 실제 DB에는 Django 비밀번호 해시를 저장하며 일반 계정을 자동 승격하지 않습니다. 공개 운영 전 임시 계정 생성 코드를 제거하고 비밀번호를 변경해야 합니다.
@@ -41,7 +53,7 @@ Git은 DB 자체를 공유하지 않습니다. 팀원이 각자 실행하면 각
 ## 검증
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py test booking
+.\.venv-3.15\Scripts\python.exe manage.py test booking
 ```
 
 계정 초기 생성·전환·로그인·권한, 좌석 충돌·한도·만료·취소, 이벤트 중복, CSRF와 타인 주문 접근을 확인합니다. SQLite는 개발용이며 동시 부하 검증에는 PostgreSQL을 권장합니다. AWS 실배포는 별도 인프라 작업입니다.

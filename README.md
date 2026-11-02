@@ -4,6 +4,16 @@
 >
 > Python 가상환경으로 실행합니다. 아래는 Django 예매 대상 사이트 안내입니다.
 
+## 실행 버전
+
+- **Python 3.15.2** — 2026-11-02 확인한 최신 정식 버전
+- **Django 6.1.2**, Gunicorn 26.2.0
+- Windows 가상환경: `.venv-3.15` (기존 `.venv`와 별도 생성)
+
+이 조합에서 예매·계정 테스트 19개와 `pip check`를 통과했습니다. Django 문서는 Python 3.15 공식 지원을 6.1.3부터로 안내하지만, 현재 배포된 최신 정식 Django는 6.1.2입니다. 개발판은 사용하지 않았으며 실제 AWS/PostgreSQL 통합·부하 검증은 별도입니다.
+
+공식 버전: [Python 3.15.2](https://www.python.org/downloads/release/python-3152/) · [Django 정식 릴리스](https://www.djangoproject.com/download/) · [Django 6.1 Python 지원](https://docs.djangoproject.com/en/dev/releases/6.1/)
+
 ### 1. 코드 받기
 
 처음 받는 팀원은 PowerShell에서 실행합니다.
@@ -23,16 +33,18 @@ git pull --ff-only origin codex/frontend
 
 ### 2. 사이트 실행하기
 
-Python 3.12 기준입니다. 저장소 폴더에서 다음 순서대로 실행합니다. 가상환경 활성화 없이 실행할 수 있습니다.
+Python **3.15.2** · Django **6.1.2** 기준입니다. Python 3.15.2를 먼저 설치하세요. 저장소 폴더에서 다음 순서대로 실행합니다. 가상환경 활성화 없이 실행할 수 있습니다.
 
 ```powershell
 cd app/ticketing-site
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe manage.py migrate
-.\.venv\Scripts\python.exe manage.py seed_shows
-.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+py -3.15 -m venv .venv-3.15
+.\.venv-3.15\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv-3.15\Scripts\python.exe manage.py migrate
+.\.venv-3.15\Scripts\python.exe manage.py seed_shows
+.\.venv-3.15\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
+
+이전 Python으로 만든 `.venv`는 사용하지 않고 `.venv-3.15`를 새로 만듭니다. 기존 DB와 계정·예매 기록은 유지됩니다.
 
 서버를 실행한 창은 열어 둔 채 브라우저로 접속합니다. 실행을 중지하려면 해당 창에서 `Ctrl+C`를 누릅니다. 이후 다시 실행할 때는 사이트 폴더에서 마지막 `runserver` 명령을 사용합니다. 코드를 업데이트한 뒤에는 서버를 중지하고 의존성 설치와 `migrate`를 다시 실행합니다.
 
@@ -49,7 +61,7 @@ python -m venv .venv
 `migrate`에서 임시 관리자를 자동 생성합니다. 이전 `admin01` 관리자는 예매 기록과 계정 ID를 유지하면서 `admin`으로 전환합니다. 이미 존재하는 `admin` 관리자의 비밀번호는 자동 변경하지 않으므로 로그인이 안 되면 사이트 폴더의 **다른 PowerShell 창**에서 아래 명령을 실행합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py setup_admin --reset-password
+.\.venv-3.15\Scripts\python.exe manage.py setup_admin --reset-password
 ```
 
 실행 후 아이디와 비밀번호에 각각 `admin`을 입력합니다. 일반 계정이 이미 `admin` 이름을 사용하면 권한을 임의로 변경하지 않고 충돌 오류를 표시합니다. 이 경우 해당 계정을 다른 이름으로 변경한 뒤 다시 진행합니다.
