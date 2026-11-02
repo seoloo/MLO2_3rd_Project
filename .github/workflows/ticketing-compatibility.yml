@@ -1,0 +1,84 @@
+name: 티켓팅 사이트 호환성 검사
+
+on:
+  push:
+    branches: [codex/frontend]
+    paths: ["app/ticketing-site/**", ".github/workflows/ticketing-compatibility.yml"]
+  pull_request:
+    paths: ["app/ticketing-site/**", ".github/workflows/ticketing-compatibility.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: app/ticketing-site
+    env:
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,testserver"
+      DJANGO_COOKIE_SECURE: "0"
+      DJANGO_SSL_REDIRECT: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.15.2"
+      - name: Prepare disposable test environment
+        shell: pwsh
+        run: |
+          $key = python -c "import secrets; print(secrets.token_urlsafe(64))"
+          "DJANGO_SECRET_KEY=$key" >> $env:GITHUB_ENV
+          python -m pip install -r requirements.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Prepare PostgreSQL on Linux runner
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql
+          sudo systemctl start postgresql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ticketguard LOGIN CREATEDB PASSWORD 'ci-only-ticketguard';"
+          sudo -u postgres createdb -O ticketguard ticketguard
+          echo "POSTGRES_HOST=127.0.0.1" >> "$GITHUB_ENV"
+          echo "POSTGRES_DB=ticketguard" >> "$GITHUB_ENV"
+          echo "POSTGRES_USER=ticketguard" >> "$GITHUB_ENV"
+          echo "POSTGRES_PASSWORD=ci-only-ticketguard" >> "$GITHUB_ENV"
+      - name: Migrations, static files and application tests
+        shell: pwsh
+        run: |
+          python manage.py migrate --noinput
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python manage.py seed_shows
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python manage.py collectstatic --noinput
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python manage.py makemigrations --check --dry-run
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python manage.py test booking
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Gunicorn and real HTTP check on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m gunicorn config.wsgi:application --check-config
+          python -m gunicorn config.wsgi:application --bind 127.0.0.1:18000 --workers 2 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18000/healthz/ >/dev/null; then break; fi
+            sleep 1
+          done
+          SMOKE_BASE_URL=http://127.0.0.1:18000 python scripts/smoke_http.py

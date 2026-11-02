@@ -3,7 +3,7 @@
 ## 실행 버전
 
 - **Python 3.15.2** — 2026-11-02 확인한 최신 정식 버전
-- **Django 6.1.2**, Gunicorn 26.2.0
+- **Django 6.1.2** / **Gunicorn 26.2.0은 Linux 전용** (Windows에서는 설치 제외)
 - Windows 가상환경: `.venv-3.15` (기존 `.venv`와 별도 생성)
 
 이 조합에서 예매·계정 테스트 19개와 `pip check`를 통과했습니다. Django 문서는 Python 3.15 공식 지원을 6.1.3부터로 안내하지만, 현재 배포된 최신 정식 Django는 6.1.2입니다. 개발판은 사용하지 않았으며 실제 AWS/PostgreSQL 통합·부하 검증은 별도입니다.
@@ -57,3 +57,17 @@ Git은 DB 자체를 공유하지 않습니다. 팀원이 각자 실행하면 각
 ```
 
 계정 초기 생성·전환·로그인·권한, 좌석 충돌·한도·만료·취소, 이벤트 중복, CSRF와 타인 주문 접근을 확인합니다. SQLite는 개발용이며 동시 부하 검증에는 PostgreSQL을 권장합니다. AWS 실배포는 별도 인프라 작업입니다.
+
+## 호환성 확인과 운영체제 구분
+
+| 환경 | 실행 방식 | 확인 범위 |
+|---|---|---|
+| Windows / Python 3.15.2 | Django 개발 서버 | 새 가상환경 설치, 의존성 검사, 예매·계정 테스트, 배포 설정 WSGI HTTP 확인 |
+| AWS Linux / Python 3.15.2 | Gunicorn 26.2.0 + Nginx | Linux 실행이 필요함. Windows의 설치 성공으로 Linux 서버 검증을 대신하지 않음 |
+| PostgreSQL | psycopg 3.3.6 바이너리 | Windows Python 3.15용 바이너리 로드 확인. 실제 DB 시험은 별도 필요 |
+
+Gunicorn은 Unix 전용이며 Windows에서 실행하면 `fcntl` 오류가 납니다. `requirements.txt`의 운영체제 조건으로 Windows 설치에서 제외했습니다. 개발 서버 실행에 Gunicorn은 필요하지 않습니다.
+
+Python 3.15 공식 지원은 Django 6.1.3부터이며, 2026-11-02 현재 설치 가능한 정식 버전은 6.1.2입니다. 이 사이트에서 시험한 기능은 통과했지만 Django 전체 기능의 호환성을 보장하는 뜻은 아닙니다. 특히 Windows의 한글 파일명 번역 추출(`makemessages`) 문제는 6.1.3 수정 예정이므로 이 버전에서는 사용하지 않습니다. 현재 사이트는 번역 추출을 사용하지 않습니다. 6.1.3 정식 배포 후 버전을 고정 갱신하고 동일 검증을 다시 수행해야 합니다.
+
+저장소의 `티켓팅 사이트 호환성 검사` Actions는 Windows/SQLite와 Linux/PostgreSQL에서 설치·의존성·Django 테스트를 실행하고, Linux에서는 Gunicorn을 실제 기동해 HTTP를 검사합니다. 해당 브랜치에 워크플로가 푸시되면 실행되며 실제 AWS 인프라 검증과는 별도입니다.

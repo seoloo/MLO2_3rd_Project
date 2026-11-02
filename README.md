@@ -7,10 +7,12 @@
 ## 실행 버전
 
 - **Python 3.15.2** — 2026-11-02 확인한 최신 정식 버전
-- **Django 6.1.2**, Gunicorn 26.2.0
+- **Django 6.1.2**, Gunicorn 26.2.0은 **AWS Linux 전용** (Windows는 Django 개발 서버)
 - Windows 가상환경: `.venv-3.15` (기존 `.venv`와 별도 생성)
 
 이 조합에서 예매·계정 테스트 19개와 `pip check`를 통과했습니다. Django 문서는 Python 3.15 공식 지원을 6.1.3부터로 안내하지만, 현재 배포된 최신 정식 Django는 6.1.2입니다. 개발판은 사용하지 않았으며 실제 AWS/PostgreSQL 통합·부하 검증은 별도입니다.
+
+Windows의 Gunicorn 설치·실행 충돌을 피하도록 운영체제 조건을 적용했습니다. Django 6.1.2에서 Windows 한글 파일명의 `makemessages`는 사용하지 않습니다. 상세 검증 범위는 [사이트 호환성 안내](app/ticketing-site/README.md#호환성-확인과-운영체제-구분)를 참고하세요.
 
 공식 버전: [Python 3.15.2](https://www.python.org/downloads/release/python-3152/) · [Django 정식 릴리스](https://www.djangoproject.com/download/) · [Django 6.1 Python 지원](https://docs.djangoproject.com/en/dev/releases/6.1/)
 

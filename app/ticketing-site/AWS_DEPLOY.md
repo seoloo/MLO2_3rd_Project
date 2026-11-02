@@ -4,6 +4,8 @@
 
 실행 버전은 `.python-version`의 Python 3.15.2와 `requirements.txt`의 Django 6.1.2입니다. OS 기본 Python과 별도로 Python 3.15를 설치하고, systemd 실행 경로도 새 가상환경으로 바꿉니다.
 
+Gunicorn은 Linux 전용입니다. Windows에서는 `start-local.ps1`의 Django 개발 서버를 사용합니다. 설치 성공과 실제 AWS 실행 검증은 구분하며, Python 3.15 공식 지원 전 Django 제한은 사이트 README의 호환성 항목을 참고하세요.
+
 ## EC2 Linux 준비
 
 Python 3.15.2와 venv, Nginx를 준비하고 이 디렉터리를 서버에 배치합니다. 아래 명령은 사이트 디렉터리에서 실행합니다.
