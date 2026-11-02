@@ -1,4 +1,4 @@
-.venv/
+.venv*/
 .env
 .env.*
 !.env.example
@@ -8,6 +8,3 @@ __pycache__/
 db.sqlite3*
 logs/
 staticfiles/
-
-.venv-*/
-.venv315/

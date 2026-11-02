@@ -1,3 +1,4 @@
+# Target runtime: Python 3.13.15; Windows verified, Linux CI target
 asgiref==3.13.0
 Django==6.1.2
 gunicorn==26.2.0; sys_platform != "win32"
