@@ -1,0 +1,5 @@
+from django.contrib import admin
+from django.contrib.auth import views as auth
+from django.urls import path
+from booking import views as v
+urlpatterns=[path('healthz/',v.health,name='health'),path('',v.home,name='home'),path('accounts/signup/',v.signup,name='signup'),path('accounts/login/',auth.LoginView.as_view(),name='login'),path('accounts/logout/',auth.LogoutView.as_view(),name='logout'),path('shows/<slug:slug>/',v.detail,name='detail'),path('shows/<slug:slug>/enter/',v.enter,name='enter'),path('shows/<slug:slug>/queue/',v.queue,name='queue'),path('shows/<slug:slug>/seats/',v.seats,name='seats'),path('api/shows/<slug:slug>/seats/',v.inventory,name='inventory'),path('api/shows/<slug:slug>/reserve/',v.reserve_view,name='reserve'),path('api/events/',v.collect,name='collect'),path('bookings/',v.my_bookings,name='orders'),path('bookings/<uuid:pk>/checkout/',v.checkout,name='checkout'),path('bookings/<uuid:pk>/complete/',v.success,name='success'),path('bookings/<uuid:pk>/cancel/',v.cancel_view,name='cancel'),path('ops/',v.ops,name='ops'),path('ops/export/',v.export_events,name='export'),path('admin/',admin.site.urls)]

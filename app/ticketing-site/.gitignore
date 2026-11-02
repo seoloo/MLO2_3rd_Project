@@ -1,0 +1,11 @@
+.venv/
+.env
+.env.*
+!.env.example
+!.env.aws.example
+.local-secret
+__pycache__/
+*.pyc
+db.sqlite3*
+logs/
+staticfiles/
