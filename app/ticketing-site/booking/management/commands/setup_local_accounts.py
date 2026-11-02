@@ -51,4 +51,4 @@ class Command(BaseCommand):
                     create = User.objects.create_superuser if is_admin else User.objects.create_user
                     create(username=username, password=password)
                     self.stdout.write(f'{username}: 생성 완료')
-        self.stdout.write(self.style.SUCCESS('일반 member01 / 관리자 admin01 준비 완료. 비밀번호는 출력·저장 파일에 기록하지 않았습니다.'))
+        self.stdout.write(self.style.SUCCESS('일반 member01 / 관리자 admin 준비 완료. 비밀번호는 출력·저장 파일에 기록하지 않았습니다.'))

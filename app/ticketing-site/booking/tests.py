@@ -68,6 +68,8 @@ class BookingTests(TestCase):
 
 
 class LocalAccountCommandTests(TestCase):
+ def setUp(self):
+  User.objects.filter(username="admin").delete()
  def run_setup(self, password='Local-only-sample-47!', **kwargs):
   from io import StringIO
   from unittest.mock import patch
@@ -78,7 +80,7 @@ class LocalAccountCommandTests(TestCase):
   from django.test import override_settings
   with override_settings(DEBUG=True):
    self.run_setup()
-   member=User.objects.get(username='member01');admin=User.objects.get(username='admin01')
+   member=User.objects.get(username='member01');admin=User.objects.get(username='admin')
    self.assertFalse(member.is_staff);self.assertFalse(member.is_superuser)
    self.assertTrue(admin.is_staff);self.assertTrue(admin.is_superuser)
    self.assertTrue(member.check_password('Local-only-sample-47!'))
@@ -91,18 +93,20 @@ class LocalAccountCommandTests(TestCase):
   from django.test import override_settings
   from django.core.management.base import CommandError
   with override_settings(DEBUG=False), self.assertRaises(CommandError):self.run_setup()
-  self.assertFalse(User.objects.filter(username='admin01').exists())
+  self.assertFalse(User.objects.filter(username='admin').exists())
 
  def test_does_not_promote_conflicting_existing_account(self):
   from django.test import override_settings
   from django.core.management.base import CommandError
-  User.objects.create_user('admin01',password='Existing-sample-47!')
+  User.objects.create_user('admin',password='Existing-sample-47!')
   with override_settings(DEBUG=True), self.assertRaises(CommandError):self.run_setup()
-  self.assertFalse(User.objects.get(username='admin01').is_staff)
+  self.assertFalse(User.objects.get(username='admin').is_staff)
   self.assertFalse(User.objects.filter(username='member01').exists())
 
 
 class SharedAdminCommandTests(TestCase):
+ def setUp(self):
+  User.objects.filter(username="admin").delete()
  def setup_admin(self,password='Shared-sample-47!',**options):
   from io import StringIO
   from unittest.mock import patch
@@ -112,14 +116,52 @@ class SharedAdminCommandTests(TestCase):
  def test_same_administrator_in_deployment_and_local(self):
   from django.test import override_settings
   with override_settings(DEBUG=False):self.setup_admin()
-  u=User.objects.get(username='admin01');self.assertTrue(u.is_staff and u.is_superuser and u.is_active)
+  u=User.objects.get(username='admin');self.assertTrue(u.is_staff and u.is_superuser and u.is_active)
   self.assertTrue(u.check_password('Shared-sample-47!'))
   self.setup_admin(password='Different-sample-47!');u.refresh_from_db();self.assertTrue(u.check_password('Shared-sample-47!'))
   self.setup_admin(password='Different-sample-47!',reset_password=True);u.refresh_from_db();self.assertTrue(u.check_password('Different-sample-47!'))
-  self.assertEqual(User.objects.filter(username='admin01').count(),1)
+  self.assertEqual(User.objects.filter(username='admin').count(),1)
 
  def test_refuses_to_promote_existing_member(self):
   from django.core.management.base import CommandError
-  User.objects.create_user('admin01',password='Existing-sample-47!')
+  User.objects.create_user('admin',password='Existing-sample-47!')
   with self.assertRaises(CommandError):self.setup_admin(reset_password=True)
-  self.assertFalse(User.objects.get(username='admin01').is_staff)
+  self.assertFalse(User.objects.get(username='admin').is_staff)
+
+
+class TemporaryAdminSeedTests(TestCase):
+ def seed(self):
+  from importlib import import_module
+  from django.apps import apps
+  from django.db import connection
+  from types import SimpleNamespace
+  import_module('booking.migrations.0002_temporary_shared_admin').seed_admin(apps, SimpleNamespace(connection=connection))
+
+ def test_fresh_database_can_login_and_password_is_hashed(self):
+  User.objects.filter(username='admin').delete()
+  self.seed()
+  u=User.objects.get(username='admin')
+  self.assertNotEqual(u.password,'admin')
+  self.assertTrue(self.client.login(username='admin',password='admin'))
+  self.assertEqual(self.client.get('/admin/').status_code,200)
+  self.assertEqual(self.client.get('/ops/').status_code,200)
+  u.set_password('Changed-password-47!');u.save()
+  self.seed();u.refresh_from_db()
+  self.assertTrue(u.check_password('Changed-password-47!'))
+  call_command('setup_admin',reset_password=True,verbosity=0)
+  u.refresh_from_db();self.assertTrue(u.check_password('admin'))
+
+ def test_legacy_administrator_keeps_identity(self):
+  User.objects.filter(username='admin').delete()
+  old=User.objects.create_superuser('admin01',password='Old-password-47!')
+  self.seed()
+  u=User.objects.get(username='admin')
+  self.assertEqual(u.pk,old.pk)
+  self.assertTrue(u.check_password('admin'))
+  self.assertFalse(User.objects.filter(username='admin01').exists())
+
+ def test_member_collision_is_not_promoted(self):
+  User.objects.filter(username='admin').delete()
+  u=User.objects.create_user('admin',password='Member-password-47!')
+  with self.assertRaises(RuntimeError):self.seed()
+  u.refresh_from_db();self.assertFalse(u.is_staff)

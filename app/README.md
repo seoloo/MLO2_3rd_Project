@@ -38,7 +38,7 @@
 
 ## Django 공용 예매 대상 사이트
 
-`ticketing-site/`에 브라우저 기반 예매 대상 사이트를 추가했습니다. 회원가입·로그인·공연·좌석·5분 점유·승인 시뮬레이션·취소와 관리자 전용 기록을 제공합니다. Windows Python 가상환경과 EC2용 Docker/Nginx/Gunicorn/PostgreSQL 구성을 포함합니다.
+`ticketing-site/`에 브라우저 기반 예매 대상 사이트를 추가했습니다. 회원가입·로그인·공연·좌석·5분 점유·승인 시뮬레이션·취소와 관리자 전용 기록을 제공합니다. Windows Python 가상환경과 EC2용 Python 가상환경/Nginx/Gunicorn/PostgreSQL 구성을 포함합니다.
 
 - [로컬 실행·현재 기능](ticketing-site/README.md)
 - [AWS 배포 안내](ticketing-site/AWS_DEPLOY.md)
