@@ -6,7 +6,7 @@
 
 > **현재 구현 상태 (2026.11.02):** 2026.11.02에 주제를 정보지킴(스미싱 판정)에서 티켓가드로 바꿨습니다. 연결 계약·QA 러너·보고서·데스크탑 앱·CI는 티켓가드 형식으로 바뀌어 있고, 실제 백엔드·Kafka·MongoDB·Spark에 연결하는 QA 코드도 준비되어 있지만 통합 검증은 대기 중입니다. 앱·백엔드·인프라는 설계 단계로, 아래 서비스 도식은 **목표 구조**입니다.
 
-**바로 보기:** [QA 설치·사용 안내](qa/docs/install-and-use.md) · [매크로 봇 작업 계획](qa/README.md#macro-bot-plan) · [연결 계약](docs/contract.md) · [QA 데스크톱 앱](#qa-desktop-ui) · [전체 구조](#전체-흐름) · [예매 1건의 흐름](#예매-1건의-요청이벤트판정-순서) · [데이터 처리](#data-processing) · [QA 검증](#qa-flow) · [진행 상황](#진행-상황) · [실행 방법](#시작하기)
+**바로 보기:** [QA 설치·사용 안내](qa/docs/install-and-use.md) · [매크로 봇 작업 계획](qa/bots/README.md) · [연결 계약](docs/contract.md) · [QA 데스크톱 앱](#qa-desktop-ui) · [전체 구조](#전체-흐름) · [예매 1건의 흐름](#예매-1건의-요청이벤트판정-순서) · [데이터 처리](#data-processing) · [QA 검증](#qa-flow) · [진행 상황](#진행-상황) · [실행 방법](#시작하기)
 
 ## 무엇을 만드나
 
@@ -39,7 +39,7 @@
 
 디자인 검토용 PNG·PDF·HTML·압축 파일과 화면 캡처는 저장소에 보관하지 않습니다.
 
-팀원에게 전달할 Windows 64비트 배포본은 `qa/publish-qa-desktop.cmd`로 만듭니다. 배경 20개를 포함해 실행 파일은 약 **27.6 MiB**, 전달용 ZIP은 약 **12.7 MiB**입니다. 실행 PC에는 .NET 10 Desktop Runtime(x64)이 필요합니다. Kafka·MongoDB 라이브러리와 Spark·Runpod·EC2 확장 구조는 유지하며, 배포 대상과 다른 운영체제의 바이너리만 해당 배포본에서 제외합니다. 자세한 내용은 [QA 배포 안내](qa/README.md#배포-파일로-실행하기)에 있습니다.
+팀원에게 전달할 Windows 64비트 배포본은 `qa/publish-qa-desktop.cmd`로 만듭니다. 배경 20개를 포함해 실행 파일은 약 **27.6 MiB**, 전달용 ZIP은 약 **12.7 MiB**입니다. 실행 PC에는 .NET 10 Desktop Runtime(x64)이 필요합니다. Kafka·MongoDB 라이브러리와 Spark·Runpod·EC2 확장 구조는 유지하며, 배포 대상과 다른 운영체제의 바이너리만 해당 배포본에서 제외합니다. 자세한 내용은 [QA 배포 안내](qa/docs/distribution.md#배포-파일로-실행하기)에 있습니다.
 
 ## 전체 흐름
 
@@ -301,7 +301,7 @@ flowchart LR
 | [`api/`](api/README.md) | FastAPI 예매·수집·판정 조회 API | B | 준비됨 (작업 전) |
 | [`pipeline/`](pipeline/README.md) | Kafka · Spark 수집·판정 작업 · 메달리온 | B · C | 준비됨 (작업 전) |
 | [`infra/`](infra/README.md) | docker-compose, EC2 배포, S3 보관, [AWS·EC2 보안 체크리스트](infra/README.md#awsec2-보안-체크리스트) | C | 준비됨 (작업 전) |
-| [`qa/`](qa/README.md) | 자동 QA 러너 · 데스크탑 앱 · 가짜 예매·판정 서버 | QA | 연습용 대상으로 완료, 실제 연결 코드 준비 |
+| [`qa/`](qa/README.md) | 자동 QA 러너 · 데스크탑 앱 · 가짜 예매·판정 서버 · [매크로 봇](qa/bots/README.md) | QA | 연습용 대상으로 완료, 실제 연결 코드 준비 · 매크로 봇 구현 시작 |
 
 각 폴더의 README에 **여기에 둘 것, 지켜야 할 계약, QA로 확인하는 법, 작업 브랜치 이름**이 적혀 있습니다. 작업을 시작하기 전에 자기 폴더의 README와 연결 계약을 먼저 읽어 주세요.
 
@@ -310,7 +310,7 @@ flowchart LR
 | 영역 | 상태 |
 |---|---|
 | 자동 QA 러너 | 티켓가드 형식으로 전환 완료. 판정 시험(사람·봇 세션 7개, 탐지율·오탐률), 파이프라인 시험(중복·역순·지연·상충), 부하·복구 시험(p95, 회복 시간)은 연습용 대상으로 동작하고, 실제 백엔드(`--api-url`)·Kafka·MongoDB 연결 코드는 준비되어 통합 검증 대기. 데스크탑 앱(Windows), 실행 기록 대시보드, QA 도구 점검(`--suite selfcheck`, 12가지), 앱용 가짜 예매·판정 서버(`--suite mockapi`)를 갖췄고, 푸시할 때마다 GitHub Actions가 빌드·테스트·QA 도구 점검을 자동 실행. 자세한 내용은 [qa/README.md](qa/README.md) |
-| 매크로 봇 (트래픽 생성기) | 설계 완료, 2026-11-02 `qa` 브랜치에서 구현 시작. 프론트의 Django 예매 사이트(`codex/frontend`)를 대상으로 가상 사람·봇 A~D 트래픽을 보내고 정답 표는 QA 쪽에만 남김. 작업 방법·구현 순서는 [매크로 봇 작업 계획](qa/README.md#macro-bot-plan) |
+| 매크로 봇 (트래픽 생성기) | 설계 완료, 2026-11-02 `qa` 브랜치에서 구현 시작. 프론트의 Django 예매 사이트(`codex/frontend`)를 대상으로 가상 사람·봇 A~D 트래픽을 보내고 정답 표는 QA 쪽에만 남김. 작업 방법·구현 순서는 [매크로 봇 작업 계획](qa/bots/README.md) |
 | 앱 · 백엔드 · 인프라 | 예정 |
 
 ## 시작하기
