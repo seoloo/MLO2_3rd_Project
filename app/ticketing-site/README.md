@@ -8,7 +8,15 @@
 
 ## 관리자 설정과 기록
 
-관리자 계정은 기본 비밀번호로 자동 생성하지 않습니다. 별도 터미널에서 `.venv/Scripts/python.exe manage.py createsuperuser`를 실행하여 직접 아이디와 비밀번호를 정합니다.
+로컬에서 일반 계정 `member01`과 관리자 계정 `admin01`을 함께 준비하려면 다음 명령을 실행합니다.
+
+```powershell
+.\.venv\Scripts\python.exe manage.py setup_local_accounts
+```
+
+두 계정에 사용할 비밀번호를 숨김 입력으로 직접 정합니다. 비밀번호를 소스·명령행 인자·Git에 기록하지 않습니다. 이 명령은 DEBUG=True인 로컬 환경에서만 동작하며, 쉬운 로컬 비밀번호도 입력할 수 있습니다. 기존 계정과 비밀번호는 기본적으로 유지하고, 명시적으로 변경하려면 `--reset-password`를 추가합니다. 기존 이름의 권한이 다르면 덮어쓰지 않고 실패합니다. DB에 저장된 실제 계정은 Git 커밋으로 전달되지 않습니다.
+
+배포 환경의 관리자 계정은 `python manage.py createsuperuser`로 별도 생성하고, 일반 계정은 회원가입 화면을 이용합니다.
 
 - 고객 사이트: http://127.0.0.1:8000/
 - Django 관리: http://127.0.0.1:8000/admin/

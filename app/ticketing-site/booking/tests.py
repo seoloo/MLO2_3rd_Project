@@ -65,3 +65,38 @@ class BookingTests(TestCase):
 
  def test_health(self):
   r=self.client.get('/healthz/');self.assertEqual(r.status_code,200);self.assertEqual(r.json(),{'status':'ok'})
+
+
+class LocalAccountCommandTests(TestCase):
+ def run_setup(self, password='Local-only-sample-47!', **kwargs):
+  from io import StringIO
+  from unittest.mock import patch
+  with patch('sys.stdin', StringIO(password+'\n')):
+   call_command('setup_local_accounts', password_stdin=True, stdout=StringIO(), **kwargs)
+
+ def test_creates_roles_and_preserves_existing_password(self):
+  from django.test import override_settings
+  with override_settings(DEBUG=True):
+   self.run_setup()
+   member=User.objects.get(username='member01');admin=User.objects.get(username='admin01')
+   self.assertFalse(member.is_staff);self.assertFalse(member.is_superuser)
+   self.assertTrue(admin.is_staff);self.assertTrue(admin.is_superuser)
+   self.assertTrue(member.check_password('Local-only-sample-47!'))
+   self.run_setup(password='Another-local-sample-47!')
+   member.refresh_from_db();self.assertTrue(member.check_password('Local-only-sample-47!'))
+   self.run_setup(password='Another-local-sample-47!', reset_password=True)
+   member.refresh_from_db();self.assertTrue(member.check_password('Another-local-sample-47!'))
+
+ def test_refuses_deployment_environment(self):
+  from django.test import override_settings
+  from django.core.management.base import CommandError
+  with override_settings(DEBUG=False), self.assertRaises(CommandError):self.run_setup()
+  self.assertFalse(User.objects.filter(username='admin01').exists())
+
+ def test_does_not_promote_conflicting_existing_account(self):
+  from django.test import override_settings
+  from django.core.management.base import CommandError
+  User.objects.create_user('admin01',password='Existing-sample-47!')
+  with override_settings(DEBUG=True), self.assertRaises(CommandError):self.run_setup()
+  self.assertFalse(User.objects.get(username='admin01').is_staff)
+  self.assertFalse(User.objects.filter(username='member01').exists())
