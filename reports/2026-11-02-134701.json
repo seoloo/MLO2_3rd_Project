@@ -1,0 +1,129 @@
+{
+  "runId": "2026-11-02-134701",
+  "suiteName": "판정 시험",
+  "startedAt": "2026-11-02T13:47:01.5970892+09:00",
+  "finishedAt": "2026-11-02T13:47:01.6212832+09:00",
+  "casesPath": "cases/sessions.json",
+  "targetName": "FakeVerdictService",
+  "results": [
+    {
+      "caseId": "S-001",
+      "checkName": "판정",
+      "input": "사람 · 오픈 1.4초 뒤 진입 · 좌석을 둘러보고 결제",
+      "expected": "정상 처리 (정상)",
+      "actual": "정상",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "S-002",
+      "checkName": "판정",
+      "input": "사람 · 오픈 2.1초 뒤 진입 · 좌석을 고민하다 되돌아감",
+      "expected": "정상 처리 (정상)",
+      "actual": "정상",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "S-003",
+      "checkName": "판정",
+      "input": "사람 · 빠른 숙련자 · 오픈 0.6초 뒤 진입, 간격은 고르지 않음",
+      "expected": "정상 처리 (정상)",
+      "actual": "정상",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "S-004",
+      "checkName": "판정",
+      "input": "봇 A · 오픈 0.03초 뒤 진입 · 0.1초 간격으로 일정하게 클릭 · 화면 기록 없음",
+      "expected": "추가 확인 이상 (추가 확인)",
+      "actual": "추가 확인",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "S-005",
+      "checkName": "판정",
+      "input": "봇 B · 오픈 0.05초 뒤 진입 · 0.08~0.16초 무작위 간격",
+      "expected": "추가 확인 이상 (추가 확인)",
+      "actual": "추가 확인",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "S-006",
+      "checkName": "판정",
+      "input": "봇 C · 브라우저를 띄워 화면을 직접 누름 · 사람 속도지만 0.4초 간격이 지나치게 일정",
+      "expected": "추가 확인 이상 (추가 확인)",
+      "actual": "정상",
+      "errorMessage": null,
+      "meetsTarget": false,
+      "isPassed": false,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "S-007",
+      "checkName": "판정",
+      "input": "봇 D · 한 기기에서 세션 20개로 대기열에 동시 진입 · 각 세션은 사람 속도 (같은 기기 세션 20개)",
+      "expected": "추가 확인 이상 (추가 확인)",
+      "actual": "정상",
+      "errorMessage": null,
+      "meetsTarget": false,
+      "isPassed": false,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "전체",
+      "checkName": "봇 탐지율 (A·B·D)",
+      "input": "추가 확인 이상으로 판정된 봇 세션 비율 · 세션 3개",
+      "expected": "90% 이상",
+      "actual": "66.7% (2/3)",
+      "errorMessage": null,
+      "meetsTarget": false,
+      "isPassed": false,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "전체",
+      "checkName": "봇 C 탐지율",
+      "input": "화면을 직접 누르는 봇 · 가장 어려운 유형 · 세션 1개",
+      "expected": "70% 이상",
+      "actual": "0% (0/1)",
+      "errorMessage": null,
+      "meetsTarget": false,
+      "isPassed": false,
+      "isSystemFailure": false
+    },
+    {
+      "caseId": "전체",
+      "checkName": "사람 오탐률",
+      "input": "추가 확인 이상으로 잘못 판정된 사람 세션 비율 · 표본 3개라 참고값 (1% 이하를 말하려면 사람 세션 약 300개 필요) · 세션 3개",
+      "expected": "1% 이하",
+      "actual": "0% (0/3)",
+      "errorMessage": null,
+      "meetsTarget": true,
+      "isPassed": true,
+      "isSystemFailure": false
+    }
+  ],
+  "hasProvisionalLabels": false,
+  "areaName": "서비스",
+  "totalCount": 10,
+  "passedCount": 6,
+  "failedCount": 4,
+  "systemFailureCount": 0,
+  "passRate": 60,
+  "duration": "00:00:00.0241940",
+  "usedFakeTarget": true
+}
