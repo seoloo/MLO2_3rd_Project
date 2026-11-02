@@ -27,14 +27,14 @@ public sealed record ScenarioEvent
     /// <summary>이벤트 고유 번호. 같은 번호를 다른 내용으로 두 번 적으면 "같은 ID 상충" 시나리오가 된다</summary>
     public required string EventId { get; init; }
 
-    /// <summary>검사 번호</summary>
-    public required string ScanId { get; init; }
+    /// <summary>세션 해시. 같은 세션의 이벤트는 같은 값을 쓴다</summary>
+    public required string SessionHash { get; init; }
 
     /// <summary>시나리오 시작 기준으로 몇 초 뒤에 일어난 이벤트인지</summary>
     public int OffsetSeconds { get; init; }
 
-    /// <summary>판정</summary>
-    public string Verdict { get; init; } = "신호 미발견";
+    /// <summary>이벤트 종류 (docs/contract.md 4-2장). 적지 않으면 좌석 클릭</summary>
+    public string Type { get; init; } = EventTypes.SeatClick;
 }
 
 /// <summary>

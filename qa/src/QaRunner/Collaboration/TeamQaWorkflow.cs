@@ -30,16 +30,17 @@ public sealed class TeamQaWorkflow(ITeamRunClient teamClient)
 
         try
         {
-            // 예상 정답은 QA 내부에서만 보관한다. IVerdictService에는 문자만 전달된다.
-            var testCases = caseSet.Cases.Select(testCase => new TestCase(
-                testCase.CaseId, testCase.Message, VerdictCodes.ToKorean(testCase.ExpectedVerdict)));
-            var results = await new VerdictChecker(verdictService).CheckAllAsync(testCases);
+            // 행위자와 예상 정답은 QA 내부에서만 보관한다. IVerdictService에는 행동만 전달된다.
+            var sessionCases = caseSet.Cases.Select(ToSessionCase).ToArray();
+            var caseResults = await new VerdictChecker(verdictService).CheckAllAsync(sessionCases, snapshot.RunId.ToString("N"));
+            List<TestResult> results = [.. caseResults, .. DetectionSummary.Build(sessionCases, caseResults)];
             snapshot = snapshot with
             {
                 State = SharedRunState.Completed,
                 UpdatedAt = DateTimeOffset.UtcNow,
-                Results = results.Select(result => new SharedCheckResult(
-                    result.CaseId, result.Expected, result.Actual, result.ErrorMessage)).ToArray(),
+                // 팀 화면에는 사례별 결과만 올린다. 탐지율·오탐률은 로컬 보고서에 함께 남는다
+                Results = caseResults.Select(result => new SharedCheckResult(
+                    result.CaseId, result.Expected, result.Actual, result.ErrorMessage, result.IsPassed)).ToArray(),
             };
 
             var testRun = new TestRun(snapshot.RunId.ToString("N"), "판정 시험", startedAt, snapshot.UpdatedAt,
@@ -60,6 +61,15 @@ public sealed class TeamQaWorkflow(ITeamRunClient teamClient)
             throw;
         }
     }
+
+    /// <summary>생성된 사례를 판정 시험의 세션 사례로 바꾼다. 정답 코드는 한글 판정으로 바꾼다</summary>
+    public static SessionCase ToSessionCase(GeneratedCase generatedCase) => new(
+        generatedCase.CaseId, generatedCase.Actor, generatedCase.Description,
+        VerdictCodes.ToKorean(generatedCase.ExpectedVerdict),
+        generatedCase.Steps.Select(step => new SessionStep(step.Type, step.AtMs, step.Screen, step.X, step.Y)).ToArray())
+    {
+        ParallelSessions = generatedCase.ParallelSessions,
+    };
 
     // 추후 재전송과 사례 재현에 쓸 전체 스냅샷. AI 생성 결과도 이 파일에 보관한다.
     private static string SaveSnapshot(SharedQaRun snapshot, string reportDirectory)

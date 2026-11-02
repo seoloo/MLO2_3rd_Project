@@ -3,7 +3,7 @@ namespace QaRunner.Pipeline;
 /// <summary>
 /// 실제 파이프라인(Kafka·MongoDB·Spark)에 연결할 때 필요한 주소와 이름.
 /// 이 설정이 있으면 파이프라인·부하·복구 시험이 가짜 대신 실제 파이프라인을 대상으로 돈다.
-/// 기본값은 docs/contract.md 4~6장과 같다.
+/// 기본값은 docs/contract.md 6~8장과 같다.
 /// </summary>
 /// <param name="KafkaBootstrapServers">Kafka 주소. 예: localhost:9092</param>
 /// <param name="MongoConnectionString">MongoDB 연결 문자열. 예: mongodb://localhost:27017</param>
@@ -17,7 +17,7 @@ public sealed record PipelineConnectionSettings(
     string MongoDatabase = PipelineConnectionSettings.DefaultMongoDatabase,
     string SparkContainerName = PipelineConnectionSettings.DefaultSparkContainerName)
 {
-    public const string DefaultKafkaTopic = "scan-events";
-    public const string DefaultMongoDatabase = "jeongbo";
+    public const string DefaultKafkaTopic = "ticket-events";
+    public const string DefaultMongoDatabase = "ticketguard";
     public const string DefaultSparkContainerName = "spark";
 }

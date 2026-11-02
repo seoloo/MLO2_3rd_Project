@@ -4,16 +4,16 @@ using MongoDB.Driver;
 namespace QaRunner.Pipeline;
 
 /// <summary>
-/// 실제 MongoDB의 메달리온 컬렉션에서 QA가 확인할 건수를 읽는다 (docs/contract.md 5-2장).
+/// 실제 MongoDB의 메달리온 컬렉션에서 QA가 확인할 건수를 읽는다 (docs/contract.md 7-2장).
 /// 아직 실제 MongoDB로 확인하지 못한 코드다. 컬렉션·필드 이름이 바뀌면 이 파일의 상수만 고친다.
 /// </summary>
 public sealed class MongoPipelineReader : IPipelineReader
 {
-    // 계약 5-2장의 컬렉션 이름
+    // 계약 7-2장의 컬렉션 이름
     public const string BronzeCollection = "bronze_events";
     public const string SilverCollection = "silver_events";
     public const string QuarantineCollection = "quarantine_events";
-    public const string GoldCollection = "gold_metrics";
+    public const string GoldCollection = "gold_live_metrics";
 
     // MongoDB에 연결하지 못하면 오래 기다리지 않고 바로 실패로 알린다
     private static readonly TimeSpan ServerSelectionTimeout = TimeSpan.FromSeconds(5);
@@ -33,7 +33,7 @@ public sealed class MongoPipelineReader : IPipelineReader
     {
         var filter = Builders<BsonDocument>.Filter;
 
-        // Bronze·격리는 받은 이벤트를 raw 안에 그대로 두고, Silver는 필드를 꺼내 둔다 (계약 5-2장)
+        // Bronze·격리는 받은 이벤트를 raw 안에 그대로 두고, Silver는 필드를 꺼내 둔다 (계약 7-2장)
         var rawEventFilter = filter.Eq("raw.runId", runId) & filter.Eq("raw.caseId", caseId);
         var silverFilter = filter.Eq("runId", runId) & filter.Eq("caseId", caseId);
 

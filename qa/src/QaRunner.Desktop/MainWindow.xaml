@@ -1,6 +1,6 @@
 <Window x:Class="QaRunner.Desktop.MainWindow"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:local="clr-namespace:QaRunner.Desktop" Title="정보지킴 QA" Width="1120" Height="740" MinWidth="840" MinHeight="500"
+ xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:local="clr-namespace:QaRunner.Desktop" Title="티켓가드 QA" Width="1120" Height="740" MinWidth="840" MinHeight="500"
  WindowStartupLocation="CenterScreen" FontFamily="Segoe UI, Malgun Gothic" FontSize="14"
  Foreground="{StaticResource InkBrush}" Background="{StaticResource AppBackgroundBrush}" UseLayoutRounding="True" Style="{StaticResource DesktopWindow}">
  <Window.Resources>
@@ -45,7 +45,7 @@
    <Border Background="{StaticResource CardBackgroundBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0"><DockPanel>
     <DockPanel DockPanel.Dock="Top" Margin="20,16,12,16">
      <Image x:Name="BrandLogo" Source="/Assets/AppIcon.png" Width="36" Height="36" Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality"/>
-     <StackPanel VerticalAlignment="Center"><TextBlock Text="정보지킴 QA" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="자동화 점검 도구" Style="{StaticResource HintText}" FontSize="11"/></StackPanel>
+     <StackPanel VerticalAlignment="Center"><TextBlock Text="티켓가드 QA" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="자동화 점검 도구" Style="{StaticResource HintText}" FontSize="11"/></StackPanel>
     </DockPanel>
     <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,12">
      <ui:Button Command="{x:Static ApplicationCommands.Help}" Appearance="Transparent" BorderThickness="0" Margin="8,0" Height="40" Padding="16,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Foreground="{StaticResource MutedBrush}" local:UsageHelp.Key="help"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="QuestionCircle24" FontSize="18"/><TextBlock Text="사용 안내" FontSize="14" Margin="14,0,0,0" VerticalAlignment="Center"/></StackPanel></ui:Button>
@@ -68,8 +68,8 @@
      <StackPanel x:Name="SubTabBar" Orientation="Horizontal" Margin="-12,8,0,0">
       <RadioButton x:Name="ReportsTab" GroupName="SubPage" Content="내 기록" Tag="reports" Style="{StaticResource SubTabNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="reports"/>
       <RadioButton x:Name="TeamTab" GroupName="SubPage" Content="팀 공유" Tag="team" Style="{StaticResource SubTabNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="team"/>
-      <RadioButton x:Name="CasesTab" GroupName="SubPage" Content="시험 문자" Tag="cases" Style="{StaticResource SubTabNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="case-page"/>
-      <RadioButton x:Name="AiTab" GroupName="SubPage" Content="AI 문자" Tag="ai" Style="{StaticResource SubTabNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="ai-page"/>
+      <RadioButton x:Name="CasesTab" GroupName="SubPage" Content="시험 세션" Tag="cases" Style="{StaticResource SubTabNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="case-page"/>
+      <RadioButton x:Name="AiTab" GroupName="SubPage" Content="AI 세션" Tag="ai" Style="{StaticResource SubTabNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="ai-page"/>
       <RadioButton x:Name="SettingsTab" GroupName="SubPage" Content="설정" Tag="settings" Style="{StaticResource SubTabNavigation}" Checked="Navigation_Checked" local:UsageHelp.Key="settings"/>
      </StackPanel>
     </StackPanel>
@@ -133,7 +133,7 @@
        <RadioButton x:Name="AppAreaTab" GroupName="HomeArea" Tag="app" Checked="HomeArea_Checked" Style="{StaticResource AreaCard}" AutomationProperties.Name="앱 영역">
         <DockPanel>
          <Border DockPanel.Dock="Left" Style="{StaticResource SuiteIconBox}" Width="40" Height="40" Background="#FEF3C7" VerticalAlignment="Top"><ui:SymbolIcon Symbol="Phone24" FontSize="20" Foreground="#B45309" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-         <StackPanel Margin="12,0,24,0"><TextBlock Text="앱" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="가짜 판정 서버에 앱 연결" Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis"/><TextBlock Text="서버 1개 · A 담당" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0"/></StackPanel>
+         <StackPanel Margin="12,0,24,0"><TextBlock Text="앱" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="가짜 예매·판정 서버에 앱 연결" Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis"/><TextBlock Text="서버 1개 · A 담당" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0"/></StackPanel>
         </DockPanel>
        </RadioButton>
        <RadioButton x:Name="QaToolAreaTab" GroupName="HomeArea" Tag="qatool" Checked="HomeArea_Checked" Style="{StaticResource AreaCard}" AutomationProperties.Name="QA 도구 영역">
@@ -147,7 +147,7 @@
       <UniformGrid x:Name="HomeSuiteCards" Columns="4" Margin="-6">
        <Button x:Name="HomeVerdictCard" Tag="verdict" Click="SuiteCard_Click" Style="{StaticResource SuiteCard}" local:UsageHelp.Key="preset-quick"><StackPanel>
         <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource StatusBadge}" Background="{StaticResource AccentBackgroundBrush}" VerticalAlignment="Top" CornerRadius="10"><TextBlock Text="추천" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"/></Border><Border Style="{StaticResource SuiteIconBox}" Background="{StaticResource AccentBackgroundBrush}"><ui:SymbolIcon Symbol="Flash24" FontSize="20" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></DockPanel>
-        <TextBlock Text="빠른 점검" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,0"/><TextBlock Text="문자 판정 · 약 10초" Style="{StaticResource HintText}"/>
+        <TextBlock Text="빠른 점검" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,0"/><TextBlock Text="세션 판정 · 약 10초" Style="{StaticResource HintText}"/>
         <TextBlock x:Name="PresetVerdictLast" Style="{StaticResource HintText}" FontWeight="SemiBold" Margin="0,6,0,0"/>
        </StackPanel></Button>
        <Button x:Name="HomePipelineCard" Tag="pipeline" Click="SuiteCard_Click" Style="{StaticResource SuiteCard}" local:UsageHelp.Key="pipeline"><StackPanel>
@@ -166,14 +166,14 @@
         <TextBlock x:Name="PresetRecoveryLast" Style="{StaticResource HintText}" FontWeight="SemiBold" Margin="0,6,0,0"/>
        </StackPanel></Button>
       </UniformGrid>
-      <!-- 앱 영역: 가짜 판정 서버를 켜 두고 앱을 붙인다. 왼쪽은 서버 조건과 앱에서 확인할 것, 오른쪽은 받은 요청 목록 -->
+      <!-- 앱 영역: 가짜 예매·판정 서버를 켜 두고 앱을 붙인다. 왼쪽은 서버 조건과 앱에서 확인할 것, 오른쪽은 받은 요청 목록 -->
       <Grid x:Name="HomeAppArea" Margin="-6" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="5*"/><ColumnDefinition Width="6*"/></Grid.ColumnDefinitions>
        <Border Style="{StaticResource SoftCard}" Margin="6" Padding="20,16">
         <StackPanel>
          <DockPanel>
           <Border x:Name="MockStateBadge" DockPanel.Dock="Right" Style="{StaticResource StatusBadge}" CornerRadius="10" VerticalAlignment="Top"><TextBlock x:Name="MockStateText" Text="꺼져 있어요" FontSize="11" FontWeight="SemiBold"/></Border>
           <Border Style="{StaticResource SuiteIconBox}" Background="#FEF3C7"><ui:SymbolIcon Symbol="Phone24" FontSize="20" Foreground="#B45309" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-          <StackPanel Margin="12,0,0,0" VerticalAlignment="Center"><TextBlock Text="가짜 판정 서버" FontSize="15" FontWeight="SemiBold"/><TextBlock x:Name="PresetMockApiLast" Style="{StaticResource HintText}" FontWeight="SemiBold"/></StackPanel>
+          <StackPanel Margin="12,0,0,0" VerticalAlignment="Center"><TextBlock Text="가짜 예매·판정 서버" FontSize="15" FontWeight="SemiBold"/><TextBlock x:Name="PresetMockApiLast" Style="{StaticResource HintText}" FontWeight="SemiBold"/></StackPanel>
          </DockPanel>
          <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,10,0,0" Text="판정 API 대신 정해 둔 응답을 돌려줘요. 앱의 API 주소를 이 서버로 바꾸면 B의 서버 없이도 정상 판정과 오류·지연 화면을 확인할 수 있어요."/>
          <Grid Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -198,11 +198,11 @@
        <Border Grid.Column="1" Style="{StaticResource SoftCard}" Margin="6" Padding="0,16,0,12">
         <DockPanel>
          <DockPanel DockPanel.Dock="Top" Margin="20,0,20,6"><TextBlock x:Name="MockRequestCountText" DockPanel.Dock="Right" Style="{StaticResource HintText}" VerticalAlignment="Center"/><TextBlock Text="받은 요청" FontSize="15" FontWeight="SemiBold"/></DockPanel>
-         <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="20,8,20,0" Text="문자 끝에 #500, #slow, #timeout처럼 표시를 붙이면 그 요청만 다른 응답을 받아요. 표시는 응답 방식 목록 오른쪽에 적혀 있어요."/>
+         <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="20,8,20,0" Text="요청 헤더 X-Mock-Scenario: verify나 주소 끝 ?mock=verify를 붙이면 그 요청만 다른 응답을 받아요. 값은 응답 방식 목록 오른쪽에 적혀 있어요."/>
          <Grid MinHeight="220">
           <DataGrid x:Name="MockRequestsGrid" HeadersVisibility="Column" GridLinesVisibility="None" MaxHeight="320" SelectionChanged="MockRequest_Selected"><DataGrid.Columns>
            <DataGridTextColumn Header="시각" Binding="{Binding TimeText}" Width="84"/>
-           <DataGridTextColumn Header="문자" Binding="{Binding MessageText}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/>
+           <DataGridTextColumn Header="요청" Binding="{Binding RequestText}" Width="*" ElementStyle="{StaticResource TrimmedCell}"/>
            <DataGridTextColumn Header="돌려준 응답" Binding="{Binding ResponseText}" Width="150" ElementStyle="{StaticResource TrimmedCell}"/>
            <DataGridTemplateColumn Header="요청 형식" Width="110"><DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Ellipse x:Name="FormatDot" Width="8" Height="8" Fill="{StaticResource FailBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="{Binding FormatText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ProblemText}"/></StackPanel><DataTemplate.Triggers><DataTrigger Binding="{Binding MatchesContract}" Value="True"><Setter TargetName="FormatDot" Property="Fill" Value="{StaticResource PassBrush}"/></DataTrigger></DataTemplate.Triggers></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
           </DataGrid.Columns></DataGrid>
@@ -221,7 +221,7 @@
        <Border Grid.Column="1" Style="{StaticResource SoftCard}" Margin="6" Padding="20,16">
         <StackPanel>
          <TextBlock Text="개발자용 점검도 함께 돌아요" FontSize="15" FontWeight="SemiBold"/>
-         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,4,0,8" Text="QA 도구 점검은 답을 이미 아는 입력 11가지로 채점기가 틀린 결과를 잡아내는지 봐요. 코드를 고칠 때는 아래 점검도 함께 통과해야 해요."/>
+         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,4,0,8" Text="QA 도구 점검은 답을 이미 아는 입력 12가지로 채점기가 틀린 결과를 잡아내는지 봐요. 코드를 고칠 때는 아래 점검도 함께 통과해야 해요."/>
          <TextBlock Text="• dotnet test — QA 러너 단위 시험" FontSize="13"/>
          <TextBlock Text="• --ui-smoke — 이 앱의 화면을 실제로 눌러 보는 점검" FontSize="13" Margin="0,2,0,0"/>
          <TextBlock Text="• GitHub Actions — 푸시할 때마다 위 점검과 QA 도구 점검을 자동 실행" FontSize="13" Margin="0,2,0,0"/>
@@ -373,7 +373,7 @@
     <ScrollViewer x:Name="SettingsPage" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"><StackPanel Margin="32,12,32,24" MaxWidth="1000" HorizontalAlignment="Stretch">
      <TextBlock Text="시험 대상" Style="{StaticResource FirstSectionTitle}"/>
      <StackPanel x:Name="SettingsFields">
-      <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="DocumentText24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="시험 문자 파일" Style="{StaticResource SettingName}"/><TextBlock x:Name="HeaderCasesText" Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/></StackPanel></ui:CardControl.Header><ui:Button x:Name="CasesSelectorButton" Content="파일 고르기" Click="ChooseCases_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="cases"/></ui:CardControl>
+      <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="DocumentText24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="시험 세션 파일" Style="{StaticResource SettingName}"/><TextBlock x:Name="HeaderCasesText" Style="{StaticResource HintText}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/></StackPanel></ui:CardControl.Header><ui:Button x:Name="CasesSelectorButton" Content="파일 고르기" Click="ChooseCases_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="cases"/></ui:CardControl>
       <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="Globe24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="판정 API 주소" Style="{StaticResource SettingName}"/><TextBlock x:Name="HeaderTargetText" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><ui:TextBox Width="300" Text="{Binding Text, ElementName=ApiUrlBox, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="http://localhost:8000" local:UsageHelp.Key="api"/></ui:CardControl>
      </StackPanel>
      <TextBlock Text="보고서" Style="{StaticResource SectionTitle}"/>
@@ -381,7 +381,7 @@
      <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="FolderOpen24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="작업 폴더" Style="{StaticResource SettingName}"/><TextBlock Text="경로의 기준이 되는 qa 폴더" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><ui:Button Content="탐색기에서 열기" Click="OpenWorkspace_Click" Style="{StaticResource SecondaryButton}" local:UsageHelp.Key="workspace"/></ui:CardControl>
      <TextBlock Text="연결 상태" Style="{StaticResource SectionTitle}"/>
      <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="PeopleTeam24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="결과 공유" Style="{StaticResource SettingName}"/><TextBlock Text="이 앱 안 · 같은 PC 공유 서버 (다른 PC·EC2는 준비 중)" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><ui:Button Content="팀 공유 보기" Click="OpenCollaboration_Click" Style="{StaticResource SecondaryButton}"/></ui:CardControl>
-     <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="Bot24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="AI 문자 생성 (Runpod)" Style="{StaticResource SettingName}"/><TextBlock Text="모델과 생성 정책을 정하면 연결해요" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><StackPanel Orientation="Horizontal"><Ellipse Style="{StaticResource StateDot}"/><TextBlock Text="준비 중" Style="{StaticResource HintText}" FontSize="13"/></StackPanel></ui:CardControl>
+     <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="Bot24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="AI 세션 생성 (Runpod)" Style="{StaticResource SettingName}"/><TextBlock Text="모델과 생성 정책을 정하면 연결해요" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><StackPanel Orientation="Horizontal"><Ellipse Style="{StaticResource StateDot}"/><TextBlock Text="준비 중" Style="{StaticResource HintText}" FontSize="13"/></StackPanel></ui:CardControl>
      <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="Server24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="Kafka · MongoDB · Spark" Style="{StaticResource SettingName}"/><TextBlock Text="연결 코드는 들어 있어요. 수업에서 구성한 뒤 연결해요" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><StackPanel Orientation="Horizontal"><Ellipse Style="{StaticResource StateDot}"/><TextBlock Text="연결 전" Style="{StaticResource HintText}" FontSize="13"/></StackPanel></ui:CardControl>
      <TextBlock Text="처음 사용하는 순서" Style="{StaticResource SectionTitle}"/>
      <ui:CardControl Style="{StaticResource SettingCard}"><ui:CardControl.Icon><ui:SymbolIcon Symbol="TaskListLtr24"/></ui:CardControl.Icon><ui:CardControl.Header><StackPanel><TextBlock Text="안내 다시 보기" Style="{StaticResource SettingName}"/><TextBlock Text="홈의 여정 지도와 ‘다음 할 일’을 처음 상태로 되돌려요" Style="{StaticResource HintText}"/></StackPanel></ui:CardControl.Header><ui:Button Content="처음부터 다시" Click="ResetChecklist_Click" Style="{StaticResource SecondaryButton}"/></ui:CardControl>
@@ -404,12 +404,12 @@
          <ui:Button x:Name="CloseSheetButton" DockPanel.Dock="Right" Click="CloseSheet_Click" Appearance="Transparent" BorderThickness="0" Padding="6" VerticalAlignment="Top" ToolTip="닫기" AutomationProperties.Name="조건 시트 닫기"><ui:SymbolIcon Symbol="Dismiss24" FontSize="16"/></ui:Button>
          <Border Width="48" Height="48" CornerRadius="16" Background="{StaticResource AccentBackgroundBrush}" HorizontalAlignment="Left"><ui:SymbolIcon x:Name="SheetIcon" Symbol="Flash24" FontSize="22" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
         </DockPanel>
-        <TextBlock x:Name="SuiteTitleText" Text="문자 판정 시험" FontSize="22" FontWeight="SemiBold" Margin="0,14,0,0"/>
+        <TextBlock x:Name="SuiteTitleText" Text="세션 판정 시험" FontSize="22" FontWeight="SemiBold" Margin="0,14,0,0"/>
         <TextBlock x:Name="SuiteDescriptionText" Style="{StaticResource HintText}" FontSize="13" Margin="0,4,0,0"/>
         <ui:InfoBar x:Name="SheetError" Style="{StaticResource NoticeBar}" Severity="Error" IsOpen="False" Margin="0,14,0,0" AutomationProperties.LiveSetting="Assertive"/>
         <TextBlock Text="시험 종류" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/>
         <UniformGrid x:Name="SuitePanel" Columns="2" Margin="-12,0,0,0">
-         <RadioButton x:Name="VerdictSuiteRadio" GroupName="Suite" IsChecked="True" Tag="verdict" Content="문자 판정" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="verdict"/>
+         <RadioButton x:Name="VerdictSuiteRadio" GroupName="Suite" IsChecked="True" Tag="verdict" Content="세션 판정" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="verdict"/>
          <RadioButton x:Name="PipelineSuiteRadio" GroupName="Suite" Tag="pipeline" Content="데이터 처리" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="pipeline"/>
          <RadioButton x:Name="LoadSuiteRadio" GroupName="Suite" Tag="load" Content="부하·응답" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="load"/>
          <RadioButton x:Name="RecoverySuiteRadio" GroupName="Suite" Tag="recovery" Content="중단 후 복구" Checked="SuiteRadio_Checked" Style="{StaticResource SuiteNavigation}" local:UsageHelp.Key="recovery"/>
@@ -419,7 +419,7 @@
          <StackPanel x:Name="TargetChoicePanel"><TextBlock Text="시험 대상" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><WrapPanel><RadioButton x:Name="PracticeTargetRadio" GroupName="Target" Content="연습용 대상" IsChecked="True" Checked="Target_Checked" Style="{StaticResource TargetChoice}" Margin="0,0,16,0"/><RadioButton x:Name="ApiTargetRadio" GroupName="Target" Content="내 판정 API" Checked="Target_Checked" Style="{StaticResource TargetChoice}" local:UsageHelp.Key="api"/></WrapPanel></StackPanel>
          <StackPanel x:Name="ExecutionApiField" Visibility="Collapsed"><TextBlock Text="판정 API 주소" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="ApiUrlBox" PlaceholderText="http://localhost:8000" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="api"/></StackPanel>
          <TextBlock x:Name="ApiUrlHint" Style="{StaticResource HintText}" Margin="0,6,0,0" TextWrapping="Wrap"/>
-         <StackPanel x:Name="CasesPathField"><TextBlock x:Name="CasesPathLabel" Text="시험 문자와 예상 정답" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="CasesPathBox" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="case-path"/></StackPanel>
+         <StackPanel x:Name="CasesPathField"><TextBlock x:Name="CasesPathLabel" Text="시험 세션과 예상 정답" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="CasesPathBox" TextChanged="EnvironmentField_Changed" local:UsageHelp.Key="case-path"/></StackPanel>
          <StackPanel x:Name="MeasurementPanel" Visibility="Collapsed"><UniformGrid Columns="3">
           <StackPanel Margin="0,0,6,0"><TextBlock Text="시간 (초)" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="DurationBox" TextChanged="SheetDuration_Changed" local:UsageHelp.Key="duration"/></StackPanel>
           <StackPanel Margin="3,0"><TextBlock Text="초당 건수" Style="{StaticResource SectionLabel}" FontWeight="SemiBold"/><ui:TextBox x:Name="RateBox" local:UsageHelp.Key="rate"/></StackPanel>

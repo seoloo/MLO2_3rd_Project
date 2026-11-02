@@ -1,13 +1,20 @@
-# pipeline — Kafka · Spark · 메달리온 (담당: C)
+# pipeline — Kafka · Spark · 메달리온 (담당: B · C)
 
-Kafka의 `scan-events`를 Spark로 읽어 MongoDB의 Bronze → Silver → Gold로 정리·집계하는 파이프라인입니다.
+Kafka의 `ticket-events`를 Spark 구조적 스트리밍으로 읽어 MongoDB 분석 DB의 Bronze → Silver → Gold로 정리하고, 세션마다 특징을 계산해 판정하는 곳입니다.
+
+| 작업 | 하는 일 | 담당 |
+|---|---|---|
+| Spark 수집 | Kafka 원본을 그대로 `bronze_events`에 보관 (7일 뒤 S3 일별 파일) | C (인프라) |
+| Spark 판정 | 중복·순서·지연 정리 → 세션 특징 → 규칙 R1~R6 점수 → 판정, 60초 구간 실시간 집계 | B (백엔드) |
+| 배치 집계 | 판매 종료 후 회차별 기획사 리포트 | C (인프라) |
 
 ## 여기에 둘 것
 
-- Spark 작업 코드 (Kafka 읽기, 정제·중복 제거·격리, 60초 구간 집계)
+- Spark 작업 코드 (수집, 판정, 배치 집계)
+- 판정 규칙 기준값 파일과 버전 (`ruleVersion`)
 - 이 폴더만의 실행 방법과 테스트
 
-Kafka·Spark·MongoDB를 함께 띄우는 docker-compose는 [infra/](../infra/README.md)에 둡니다.
+Kafka·Spark·MongoDB·Redis·API를 함께 띄우는 docker-compose는 [infra/](../infra/README.md)에 둡니다.
 
 ## 지켜야 할 계약
 
@@ -15,10 +22,11 @@ Kafka·Spark·MongoDB를 함께 띄우는 docker-compose는 [infra/](../infra/RE
 
 | 장 | 내용 |
 |---|---|
-| 4. Kafka 이벤트 | 읽을 메시지 형식. `source: "qa"`인 QA 시험 이벤트도 똑같이 처리 |
-| 5-2. 메달리온 컬렉션 | `bronze_events`, `silver_events`, `quarantine_events`, `gold_metrics`와 고유 키 |
-| 6. 처리 규칙 | 중복 제거, 5분 초과 격리, 같은 ID 상충 격리, 60초 구간 절대값 upsert |
-| 6. Spark 중단·재가동 | 컨테이너 이름 `spark`, 재가동하면 checkpoint부터 이어서 처리 |
+| 4. 행동 이벤트 | 읽을 메시지 형식과 `origin`(client/server). `source: "qa"`인 QA 시험 이벤트도 똑같이 처리 |
+| 6. Kafka | 토픽 `ticket-events`, 키 `sessionHash` (같은 세션은 같은 파티션) |
+| 7-2. 메달리온 컬렉션 | `bronze_events`, `quarantine_events`, `silver_events`, `silver_session_features`, `gold_verdicts`, `gold_live_metrics`, `gold_reports`와 고유 키 |
+| 8. 처리 규칙 | 중복 제거, 5분 초과 격리, 같은 ID 상충 격리, 60초 구간 절대값 upsert, 판정이 바뀌면 `gold_verdicts` 덮어쓰기 |
+| 8. Spark 중단·재가동 | 판정 작업 컨테이너 이름 `spark`, 재가동하면 checkpoint부터 이어서 처리 |
 
 ## QA로 확인하는 법
 
@@ -36,14 +44,14 @@ dotnet run --project src/QaRunner -- --suite pipeline --kafka localhost:9092 --m
 dotnet run --project src/QaRunner -- --suite load --kafka localhost:9092 --mongo mongodb://localhost:27017
 ```
 
-복구 (Spark 컨테이너를 30초 멈췄다 재가동, 60초 안에 따라잡기):
+복구 (Spark 판정 작업 컨테이너를 30초 멈췄다 재가동, 60초 안에 따라잡기):
 
 ```bash
 dotnet run --project src/QaRunner -- --suite recovery --kafka localhost:9092 --mongo mongodb://localhost:27017 --spark-container spark
 ```
 
-주소·컬렉션 이름이 다르면 옵션으로 바꿀 수 있습니다. 자세한 옵션은 [qa/README.md](../qa/README.md)에 있습니다.
+판정까지 보려면 백엔드 API도 켜고 판정 시험(`--suite verdict --api-url ...`)을 함께 돌립니다. 토픽·DB·컨테이너 이름이 다르면 옵션으로 바꿀 수 있습니다. 자세한 옵션은 [qa/README.md](../qa/README.md)에 있습니다.
 
 ## 작업 브랜치
 
-`main`에서 `feature/pipeline-...` 브랜치를 만들어 작업하고 PR로 합칩니다. 예: `feature/pipeline-bronze`
+`main`에서 `feature/pipeline-...` 브랜치를 만들어 작업하고 PR로 합칩니다. 예: `feature/pipeline-judge`

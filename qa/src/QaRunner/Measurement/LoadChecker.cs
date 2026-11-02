@@ -8,17 +8,17 @@ namespace QaRunner.Measurement;
 
 /// <summary>
 /// 부하 시험 채점기. 실행안의 "API 동시 5개 / 스트림 5이벤트·초, 5분 1,500개"를 두 갈래로 동시에 돌린다.
-/// - API 부하: 가상 사용자 여러 명이 판정 API를 계속 부르며 응답 시간과 오류를 잰다. (목표 p95 3초)
+/// - API 부하: 가상 사용자 여러 명이 세션을 계속 보내고 판정을 받으며, 판정까지 걸린 시간과 오류를 잰다. (목표 p95 3초)
 /// - 스트림 부하: 이벤트를 초당 N건 보내며 Gold에 반영되기까지 걸린 시간을 잰다. (목표 p95 10초)
 /// </summary>
 /// <param name="verdictService">API 부하를 줄 판정 대상</param>
-/// <param name="testCases">API에 보낼 문자들 (판정 시험 입력값 파일을 돌려 가며 씀)</param>
+/// <param name="sessionCases">API에 보낼 세션들 (판정 시험 사례 파일을 돌려 가며 씀)</param>
 /// <param name="eventSender">스트림 부하 이벤트를 넣을 곳</param>
 /// <param name="pipelineReader">Gold 반영을 확인할 곳</param>
 /// <param name="settings">측정 시간, 초당 건수, 동시 사용자 수</param>
 public sealed class LoadChecker(
     IVerdictService verdictService,
-    IReadOnlyList<TestCase> testCases,
+    IReadOnlyList<SessionCase> sessionCases,
     IEventSender eventSender,
     IPipelineReader pipelineReader,
     MeasurementSettings settings)
@@ -59,7 +59,7 @@ public sealed class LoadChecker(
         var duration = TimeSpan.FromSeconds(settings.DurationSeconds);
         var reflectionTracker = new GoldReflectionTracker(pipelineReader);
 
-        var apiLoadTask = RunApiLoadAsync(duration, cancellationToken);
+        var apiLoadTask = RunApiLoadAsync(runId, duration, cancellationToken);
         var streamTask = EventStreamSender.SendAtFixedRateAsync(
             eventSender, reflectionTracker, runId, StreamCaseId, settings.EventsPerSecond, duration, cancellationToken);
         var trackingTask = reflectionTracker.TrackUntilCaughtUpAsync(
@@ -73,8 +73,8 @@ public sealed class LoadChecker(
         return testResults;
     }
 
-    // 가상 사용자 수만큼 동시에, 정해진 시간 동안 판정 API를 반복해서 부른다
-    private async Task<ApiLoadResult> RunApiLoadAsync(TimeSpan duration, CancellationToken cancellationToken)
+    // 가상 사용자 수만큼 동시에, 정해진 시간 동안 세션을 보내고 판정을 받는 것을 반복한다
+    private async Task<ApiLoadResult> RunApiLoadAsync(string runId, TimeSpan duration, CancellationToken cancellationToken)
     {
         var latencies = new ConcurrentBag<TimeSpan>();
         var failedCount = 0;
@@ -86,13 +86,14 @@ public sealed class LoadChecker(
         {
             while (DateTimeOffset.UtcNow < endAt)
             {
-                // 여러 사용자가 입력값 파일의 문자를 차례로 나눠 쓴다
-                var caseIndex = (int)((uint)Interlocked.Increment(ref nextCaseNumber) % (uint)testCases.Count);
+                // 여러 사용자가 사례 파일의 세션을 차례로 나눠 쓴다. 요청마다 세션 해시가 달라야 이미 받은 판정을 다시 읽지 않는다
+                var requestNumber = Interlocked.Increment(ref nextCaseNumber);
+                var sessionCase = sessionCases[(int)((uint)requestNumber % (uint)sessionCases.Count)];
                 var requestStartedAt = Stopwatch.GetTimestamp();
 
                 try
                 {
-                    await verdictService.GetVerdictAsync(testCases[caseIndex].Message);
+                    await verdictService.GetVerdictAsync(sessionCase, runId, $"{runId}-{ApiCaseId}-{requestNumber + 1:000000}");
                     latencies.Add(Stopwatch.GetElapsedTime(requestStartedAt));
                 }
                 catch (Exception exception) when (VerdictChecker.IsVerdictServiceFailure(exception))

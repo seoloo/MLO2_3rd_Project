@@ -18,11 +18,12 @@ public class QaRunServiceTests : IDisposable
     [Fact]
     public async Task Runs_verdict_suite_and_saves_both_reports()
     {
-        var rulesFilePath = Path.Combine(_tempFolder, "rules.json");
-        File.WriteAllText(rulesFilePath, """
-            [ { "caseId": "R-001", "message": "인증번호를 알려주세요", "expectedVerdict": "고위험" } ]
+        var sessionsFilePath = Path.Combine(_tempFolder, "sessions.json");
+        File.WriteAllText(sessionsFilePath, """
+            [ { "caseId": "S-001", "actor": "봇 A", "description": "오픈 직후 진입", "expectedVerdict": "추가 확인",
+                "steps": [ { "type": "queue_enter", "atMs": 30 }, { "type": "seat_hold", "atMs": 130 } ] } ]
             """);
-        var options = new CommandLineOptions(TestSuite.Verdict, rulesFilePath, ReportDirectory, ApiBaseUrl: null);
+        var options = new CommandLineOptions(TestSuite.Verdict, sessionsFilePath, ReportDirectory, ApiBaseUrl: null);
 
         var preparedRun = QaRunService.Prepare(options);
         var testRun = await QaRunService.RunAsync(preparedRun, ReportDirectory);
@@ -30,7 +31,10 @@ public class QaRunServiceTests : IDisposable
 
         Assert.Equal("판정 시험", testRun.SuiteName);
         Assert.Equal("FakeVerdictService", testRun.TargetName);
-        Assert.Equal(1, testRun.PassedCount);
+
+        // 사례 1건 + 봇 탐지율 1건. 연습용 판정기도 오픈 직후 진입한 봇은 잡는다
+        Assert.Equal(["S-001", TestResult.WholeRunCaseId], testRun.Results.Select(result => result.CaseId));
+        Assert.Equal(2, testRun.PassedCount);
         Assert.True(File.Exists(savedReports.JsonReportPath));
         Assert.True(File.Exists(savedReports.HtmlReportPath));
     }
@@ -41,7 +45,7 @@ public class QaRunServiceTests : IDisposable
         var scenarioFolder = Path.Combine(_tempFolder, "pipeline");
         Directory.CreateDirectory(scenarioFolder);
         File.WriteAllText(Path.Combine(scenarioFolder, "dup.json"), """
-            { "caseId": "DUP-001", "events": [ { "eventId": "e1", "scanId": "s1" } ], "injection": { "duplicateCount": 3 } }
+            { "caseId": "DUP-001", "events": [ { "eventId": "e1", "sessionHash": "s1" } ], "injection": { "duplicateCount": 3 } }
             """);
         var options = new CommandLineOptions(TestSuite.Pipeline, scenarioFolder, ReportDirectory, ApiBaseUrl: null);
 

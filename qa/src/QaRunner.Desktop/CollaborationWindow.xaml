@@ -5,8 +5,8 @@
  <Grid><Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/><RowDefinition Height="28"/></Grid.RowDefinitions><local:WindowTitleBar x:Name="TitleBar"/>
  <Grid x:Name="WorkspaceViewport" Grid.Row="1" ClipToBounds="True"><DockPanel x:Name="WorkspaceRoot">
  <StackPanel x:Name="Navigation" DockPanel.Dock="Top" Orientation="Horizontal" Margin="12,0">
- <RadioButton Content="시험 문자" GroupName="Page" Tag="cases" IsChecked="True" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
- <RadioButton Content="AI 문자 만들기" GroupName="Page" Tag="ai" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
+ <RadioButton Content="시험 세션" GroupName="Page" Tag="cases" IsChecked="True" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
+ <RadioButton Content="AI 세션 만들기" GroupName="Page" Tag="ai" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
  <RadioButton Content="정답 검토" GroupName="Page" Tag="review" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
  <RadioButton Content="공유 기록" GroupName="Page" Tag="team" Style="{StaticResource TabNavigation}" Checked="Page_Checked"/>
  </StackPanel><local:CollaborationView x:Name="View"/></DockPanel></Grid>

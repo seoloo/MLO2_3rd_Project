@@ -18,8 +18,8 @@ public class PipelineCheckerTests
             throw new EventSendException("Kafka에 연결할 수 없습니다");
     }
 
-    private static ScenarioEvent CreateScenarioEvent(string eventId, string verdict = "고위험") =>
-        new() { EventId = eventId, ScanId = $"scan-{eventId}", Verdict = verdict };
+    private static ScenarioEvent CreateScenarioEvent(string eventId, string eventType = "seat_click") =>
+        new() { EventId = eventId, SessionHash = $"session-{eventId}", Type = eventType };
 
     private static PipelineChecker CreateCheckerWithFakePipeline()
     {

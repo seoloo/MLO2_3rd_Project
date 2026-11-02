@@ -41,7 +41,7 @@ public class ReportWriterTests : IDisposable
         var reportFilePath = JsonReportWriter.Save(SampleTestRuns.OnePassedOneFailed(), _tempReportDirectory);
 
         // 한글이 \uXXXX로 바뀌지 않고 그대로 들어 있어야 한다
-        Assert.Contains("인증번호를 알려주세요", File.ReadAllText(reportFilePath));
+        Assert.Contains("봇 A · 오픈 0.03초 뒤 진입", File.ReadAllText(reportFilePath));
     }
 
     [Fact]
@@ -58,8 +58,8 @@ public class ReportWriterTests : IDisposable
     {
         var html = HtmlReportWriter.BuildHtml(SampleTestRuns.OnePassedOneFailed());
 
-        // 입력값 파일에서는 R-001(통과)이 먼저지만, 보고서에서는 R-002(실패)가 먼저 나와야 한다
-        Assert.True(html.IndexOf("R-002", StringComparison.Ordinal) < html.IndexOf("R-001", StringComparison.Ordinal));
+        // 사례 파일에서는 S-001(통과)이 먼저지만, 보고서에서는 S-002(실패)가 먼저 나와야 한다
+        Assert.True(html.IndexOf("S-002", StringComparison.Ordinal) < html.IndexOf("S-001", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class ReportWriterTests : IDisposable
     public void Html_report_shows_reason_for_system_failure()
     {
         var testRun = SampleTestRuns.OnePassedOneFailed("ApiVerdictService");
-        var failedByConnection = TestResult.SystemFailure("R-001", "판정", "문자", "고위험", "연결할 수 없습니다");
+        var failedByConnection = TestResult.SystemFailure("S-001", "판정", "봇 A 세션", "추가 확인", "연결할 수 없습니다");
 
         var html = HtmlReportWriter.BuildHtml(testRun with { Results = [failedByConnection] });
 

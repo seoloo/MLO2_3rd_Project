@@ -6,19 +6,26 @@ using System.Text;
 namespace QaRunner.AppMock;
 
 /// <summary>
-/// B의 판정 API 대신 앱(A)이 붙어 볼 수 있는 가짜 판정 서버.
-/// POST /checks에 정해 둔 응답(정상 판정, 오류, 지연, 깨진 응답)을 돌려주고, 받은 요청이 계약 3장과 같은지 기록한다.
+/// 백엔드(B)의 예매·수집·판정 API 대신 앱(A)이 붙어 볼 수 있는 가짜 예매·판정 서버.
+/// 대기열·좌석 점유·결제·추가 확인·이벤트 수집·판정 조회(docs/contract.md 3~5장)를 흉내 내고,
+/// 정해 둔 응답 방식(추가 확인, 보류, 매진, 판정 지연, 오류 등)을 돌려주며, 받은 요청이 계약과 같은지 기록한다.
 ///
 /// 별도 웹 서버 런타임 없이 돌도록 TcpListener로 HTTP/1.1의 필요한 부분만 처리한다.
 /// (HttpListener는 Host 헤더가 localhost가 아니면 거절해서 Android 에뮬레이터의 10.0.2.2 요청을 받지 못한다)
 /// 응답마다 연결을 닫고, 웹 브라우저로 띄운 앱(Expo 웹)도 부를 수 있게 CORS 헤더를 붙인다.
 /// </summary>
-public sealed class MockVerdictServer : IDisposable
+public sealed class MockTicketServer : IDisposable
 {
     /// <summary>보고서에 남기는 시험 대상 이름. 시험하는 것은 앱이고, 서버는 앱이 붙는 상대다</summary>
-    public const string TargetName = "앱 (가짜 판정 서버에 연결)";
+    public const string TargetName = "앱 (가짜 예매·판정 서버에 연결)";
 
-    // 요청 헤더·본문 크기 제한. 판정 요청은 문자 한 통이라 이보다 훨씬 작다
+    /// <summary>이 요청만 다른 응답 방식을 쓰라는 헤더 이름. 값은 --scenario 값과 같다 (예: verify)</summary>
+    public const string ScenarioHeader = "X-Mock-Scenario";
+
+    /// <summary>이 요청만 다른 응답 방식을 쓰라는 주소 끝 표시 이름. 예: /payments?mock=verify</summary>
+    public const string ScenarioQueryName = "mock";
+
+    // 요청 헤더·본문 크기 제한. 예매 요청과 1초치 이벤트 묶음은 이보다 훨씬 작다
     private const int MaxHeaderBytes = 32 * 1024;
     private const int MaxBodyBytes = 1024 * 1024;
 
@@ -31,9 +38,10 @@ public sealed class MockVerdictServer : IDisposable
     private readonly TaskCompletionSource _stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly List<MockRequestRecord> _records = [];
     private readonly Lock _recordsLock = new();
+    private readonly MockTicketBackend _backend = new();
     private int _scenario;
 
-    private MockVerdictServer(IReadOnlyList<TcpListener> listeners, MockServerSettings settings)
+    private MockTicketServer(IReadOnlyList<TcpListener> listeners, MockServerSettings settings)
     {
         _listeners = listeners;
         _scenario = (int)settings.Scenario;
@@ -77,7 +85,7 @@ public sealed class MockVerdictServer : IDisposable
     /// 서버를 켠다. 포트를 이미 다른 프로그램이 쓰고 있으면 MockServerStartException을 던진다.
     /// </summary>
     /// <param name="settings">포트, 처음 응답 방식, 같은 Wi-Fi 허용 여부</param>
-    public static MockVerdictServer Start(MockServerSettings settings)
+    public static MockTicketServer Start(MockServerSettings settings)
     {
         settings.Validate();
 
@@ -121,7 +129,7 @@ public sealed class MockVerdictServer : IDisposable
             // IPv6를 쓸 수 없는 환경이면 IPv4만으로 돈다
         }
 
-        var server = new MockVerdictServer(listeners, settings);
+        var server = new MockTicketServer(listeners, settings);
         if (!settings.AllowLan)
             server._allAddressGuard = ReserveAllAddresses(server.Port);
         foreach (var listener in listeners)
@@ -260,7 +268,7 @@ public sealed class MockVerdictServer : IDisposable
                 var request = await ReadRequestAsync(stream, readTimeout.Token);
                 if (request is null)
                 {
-                    await WriteResponseAsync(stream, MockVerdictResponder.ContractErrorResponse(413, "요청이 너무 커요."), _stopping.Token);
+                    await WriteResponseAsync(stream, MockTicketBackend.ContractError(413, "요청이 너무 커요."), _stopping.Token);
                     return;
                 }
 
@@ -276,25 +284,28 @@ public sealed class MockVerdictServer : IDisposable
         }
     }
 
-    // 브라우저의 사전 확인(OPTIONS)과 주소 확인용 GET /은 기록하지 않고 바로 답한다. 나머지는 모두 판정 요청으로 기록한다
+    // 브라우저의 사전 확인(OPTIONS)과 주소 확인용 GET /은 기록하지 않고 바로 답한다. 나머지는 모두 앱 요청으로 기록한다
     private MockResponse DecideResponse(MockHttpRequest request)
     {
         if (request.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
-            return new MockResponse(204, "", TimeSpan.Zero, Scenario, null);
+            return new MockResponse(204, "", TimeSpan.Zero, Scenario, "사전 확인");
 
         if (request.Method.Equals("GET", StringComparison.OrdinalIgnoreCase) && request.Path is "/" or "/favicon.ico")
         {
             return request.Path == "/"
-                ? new MockResponse(200, $"{{\"server\": \"정보지킴 QA 가짜 판정 서버\", \"scenario\": \"{Scenario.ToOptionValue()}\", \"checkPath\": \"{MockRequestInspector.CheckPath}\"}}",
-                    TimeSpan.Zero, Scenario, null)
-                : new MockResponse(404, "", TimeSpan.Zero, Scenario, null);
+                ? new MockResponse(200, $"{{\"server\": \"티켓가드 QA 가짜 예매·판정 서버\", \"scenario\": \"{Scenario.ToOptionValue()}\"}}",
+                    TimeSpan.Zero, Scenario, "서버 정보")
+                : new MockResponse(404, "", TimeSpan.Zero, Scenario, "없음");
         }
 
+        // 헤더나 ?mock=로 이 요청만 다른 응답 방식을 고를 수 있다. 모르는 값이면 서버 전체 방식을 쓴다
+        var scenario = request.ScenarioOverride is { } overrideValue && MockScenarioExtensions.TryParseOptionValue(overrideValue, out var requested)
+            ? requested
+            : Scenario;
         var inspection = MockRequestInspector.Inspect(request);
-        var scenario = MockVerdictResponder.ChooseScenario(inspection.Message, Scenario);
         var response = inspection.ErrorStatusCode is { } errorStatusCode
-            ? MockVerdictResponder.ContractErrorResponse(errorStatusCode, "계약 3장과 다른 요청이에요: " + string.Join(" · ", inspection.Problems)) with { Scenario = scenario }
-            : MockVerdictResponder.Respond(scenario, inspection.Message!, DateTimeOffset.Now);
+            ? MockTicketBackend.ContractError(errorStatusCode, "계약과 다른 요청이에요: " + string.Join(" · ", inspection.Problems)) with { Scenario = scenario }
+            : _backend.Respond(inspection, scenario, DateTimeOffset.UtcNow);
 
         MockRequestRecord record;
         lock (_recordsLock)
@@ -304,10 +315,11 @@ public sealed class MockVerdictServer : IDisposable
                 ReceivedAt: DateTimeOffset.Now,
                 Method: request.Method,
                 Path: request.Path,
-                MessagePreview: MockRequestRecord.ToPreview(inspection.Message),
+                Endpoint: inspection.Endpoint,
+                SessionPreview: MockRequestRecord.ToPreview(inspection.SessionHash),
                 Scenario: scenario,
                 StatusCode: response.StatusCode,
-                VerdictCode: response.VerdictCode,
+                ResponseSummary: response.Summary,
                 Problems: inspection.Problems);
             _records.Add(record);
         }
@@ -353,8 +365,21 @@ public sealed class MockVerdictServer : IDisposable
         if (bodyBytes is null)
             return null;
 
-        var path = requestLine[1].Split('?', 2)[0];
-        return new MockHttpRequest(requestLine[0], path, headers.GetValueOrDefault("Content-Type"), Encoding.UTF8.GetString(bodyBytes));
+        var target = requestLine[1].Split('?', 2);
+        var scenarioOverride = headers.GetValueOrDefault(ScenarioHeader) ?? FindQueryValue(target.ElementAtOrDefault(1), ScenarioQueryName);
+        return new MockHttpRequest(requestLine[0], target[0], headers.GetValueOrDefault("Content-Type"), Encoding.UTF8.GetString(bodyBytes), scenarioOverride);
+    }
+
+    // "a=1&mock=verify" 같은 쿼리에서 이름에 맞는 값을 찾는다. 없으면 null
+    private static string? FindQueryValue(string? query, string name)
+    {
+        if (string.IsNullOrEmpty(query))
+            return null;
+        return query.Split('&')
+            .Select(part => part.Split('=', 2))
+            .Where(pair => pair.Length == 2 && pair[0] == name)
+            .Select(pair => Uri.UnescapeDataString(pair[1]))
+            .FirstOrDefault();
     }
 
     // Content-Length만큼 읽는다. 헤더가 없으면 본문 없음, 너무 크면 null
@@ -447,8 +472,8 @@ public sealed class MockVerdictServer : IDisposable
             .Append("Content-Type: application/json; charset=utf-8\r\n")
             .Append($"Content-Length: {bodyBytes.Length}\r\n")
             .Append("Access-Control-Allow-Origin: *\r\n")
-            .Append("Access-Control-Allow-Methods: POST, OPTIONS\r\n")
-            .Append("Access-Control-Allow-Headers: Content-Type\r\n")
+            .Append("Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n")
+            .Append($"Access-Control-Allow-Headers: Content-Type, {ScenarioHeader}\r\n")
             .Append("Connection: close\r\n\r\n")
             .ToString();
 
@@ -499,6 +524,6 @@ public sealed class MockVerdictServer : IDisposable
 public sealed record MockServerAddress(string Label, string Url);
 
 /// <summary>
-/// 가짜 판정 서버를 켜지 못했을 때 쓰는 예외 (포트 사용 중 등). 실행 준비 오류로 분류되도록 IOException을 잇는다.
+/// 가짜 예매·판정 서버를 켜지 못했을 때 쓰는 예외 (포트 사용 중 등). 실행 준비 오류로 분류되도록 IOException을 잇는다.
 /// </summary>
 public sealed class MockServerStartException(string message) : IOException(message);

@@ -81,7 +81,7 @@ public partial class MainWindow : Window
     /// </summary>
     public void SelectSuite(TestSuite testSuite)
     {
-        // 가짜 판정 서버는 조건 시트가 아니라 홈 › 앱 영역에서 켜므로 시트의 선택을 바꾸지 않는다
+        // 가짜 예매·판정 서버는 조건 시트가 아니라 홈 › 앱 영역에서 켜므로 시트의 선택을 바꾸지 않는다
         if (testSuite == TestSuite.MockApi) return;
         VerdictSuiteRadio.IsChecked = testSuite == TestSuite.Verdict;
         PipelineSuiteRadio.IsChecked = testSuite == TestSuite.Pipeline;
@@ -235,7 +235,7 @@ public partial class MainWindow : Window
         var suite = SelectedSuite;
 
         // 입력: 판정·부하는 입력값 파일, 파이프라인은 시나리오 폴더, 복구·QA 도구 점검은 쓰지 않음
-        CasesPathLabel.Text = suite == TestSuite.Pipeline ? "시험 시나리오가 있는 폴더" : "시험 문자와 예상 정답";
+        CasesPathLabel.Text = suite == TestSuite.Pipeline ? "시험 시나리오가 있는 폴더" : "시험 세션과 예상 정답";
         CasesPathField.Visibility = suite.UsesNoCasesPath() ? Visibility.Collapsed : Visibility.Visible;
         StopSecondsField.Visibility = suite == TestSuite.Recovery ? Visibility.Visible : Visibility.Collapsed;
         _applyingSuiteDefaults = true;
@@ -269,7 +269,7 @@ public partial class MainWindow : Window
                 TestSuite.Load => "부하와 응답 속도 시험",
                 TestSuite.Recovery => "중단 후 복구 시험",
                 TestSuite.SelfCheck => "QA 도구 점검",
-                _ => "문자 판정 시험",
+                _ => "세션 판정 시험",
             };
             SuiteDescriptionText.Text = suite switch
             {
@@ -277,7 +277,7 @@ public partial class MainWindow : Window
                 TestSuite.Load => "입력을 계속 보내면서 응답 속도와 오류, 밀린 작업이 있는지 확인해요.",
                 TestSuite.Recovery => "처리를 잠깐 멈췄다가 다시 켜고, 얼마나 빨리 따라잡는지 확인해요.",
                 TestSuite.SelfCheck => "답을 이미 아는 입력으로 이 QA 도구의 채점기·정답 계산·보고서가 맞게 동작하는지 확인해요.",
-                _ => "문자를 보내고 돌아온 판정이 미리 정한 정답과 같은지 비교해요.",
+                _ => "사람·봇 세션의 행동을 보내고 돌아온 판정이 미리 정한 정답과 같은지 비교해요.",
             };
         }
         RefreshHeader();
@@ -313,7 +313,7 @@ public partial class MainWindow : Window
         if (usesApi && apiUrl.Length > 0 && !IsHttpAddress(apiUrl))
             throw new ArgumentException("API 주소를 확인해 주세요. http://localhost:8000처럼 http:// 또는 https://로 시작해야 해요.");
         if (usesApi && apiUrl.Length > 0 && EndsWithCheckPath(apiUrl))
-            throw new ArgumentException("API 주소 끝의 /checks는 빼 주세요. QA가 주소 뒤에 /checks를 붙여서 보내요. 예: http://localhost:8000");
+            throw new ArgumentException("API 주소 끝의 /events·/verdicts는 빼 주세요. QA가 주소 뒤에 붙여서 보내요. 예: http://localhost:8000");
 
         MeasurementSettings? measurement = null;
         if (suite.IsMeasurementSuite())
@@ -466,13 +466,13 @@ public partial class MainWindow : Window
     // 지금 보이는 화면. 같은 화면으로 다시 이동할 때는 상태 안내를 덮어쓰지 않는다
     private string? _currentPage;
 
-    /// <summary>제목 표시줄 "정보지킴 QA / 화면 이름"에 쓸 화면 이름.</summary>
+    /// <summary>제목 표시줄 "티켓가드 QA / 화면 이름"에 쓸 화면 이름.</summary>
     private static string PageNameFor(string page) => page switch
     {
         "home" => "홈",
         "run" => "시험 결과",
-        "cases" => "관리 / 시험 문자",
-        "ai" => "관리 / AI 문자",
+        "cases" => "관리 / 시험 세션",
+        "ai" => "관리 / AI 세션",
         "review" => "관리 / 예상 정답 검토",
         "team" => "기록 / 팀 공유",
         "reports" => "기록 / 내 기록",
@@ -486,9 +486,9 @@ public partial class MainWindow : Window
         "home" => "‘다음 할 일’을 따라가거나 시험 카드를 골라 주세요.",
         "run" => ResultsSection.Visibility == Visibility.Visible
             ? "결과를 골라 예상과 실제 값을 비교해 보세요." : "‘시험 고르기’를 누르면 오른쪽에서 조건을 확인할 수 있어요.",
-        "cases" => "시험에 쓸 문자와 예상 정답을 확인할 수 있어요.",
-        "ai" => "AI 연결은 준비 중이에요. 예제 문자로 먼저 연습할 수 있어요.",
-        "review" => "문자를 고르면 예상 정답과 판정 근거를 볼 수 있어요.",
+        "cases" => "시험에 쓸 세션과 예상 정답을 확인할 수 있어요.",
+        "ai" => "AI 연결은 준비 중이에요. 예제 세션로 먼저 연습할 수 있어요.",
+        "review" => "세션을 고르면 예상 정답과 판정 근거를 볼 수 있어요.",
         "team" => "공유된 기록을 고르면 오른쪽에 사례별 결과가 보여요.",
         "reports" => "이 PC에 저장한 기록이에요. 하나를 고르면 그때 결과를 다시 열어요.",
         "settings" => "바꾼 값은 지금 켜 둔 앱에서만 적용돼요.",
@@ -517,14 +517,13 @@ public partial class MainWindow : Window
     private void ChooseCases_Click(object sender, RoutedEventArgs e)
     {
         if (_isRunning || CollaborationPage.IsBusy) return;
-        var dialog = new OpenFileDialog { Title = "판정 사례 JSON 선택", Filter = "JSON 사례 파일|*.json", CheckFileExists = true };
+        var dialog = new OpenFileDialog { Title = "판정 세션 사례 JSON 선택", Filter = "JSON 사례 파일|*.json", CheckFileExists = true };
         if (dialog.ShowDialog(this) != true) return;
         try
         {
-            var cases = TestCaseLoader.LoadFromFile(dialog.FileName);
-            if (cases.Count == 0 || cases.Any(item => item is null || string.IsNullOrWhiteSpace(item.CaseId)
-                || string.IsNullOrWhiteSpace(item.Message) || string.IsNullOrWhiteSpace(item.ExpectedVerdict)))
-                throw new ArgumentException("사례 ID·문자·예상 정답이 있는 사례 파일을 선택하세요.");
+            var cases = SessionCaseLoader.LoadFromFile(dialog.FileName);
+            if (cases.Count == 0)
+                throw new ArgumentException("세션이 하나 이상 들어 있는 사례 파일을 선택하세요.");
             _verdictCasesPath = dialog.FileName;
             SelectSuite(TestSuite.Verdict);
             CasesPathBox.Text = dialog.FileName;
